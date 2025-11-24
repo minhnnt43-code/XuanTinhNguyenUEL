@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Xuân Tình Nguyện UEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { --admin-primary: #D72638; --admin-bg: #f4f6f9; }
+        body { font-family: 'Montserrat', sans-serif; margin: 0; background: var(--admin-bg); }
+        
+        /* LOGIN SCREEN */
+        #login-screen {
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+            background: linear-gradient(135deg, #D72638, #FFC600);
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 15px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 350px;
+        }
+        /* Nút Google đẹp hơn, dùng Icon FontAwesome */
+        .btn-google {
+            background: white; border: 1px solid #ddd; padding: 12px 20px; border-radius: 50px;
+            cursor: pointer; font-weight: bold; color: #555; display: flex; align-items: center;
+            gap: 10px; justify-content: center; margin-top: 20px; width: 100%; transition: 0.3s;
+            font-size: 1rem;
+        }
+        .btn-google:hover { background: #f1f1f1; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-google i { color: #DB4437; font-size: 1.2rem; } /* Màu đỏ Google */
+
+        /* DASHBOARD LAYOUT */
+        #dashboard-screen { display: none; display: flex; height: 100vh; } 
+        
+        .sidebar {
+            width: 250px; background: #2c3e50; color: white; display: flex; flex-direction: column;
+            padding: 20px; position: fixed; height: 100%;
+        }
+        .sidebar h2 { margin-bottom: 30px; font-size: 1.2rem; color: #FFC600; text-align: center; border-bottom: 1px solid #444; padding-bottom: 10px;}
+        .menu-item {
+            padding: 15px; cursor: pointer; transition: 0.3s; border-radius: 8px; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;
+        }
+        .menu-item:hover, .menu-item.active { background: var(--admin-primary); }
+        .btn-logout { margin-top: auto; background: #c0392b; text-align: center; justify-content: center;}
+
+        .main-content {
+            margin-left: 250px; flex: 1; padding: 30px; overflow-y: auto; width: calc(100% - 250px);
+        }
+
+        /* CARDS & FORMS */
+        .admin-card {
+            background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        input, select, textarea {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; outline: none;
+        }
+        .btn-action {
+            padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white;
+        }
+        .btn-add { background: #27ae60; }
+        .btn-del { background: #e74c3c; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px;}
+        .btn-approve { background: #2980b9; padding: 5px 10px; font-size: 0.8rem; margin-right: 5px; }
+
+        /* LIST ITEMS */
+        .data-list { list-style: none; padding: 0; }
+        .data-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px; border-bottom: 1px solid #eee; background: #fff;
+        }
+        .data-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 10px; }
+        .item-info { display: flex; align-items: center; }
+        
+        /* TAB HIDDEN LOGIC */
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP -->
+    <div id="login-screen">
+        <div class="login-box">
+            <!-- Sửa đường dẫn ảnh cho đúng -->
+            <img src="hinhanh/bieutrungxtn.png" style="width: 80px; margin-bottom: 10px;" onerror="this.style.display='none'">
+            <h2>ADMIN PORTAL</h2>
+            <p>Dành riêng cho Ban Chỉ Huy</p>
+            <button id="btn-google-login" class="btn-google">
+                <i class="fa-brands fa-google"></i>
+                Đăng nhập bằng Google
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. MÀN HÌNH QUẢN LÝ -->
+    <div id="dashboard-screen" style="display: none;">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <h2>QUẢN TRỊ VIÊN</h2>
+            <div class="menu-item active" onclick="switchTab('tab-gallery')"><i class="fa-solid fa-images"></i> Hồi Ức (Gallery)</div>
+            <div class="menu-item" onclick="switchTab('tab-leaders')"><i class="fa-solid fa-users"></i> Ban Chỉ Huy</div>
+            <div class="menu-item" onclick="switchTab('tab-confessions')"><i class="fa-solid fa-envelope"></i> Duyệt Lời Nhắn</div>
+            <div class="menu-item" onclick="switchTab('tab-settings')"><i class="fa-solid fa-gear"></i> Cài Đặt</div>
+            <div class="menu-item" onclick="switchTab('tab-admins')"><i class="fa-solid fa-user-shield"></i> Quản Trị Viên</div>
+            <div class="menu-item btn-logout" id="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="main-content">
+            
+            <!-- TAB 1: GALLERY -->
+            <div id="tab-gallery" class="tab-content active">
+                <div class="admin-card">
+                    <div class="card-header"><h3>📸 Thêm Ảnh Mới</h3></div>
+                    <div class="form-grid">
+                        <input type="text" id="gal-url" placeholder="Dán link ảnh (Drive, Facebook, Imgur...)">
+                        <input type="text" id="gal-caption" placeholder="Mô tả ngắn (VD: Lễ ra quân 2024)">
+                        <input type="number" id="gal-year" placeholder="Năm (VD: 2024)" value="2024">
+                        <button class="btn-action btn-add" onclick="addGallery()">Thêm Ảnh</button>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3>Danh sách ảnh đang hiển thị</h3>
+                    <ul id="list-gallery" class="data-list">Loading...</ul>
+                </div>
+            </div>
+
+            <!-- TAB 2: LEADERS -->
+            <div id="tab-leaders" class="tab-content">
+                <div class="admin-card">
+                    <div class="card-header"><h3>👮 Thêm Thành Viên BCH</h3></div>
+                    <div class="form-grid">
+                        <input type="text" id="lead-name" placeholder="Họ và tên">
+                        <input type="text" id="lead-role" placeholder="Chức vụ (VD: Chỉ huy trưởng)">
+                        <input type="text" id="lead-avatar" placeholder="Link ảnh chân dung">
+                        <input type="text" id="lead-quote" placeholder="Câu nói tâm đắc">
+                        <button class="btn-action btn-add" style="grid-column: span 2;" onclick="addLeader()">Thêm Thành Viên</button>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3>Danh sách BCH</h3>
+                    <ul id="list-leaders" class="data-list">Loading...</ul>
+                </div>
+            </div>
+
+            <!-- TAB 3: CONFESSIONS -->
+            <div id="tab-confessions" class="tab-content">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>💌 Lời nhắn chờ duyệt</h3>
+                        <button class="btn-action btn-add" onclick="loadConfessionsAdmin()"><i class="fa-solid fa-rotate"></i> Tải lại</button>
+                    </div>
+                    <p style="color: #666; font-style: italic;">Chỉ những lời nhắn bạn bấm "Duyệt" mới hiện ra trang chủ.</p>
+                    <ul id="list-confessions" class="data-list">Loading...</ul>
+                </div>
+            </div>
+
+            <!-- TAB 4: SETTINGS -->
+            <div id="tab-settings" class="tab-content">
+                <div class="admin-card">
+                    <div class="card-header"><h3>⚙️ Cấu hình chung</h3></div>
+                    <label>Ngày ra quân dự kiến (Chọn lịch):</label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <input type="datetime-local" id="set-date" style="font-size: 1.1rem; color: #333;">
+                        <button class="btn-action btn-add" onclick="saveSettings()">Lưu Cấu Hình</button>
+                    </div>
+                    <p><small>Định dạng: Tháng (Tiếng Anh 3 chữ) Ngày, Năm Giờ:Phút:Giây</small></p>
+                </div>
+            </div>
+
+            <!-- TAB 5: QUẢN LÝ ADMIN -->
+            <div id="tab-admins" class="tab-content">
+                <div class="admin-card">
+                    <div class="card-header"><h3>🛡️ Cấp quyền Ban Chỉ Huy</h3></div>
+                    <p style="color: #e74c3c; font-weight: bold; font-size: 0.9rem; margin-bottom: 15px;">
+                        ⚠️ Lưu ý: Người được thêm vào danh sách này sẽ có TOÀN QUYỀN truy cập hệ thống.
+                    </p>
+                    <div class="form-grid">
+                        <input type="email" id="adm-email" placeholder="Gmail (VD: nguyenvanA@gmail.com)">
+                        <input type="text" id="adm-name" placeholder="Tên hiển thị (VD: Đ/c Nguyễn Văn A)">
+                        <button class="btn-action btn-add" onclick="addSystemAdmin()">Cấp Quyền</button>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3>Danh sách Admin hiện tại</h3>
+                    <ul id="list-admins" class="data-list">Loading...</ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Sửa đường dẫn script trỏ vào thư mục js/ -->
+    <script type="module" src="js/admin.js"></script>
+    
+    <!-- Inline script cho Tabs UI -->
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            // Highlight menu item (cách đơn giản nhất)
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>
