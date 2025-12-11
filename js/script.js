@@ -1,7 +1,7 @@
 // 1. Import các hàm cần thiết từ firebase.js và thư viện Firestore
 import { db } from './firebase.js';
-import { 
-    collection, getDocs, doc, getDoc, addDoc, query, where, orderBy 
+import {
+    collection, getDocs, doc, getDoc, addDoc, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ==================================================
@@ -13,7 +13,7 @@ function convertDriveLink(url) {
     if (!url) return 'https://placehold.co/600x400?text=No+Image';
     // Nếu là link ảnh thường (imgur, fb...) thì giữ nguyên
     if (!url.includes('drive.google.com')) return url;
-    
+
     // Tách ID từ link Drive
     let id = '';
     const parts = url.split('/');
@@ -39,7 +39,7 @@ async function initCountdown() {
         // Lấy ngày ra quân từ Firestore (xtn_settings/config)
         const docRef = doc(db, "xtn_settings", "config");
         const docSnap = await getDoc(docRef);
-        
+
         let targetDateStr = "Jan 15, 2025 07:00:00"; // Mặc định nếu chưa setup
         if (docSnap.exists() && docSnap.data().target_date) {
             targetDateStr = docSnap.data().target_date;
@@ -47,7 +47,7 @@ async function initCountdown() {
 
         // Chạy đồng hồ
         const countDate = new Date(targetDateStr).getTime();
-        
+
         setInterval(() => {
             const now = new Date().getTime();
             const gap = countDate - now;
@@ -59,7 +59,7 @@ async function initCountdown() {
                 document.getElementById("minutes").innerText = Math.floor((gap % hour) / minute);
                 document.getElementById("seconds").innerText = Math.floor((gap % minute) / second);
             } else {
-                document.querySelector(".countdown-wrapper").innerHTML = 
+                document.querySelector(".countdown-wrapper").innerHTML =
                     "<h3 style='color:#FFC600; font-size:1.5rem; text-shadow: 1px 1px 2px black;'>🚀 CHIẾN DỊCH ĐÃ BẮT ĐẦU!</h3>";
             }
         }, 1000);
@@ -80,7 +80,7 @@ async function loadGallery() {
         // Lấy tất cả ảnh, sắp xếp mới nhất lên đầu (cần tạo Index nếu console báo lỗi)
         const q = query(collection(db, "xtn_gallery"), orderBy("created_at", "desc"));
         const querySnapshot = await getDocs(q);
-        
+
         if (querySnapshot.empty) {
             container.innerHTML = '<p style="text-align:center; width:100%">Chưa có hình ảnh nào.</p>';
             return;
@@ -90,7 +90,7 @@ async function loadGallery() {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const imageUrl = convertDriveLink(data.image_url);
-            
+
             const html = `
                 <div class="gallery-item">
                     <img src="${imageUrl}" alt="Hồi ức" loading="lazy">
@@ -110,7 +110,7 @@ async function loadLeaders() {
     const container = document.getElementById('leaders-container');
     try {
         const querySnapshot = await getDocs(collection(db, "xtn_leaders"));
-        
+
         if (querySnapshot.empty) {
             container.innerHTML = '<p>Đang cập nhật danh sách...</p>';
             return;
@@ -120,7 +120,7 @@ async function loadLeaders() {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const avatarUrl = convertDriveLink(data.avatar_url) || 'https://placehold.co/150x150?text=U';
-            
+
             const html = `
                 <div class="leader-card">
                     <img src="${avatarUrl}" alt="${data.name}" class="leader-img">
@@ -152,7 +152,7 @@ async function loadConfessions() {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const colorClass = data.bg_color || 'yellow'; // yellow, red, green
-            
+
             const html = `
                 <div class="note ${colorClass}">
                     <p class="note-content">"${data.content}"</p>
@@ -181,7 +181,7 @@ function setupConfessionModal() {
 
     form.onsubmit = async (e) => {
         e.preventDefault();
-        
+
         const btn = form.querySelector('.btn-submit');
         const originalText = btn.innerText;
         btn.innerText = "Đang gửi...";
@@ -199,7 +199,7 @@ function setupConfessionModal() {
                 status: "pending", // Quan trọng: Gửi lên là chờ duyệt
                 timestamp: new Date().toISOString()
             });
-            
+
             alert("💌 Đã gửi thành công! Lời nhắn sẽ xuất hiện sau khi Ban Chỉ Huy duyệt nhé.");
             modal.style.display = "none";
             form.reset();

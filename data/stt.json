@@ -1,0 +1,17 @@
+{
+    "description": "File chứa STT chiến sĩ để đặt tên file thẻ",
+    "format": "Ten-Doihinh-STT.png",
+    "data": {
+        "user_id_1": {
+            "stt": "001",
+            "name": "Nguyễn Văn A",
+            "team": "Doi1"
+        },
+        "user_id_2": {
+            "stt": "002",
+            "name": "Trần Thị B",
+            "team": "Doi2"
+        }
+    },
+    "note": "Thay thế user_id bằng UID Firebase. Admin sẽ cập nhật file này với danh sách chiến sĩ thực tế."
+}

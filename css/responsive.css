@@ -1,0 +1,55 @@
+/**
+ * responsive.css - Mobile responsive
+ */
+
+@media (max-width: 1024px) {
+    .section-container {
+        padding: 60px 20px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* Typography */
+    .main-title {
+        font-size: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+    }
+
+    /* Buttons */
+    .btn-cta {
+        display: block;
+        width: 100%;
+        margin: 10px 0;
+    }
+
+    /* Forms */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    /* Cards */
+    .card {
+        padding: 20px;
+    }
+
+    /* Tables - scroll horizontal */
+    .data-table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
+
+    .btn {
+        font-size: 0.85rem;
+        padding: 10px 20px;
+    }
+}

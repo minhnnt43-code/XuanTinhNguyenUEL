@@ -1,32 +1,41 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xuân Tình Nguyện UEL 2026</title>
-    
+
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Merriweather:wght@700&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Merriweather:wght@700&display=swap"
+        rel="stylesheet">
+
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/index.css">
 </head>
+
 <body>
 
     <!-- 1. NAVIGATION -->
     <nav class="navbar">
         <div class="logo-container">
-            <img src="hinhanh/bieutrungxtn.png" alt="Logo UEL XTN" class="nav-logo">
+            <a href="index.html">
+                <img src="images/bieutrungxtn.png" alt="Logo UEL XTN" class="nav-logo">
+            </a>
         </div>
         <ul class="nav-links">
-            <li><a href="#hero">Trang chủ</a></li>
-            <li><a href="#gallery">Hồi ức</a></li>
-            <li><a href="#leaders">Ban Chỉ Huy</a></li>
-            <li><a href="#confessions">Góc Chia Sẻ</a></li>
-            <li><a href="admin.html" class="btn-login">Admin Portal</a></li>
+            <li><a href="dashboard.html">Tạo Avatar</a></li>
+            <li><a href="#gallery">Hồi ức Xuân tình nguyện</a></li>
+            <li>
+                <a href="login.html" class="btn-login">
+                    <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
+                </a>
+            </li>
         </ul>
         <div class="mobile-toggle"><i class="fa-solid fa-bars"></i></div>
     </nav>
@@ -37,9 +46,9 @@
         <div class="hero-content">
             <div class="decor-icon">🌸🎐</div>
             <h2 class="sub-title">Chiến dịch tình nguyện</h2>
-            <h1 class="main-title">XUÂN TÌNH NGUYỆN <br> <span class="highlight-text">UEL 2025</span></h1>
+            <h1 class="main-title">XUÂN TÌNH NGUYỆN <br> <span class="highlight-text">UEL 2026</span></h1>
             <p class="slogan">"Gom nhặt yêu thương - Sẻ chia Tết ấm"</p>
-            
+
             <div class="countdown-wrapper">
                 <p class="countdown-label">⏳ Thời gian đếm ngược đến ngày ra quân:</p>
                 <div id="countdown" class="timer">
@@ -49,8 +58,13 @@
                     <div class="time-box"><span id="seconds">00</span><small>Giây</small></div>
                 </div>
             </div>
-            
-            <a href="#confessions" class="btn-cta">Gửi lời nhắn ngay</a>
+
+            <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn-cta btn-register">
+                <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
+            </a>
+            <a href="job-description.html" class="btn-cta btn-secondary">
+                <i class="fa-solid fa-briefcase"></i> Mô tả công việc
+            </a>
         </div>
     </section>
 
@@ -65,106 +79,43 @@
         </div>
     </section>
 
-    <!-- 4. LEADERS -->
-    <section id="leaders" class="section-container bg-pattern">
-        <div class="section-header">
-            <h2 class="section-title">Thủ lĩnh Xuân tình nguyện</h2>
-            <p class="section-desc">Ban Chỉ Huy Chiến Dịch Xuân tình nguyện năm 2025</p>
-        </div>
-        <div id="leaders-container" class="team-grid">
-            <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải danh sách...</div>
-        </div>
-    </section>
 
-    <!-- 5. CONFESSIONS -->
-    <section id="confessions" class="section-container">
-        <div class="section-header">
-            <h2 class="section-title">Góc chia sẻ</h2>
-            <p class="section-desc">Những lời nhắn gửi yêu thương từ các bạn chiến sĩ</p>
-            <button id="btn-open-modal" class="btn-write">✍️ Viết chia sẻ của bạn</button>
-        </div>
-        <div id="confessions-container" class="confession-wall">
-            <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải tâm thư...</div>
-        </div>
-    </section>
 
-    <!-- 6. FOOTER (ĐÃ LÀM GỌN & CHỪA CHỖ ĐIỀN LINK) -->
+
+    <!-- FOOTER -->
     <footer class="footer-official">
-        <div class="footer-content">
-            
-            <!-- Cột 1: Thông tin đơn vị -->
-            <div class="footer-col logos-col">
-                <div class="logos-wrapper">
-                    <img src="hinhanh/cumlogo.png" alt="Logo Đơn vị tổ chức" class="org-logo">
-                    <img src="hinhanh/bieutrungxtn.png" alt="Biểu trưng Én" class="symbol-logo">
-                </div>
-                <div class="footer-info">
-                    <p class="copyright">© Hội Sinh viên UEL.</p>
+        <div class="footer-content"
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; padding:30px 40px;">
+
+            <!-- Logo + Copyright -->
+            <div style="display:flex; align-items:center; gap:15px;">
+                <img src="images/bieutrungxtn.png" alt="Logo XTN" style="height:50px;">
+                <div>
+                    <strong style="color:#fff;">Xuân Tình Nguyện UEL 2026</strong>
+                    <p style="margin:0; font-size:12px; color:rgba(255,255,255,0.7);">© 2025 Hội Sinh viên UEL</p>
                 </div>
             </div>
 
-            <!-- Cột 2: Mạng xã hội (BẠN ĐIỀN LINK VÀO DƯỚI ĐÂY) -->
-            <div class="footer-col social-col">
-                <h4>THEO DÕI CHÚNG TÔI</h4>
-                <div class="social-icons">
-                    <!-- Thay dấu # bằng link Fanpage của bạn -->
-                    <a href="https://www.facebook.com/xuantinhnguyen.uel" target="_blank" title="Facebook">
-                        <i class="fa-brands fa-facebook-f"></i>
-                    </a>
-                    
-                    <a href="https://www.instagram.com/youth.uel" target="_blank" title="Instagram">
-                        <i class="fa-brands fa-instagram"></i>
-                    </a>
-                    
-                    <a href="tiktok.com" target="_blank" title="TikTok">
-                        <i class="fa-brands fa-tiktok"></i>
-                    </a>
-                    
-                    <a href="https://youth.uel.edu.vn/" target="_blank" title="Website UEL">
-                        <i class="fa-solid fa-globe"></i>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Cột 3: Thống kê -->
-            <div class="footer-col stats-col">
-                <h4>THÔNG TIN TRUY CẬP</h4>
-                <ul class="stats-list">
-                    <li>Đang online: <span class="highlight"> 01 sinh viên dễ thương</span></li>
-                    <li>Tổng truy cập: <span class="highlight">999999</span></li>
-                </ul>
+            <!-- Social Icons -->
+            <div class="social-icons" style="display:flex; gap:15px;">
+                <a href="https://www.facebook.com/xuantinhnguyen.uel" target="_blank" title="Facebook"
+                    style="color:#fff; font-size:20px;">
+                    <i class="fa-brands fa-facebook-f"></i>
+                </a>
+                <a href="https://www.instagram.com/youth.uel" target="_blank" title="Instagram"
+                    style="color:#fff; font-size:20px;">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+                <a href="https://www.tiktok.com/@youth.uel" target="_blank" title="TikTok"
+                    style="color:#fff; font-size:20px;">
+                    <i class="fa-brands fa-tiktok"></i>
+                </a>
+                <a href="https://youth.uel.edu.vn/" target="_blank" title="Website" style="color:#fff; font-size:20px;">
+                    <i class="fa-solid fa-globe"></i>
+                </a>
             </div>
         </div>
-        
-        <div class="footer-bottom-bar"></div>
     </footer>
-
-    <!-- MODAL POPUP -->
-    <div id="confession-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h3>Gửi lời nhắn mùa Xuân</h3>
-            <form id="confession-form">
-                <div class="form-group">
-                    <label>Tên của bạn (hoặc Ẩn danh):</label>
-                    <input type="text" id="sender-name" placeholder="Ví dụ: Bé Út K24..." required>
-                </div>
-                <div class="form-group">
-                    <label>Lời nhắn gửi:</label>
-                    <textarea id="sender-content" rows="4" placeholder="Viết điều gì đó dễ thương..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Chọn màu giấy note:</label>
-                    <div class="color-options">
-                        <input type="radio" name="note-color" value="yellow" checked> 🟡 Vàng
-                        <input type="radio" name="note-color" value="red"> 🔴 Đỏ
-                        <input type="radio" name="note-color" value="green"> 🟢 Xanh
-                    </div>
-                </div>
-                <button type="submit" class="btn-submit">Gửi đi 🚀</button>
-            </form>
-        </div>
-    </div>
 
     <!-- SCRIPT -->
     <script type="module" src="js/script.js"></script>
