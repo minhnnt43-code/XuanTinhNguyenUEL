@@ -449,63 +449,36 @@
 
     <!-- Scripts -->
     <script type="module">
-        import { loginWithGoogle, handleRedirectResult, onAuthChange } from './js/auth.js';
+        import { loginWithGoogle, onAuthChange } from './js/auth.js';
 
         const btnLogin = document.getElementById('btn-google-login');
         const errorMessage = document.getElementById('error-message');
 
-        console.log('🔐 [Login] Page loaded, checking redirect result...');
+        console.log('🔐 [Login] Page loaded');
 
-        // Xử lý kết quả redirect từ Google trước
-        (async () => {
-            try {
-                const result = await handleRedirectResult();
-                if (result.success) {
-                    console.log('🔐 [Login] Redirect login successful, redirecting to dashboard...');
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-            } catch (error) {
-                console.error('🔐 [Login] Redirect result error:', error);
-                errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
-                errorMessage.classList.add('show');
-            }
-        })();
-
-        // Check if already logged in (for normal page visits)
+        // Check if already logged in
         onAuthChange((user, userData) => {
-            console.log('🔐 [Login] onAuthChange fired:', { user: user?.email, userData });
-
+            console.log('🔐 [Login] onAuthChange:', user?.email);
             if (user) {
-                console.log('🔐 [Login] User detected, redirecting to dashboard...');
+                console.log('🔐 [Login] User logged in, redirecting to dashboard...');
                 window.location.href = 'dashboard.html';
-            } else {
-                console.log('🔐 [Login] No user detected, staying on login page');
             }
         });
 
         // Login button handler
         btnLogin.addEventListener('click', async () => {
-            // Disable button và hiển thị loading
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
-
-            // Hide error
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
             errorMessage.classList.remove('show');
 
             try {
-                // Với redirect, không cần await kết quả
-                // onAuthChange sẽ tự động xử lý khi redirect về
-                await loginWithGoogle();
-                // Lưu ý: Code này có thể không chạy vì page sẽ redirect đi
+                const { user, userData } = await loginWithGoogle();
+                console.log('🔐 [Login] Login success, redirecting...');
+                window.location.href = 'dashboard.html';
             } catch (error) {
                 console.error('Login error:', error);
-
-                // Show error
                 errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
                 errorMessage.classList.add('show');
-
-                // Reset button
                 btnLogin.disabled = false;
                 btnLogin.innerHTML = '<i class="fa-brands fa-google"></i> Đăng nhập bằng Google';
             }

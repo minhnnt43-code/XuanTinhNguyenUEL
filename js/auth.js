@@ -5,8 +5,7 @@
 
 import { auth, provider, db } from './firebase.js';
 import {
-    signInWithRedirect,
-    getRedirectResult,
+    signInWithPopup,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -168,14 +167,32 @@ async function checkSuperAdmin(email) {
 // ============================================================
 
 /**
- * Đăng nhập bằng Google (dùng Redirect thay vì Popup để tránh lỗi COOP)
+ * Đăng nhập bằng Google (dùng Popup)
  */
 async function loginWithGoogle() {
     try {
-        // Sử dụng Redirect thay vì Popup để tránh lỗi Cross-Origin-Opener-Policy
-        await signInWithRedirect(auth, provider);
-        // Sau khi redirect về, kết quả sẽ được xử lý bởi onAuthStateChanged
+        console.log('🔐 [Auth] Starting Google popup login...');
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        console.log('🔐 [Auth] Popup login success:', user.email);
+
+        // Kiểm tra Super Admin
+        const isSuperAdminCheck = await checkSuperAdmin(user.email);
+
+        // Lưu thông tin user
+        const userData = await saveUserData(user, {
+            role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
+        });
+
+        console.log("✅ Đăng nhập thành công:", user.email);
+        return { user, userData };
+
     } catch (error) {
+        // Xử lý lỗi popup bị đóng
+        if (error.code === 'auth/popup-closed-by-user') {
+            console.log('🔐 [Auth] User closed popup');
+            throw new Error('Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại!');
+        }
         console.error("❌ Lỗi đăng nhập:", error);
         throw error;
     }
