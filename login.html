@@ -454,11 +454,18 @@
         const btnLogin = document.getElementById('btn-google-login');
         const errorMessage = document.getElementById('error-message');
 
+        console.log('🔐 [Login] Page loaded, setting up auth listener...');
+
         // Check if already logged in
         onAuthChange((user, userData) => {
+            console.log('🔐 [Login] onAuthChange fired:', { user: user?.email, userData });
+
             if (user) {
+                console.log('🔐 [Login] User detected, redirecting to dashboard...');
                 // Redirect to unified dashboard
                 window.location.href = 'dashboard.html';
+            } else {
+                console.log('🔐 [Login] No user detected, staying on login page');
             }
         });
 
