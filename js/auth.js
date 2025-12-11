@@ -182,6 +182,39 @@ async function loginWithGoogle() {
 }
 
 /**
+ * Xử lý kết quả redirect sau khi đăng nhập Google
+ * Gọi function này khi page load để check redirect result
+ */
+async function handleRedirectResult() {
+    try {
+        console.log('🔐 [Auth] Checking for redirect result...');
+        const result = await getRedirectResult(auth);
+
+        if (result) {
+            const user = result.user;
+            console.log('🔐 [Auth] Redirect result found:', user.email);
+
+            // Kiểm tra Super Admin
+            const isSuperAdmin = await checkSuperAdmin(user.email);
+
+            // Lưu thông tin user
+            await saveUserData(user, {
+                role: isSuperAdmin ? ROLES.SUPER_ADMIN : undefined
+            });
+
+            console.log("✅ Đăng nhập thành công qua redirect:", user.email);
+            return { user, success: true };
+        } else {
+            console.log('🔐 [Auth] No redirect result (user may already be logged in or not redirected)');
+            return { user: null, success: false };
+        }
+    } catch (error) {
+        console.error("❌ Lỗi xử lý redirect:", error);
+        throw error;
+    }
+}
+
+/**
  * Đăng xuất
  */
 async function logout() {
@@ -353,6 +386,7 @@ export {
 
     // Auth functions
     loginWithGoogle,
+    handleRedirectResult,
     logout,
     onAuthChange,
 

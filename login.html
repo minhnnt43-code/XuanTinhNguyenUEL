@@ -449,20 +449,35 @@
 
     <!-- Scripts -->
     <script type="module">
-        import { loginWithGoogle, onAuthChange } from './js/auth.js';
+        import { loginWithGoogle, handleRedirectResult, onAuthChange } from './js/auth.js';
 
         const btnLogin = document.getElementById('btn-google-login');
         const errorMessage = document.getElementById('error-message');
 
-        console.log('🔐 [Login] Page loaded, setting up auth listener...');
+        console.log('🔐 [Login] Page loaded, checking redirect result...');
 
-        // Check if already logged in
+        // Xử lý kết quả redirect từ Google trước
+        (async () => {
+            try {
+                const result = await handleRedirectResult();
+                if (result.success) {
+                    console.log('🔐 [Login] Redirect login successful, redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('🔐 [Login] Redirect result error:', error);
+                errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
+                errorMessage.classList.add('show');
+            }
+        })();
+
+        // Check if already logged in (for normal page visits)
         onAuthChange((user, userData) => {
             console.log('🔐 [Login] onAuthChange fired:', { user: user?.email, userData });
 
             if (user) {
                 console.log('🔐 [Login] User detected, redirecting to dashboard...');
-                // Redirect to unified dashboard
                 window.location.href = 'dashboard.html';
             } else {
                 console.log('🔐 [Login] No user detected, staying on login page');
