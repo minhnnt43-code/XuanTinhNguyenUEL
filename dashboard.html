@@ -155,6 +155,60 @@
                         <p>Hoạt động</p>
                     </div>
                 </div>
+
+                <!-- AI Insights Widget -->
+                <div class="card ai-insights-card" id="ai-insights-widget" style="margin-top: 20px;">
+                    <div class="ai-insights-header">
+                        <h3><i class="fa-solid fa-robot"></i> AI Insights</h3>
+                        <button id="btn-refresh-insights" class="btn btn-sm btn-secondary" title="Làm mới">
+                            <i class="fa-solid fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div id="ai-insights-content" class="ai-insights-content">
+                        <div class="ai-loading">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i>
+                            <span>Đang phân tích dữ liệu...</span>
+                        </div>
+                    </div>
+                    <div class="ai-insights-actions" style="margin-top: 15px; display: none;" id="ai-insights-actions">
+                        <button id="btn-ai-detail-report" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-file-alt"></i> Tạo báo cáo chi tiết
+                        </button>
+                        <button id="btn-ai-team-analysis" class="btn btn-sm btn-secondary" style="margin-left: 10px;">
+                            <i class="fa-solid fa-users-gear"></i> AI Phân tích Đội
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Team Analysis Modal -->
+                <div id="modal-team-analysis" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div class="modal-header"
+                            style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;">
+                            <h2><i class="fa-solid fa-users-gear"></i> AI Phân tích Đội hình</h2>
+                            <button class="modal-close" onclick="closeTeamAnalysisModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Chọn đội hình để phân tích:</label>
+                                <select id="select-team-analysis" class="form-control">
+                                    <option value="">-- Chọn đội --</option>
+                                </select>
+                            </div>
+                            <div id="team-analysis-result" style="display: none; margin-top: 20px;">
+                                <div id="team-analysis-content" style="white-space: pre-wrap; line-height: 1.6;"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary"
+                                onclick="closeTeamAnalysisModal()">Đóng</button>
+                            <button type="button" id="btn-run-team-analysis" class="btn btn-primary"
+                                onclick="runTeamAnalysis()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Phân tích
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- ĐÃ XÓA: Section Đăng ký Chiến sĩ và Section Chờ duyệt (chuyển sang Google Form) -->
@@ -980,6 +1034,10 @@
                         </select>
                         <button id="btn-new-report" class="btn btn-success">
                             <i class="fa-solid fa-plus"></i> Thêm báo cáo mới
+                        </button>
+                        <button id="btn-ai-auto-report" class="btn btn-primary"
+                            title="AI tự động tạo báo cáo từ dữ liệu hoạt động">
+                            <i class="fa-solid fa-robot"></i> AI Tạo báo cáo
                         </button>
                     </div>
 

@@ -813,6 +813,561 @@
             }
         });
     </script>
+
+    <!-- AI QUIZ WIDGET -->
+    <style>
+        /* AI Quiz Floating Button */
+        .ai-quiz-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .ai-quiz-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        .ai-quiz-btn .pulse {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50px;
+            border: 3px solid #8b5cf6;
+            animation: quizPulse 2s infinite;
+        }
+
+        @keyframes quizPulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Quiz Modal */
+        .quiz-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            padding: 20px;
+        }
+
+        .quiz-modal.show {
+            display: flex;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .quiz-header {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+            padding: 25px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+
+        .quiz-header h2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .quiz-header p {
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .quiz-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .quiz-body {
+            padding: 30px;
+        }
+
+        .quiz-progress {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 25px;
+        }
+
+        .quiz-progress .step {
+            flex: 1;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .quiz-progress .step.active {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quiz-option {
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quiz-option:hover {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        .quiz-option.selected {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+        }
+
+        .quiz-option .emoji {
+            font-size: 1.5rem;
+        }
+
+        .quiz-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .quiz-btn {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quiz-btn-back {
+            background: #f3f4f6;
+            border: none;
+            color: #374151;
+        }
+
+        .quiz-btn-next {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            border: none;
+            color: white;
+        }
+
+        .quiz-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Result */
+        .quiz-result {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .quiz-result-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .quiz-result-team {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6d28d9;
+            margin-bottom: 10px;
+        }
+
+        .quiz-result-desc {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .quiz-result-cta {
+            margin-top: 25px;
+        }
+
+        .quiz-result-cta a {
+            display: inline-block;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+
+    <!-- Quiz Button -->
+    <button class="ai-quiz-btn" onclick="openQuizModal()">
+        <span class="pulse"></span>
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        AI Gợi ý Đội hình
+    </button>
+
+    <!-- Quiz Modal -->
+    <div class="quiz-modal" id="quiz-modal">
+        <div class="quiz-container">
+            <div class="quiz-header" style="position: relative;">
+                <button class="quiz-close" onclick="closeQuizModal()">&times;</button>
+                <h2><i class="fa-solid fa-robot"></i> Quiz AI Đề xuất Đội hình</h2>
+                <p>Trả lời 5 câu hỏi để AI gợi ý đội phù hợp nhất với bạn!</p>
+            </div>
+            <div class="quiz-body" id="quiz-body">
+                <!-- Questions will be loaded here -->
+            </div>
+            <div class="quiz-footer" id="quiz-footer">
+                <button class="quiz-btn quiz-btn-back" id="btn-quiz-back" onclick="prevQuestion()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </button>
+                <button class="quiz-btn quiz-btn-next" id="btn-quiz-next" onclick="nextQuestion()">
+                    Tiếp theo <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { callGroqAI } from './js/groq-api.js';
+
+        // Quiz Questions - 5 câu hỏi với 7-8 options mỗi câu, bao quát 11 đội hình
+        const quizQuestions = [
+            {
+                question: "Khi tham gia một hoạt động tập thể, bạn thường đảm nhận vai trò nào và cảm thấy thoải mái nhất?",
+                options: [
+                    { emoji: "📸", text: "Quay phim, chụp ảnh ghi lại những khoảnh khắc đẹp", value: "kysu" },
+                    { emoji: "🎤", text: "Dẫn chương trình, hát múa, biểu diễn văn nghệ", value: "giaidieu" },
+                    { emoji: "⚖️", text: "Tư vấn, giải thích kiến thức pháp luật cho mọi người", value: "tuvan" },
+                    { emoji: "🎁", text: "Chuẩn bị quà tặng, mang niềm vui đến người khác", value: "sechia" },
+                    { emoji: "🏃", text: "Tổ chức trò chơi, team building, hoạt động vui nhộn", value: "ganket" },
+                    { emoji: "📦", text: "Lo liệu hậu cần, vật tư, đảm bảo mọi thứ sẵn sàng", value: "haucan" },
+                    { emoji: "🌟", text: "Truyền cảm hứng, lan tỏa năng lượng tích cực", value: "tuhao" },
+                    { emoji: "📋", text: "Phối hợp với cơ quan, tổ chức địa phương", value: "vienchuc" }
+                ]
+            },
+            {
+                question: "Điều gì khiến bạn cảm thấy có ý nghĩa nhất khi tham gia hoạt động tình nguyện?",
+                options: [
+                    { emoji: "🎥", text: "Được kể câu chuyện đẹp qua hình ảnh, video", value: "kysu" },
+                    { emoji: "🎵", text: "Mang tiếng hát, điệu nhảy đến với mọi người", value: "giaidieu" },
+                    { emoji: "📚", text: "Giúp người dân hiểu biết hơn về quyền lợi pháp lý", value: "tuvan" },
+                    { emoji: "💝", text: "Trao tặng quà, thấy nụ cười của người nhận", value: "sechia" },
+                    { emoji: "🤝", text: "Tạo ra sự gắn kết giữa mọi người qua hoạt động", value: "ganket" },
+                    { emoji: "🔧", text: "Đảm bảo mọi thứ vận hành suôn sẻ phía sau", value: "haucan" },
+                    { emoji: "🏆", text: "Góp phần xây dựng hình ảnh đẹp cho chiến dịch", value: "tuhao" },
+                    { emoji: "🏛️", text: "Kết nối với chính quyền, đoàn thể địa phương", value: "vienchuc" }
+                ]
+            },
+            {
+                question: "Bạn có kỹ năng hoặc sở thích đặc biệt nào trong số các lĩnh vực dưới đây?",
+                options: [
+                    { emoji: "📹", text: "Quay phim, edit video, chụp ảnh chuyên nghiệp", value: "kysu" },
+                    { emoji: "🎭", text: "Ca hát, nhảy múa, biểu diễn nghệ thuật", value: "giaidieu" },
+                    { emoji: "⚖️", text: "Kiến thức pháp luật, kỹ năng tư vấn, giảng dạy", value: "tuvan" },
+                    { emoji: "🎁", text: "Sắp xếp, đóng gói, phân phát quà tặng", value: "sechia" },
+                    { emoji: "🎯", text: "Dẫn game, tổ chức team building, MC sự kiện", value: "ganket" },
+                    { emoji: "🚚", text: "Logistics, quản lý kho, vận chuyển vật tư", value: "haucan" },
+                    { emoji: "📣", text: "Truyền thông, viết bài, thiết kế", value: "bansac" },
+                    { emoji: "👔", text: "Giao tiếp với cơ quan chính quyền, đoàn thể", value: "vienchuc" },
+                    { emoji: "🌍", text: "Bảo vệ môi trường, tuyên truyền nếp sống văn minh", value: "vanminh" }
+                ]
+            },
+            {
+                question: "Môi trường làm việc nào bạn cảm thấy phù hợp và phát huy tốt nhất?",
+                options: [
+                    { emoji: "🎬", text: "Đi thực địa quay phim, ghi hình phóng sự", value: "kysu" },
+                    { emoji: "🎪", text: "Sân khấu, buổi biểu diễn, sự kiện văn nghệ", value: "giaidieu" },
+                    { emoji: "🏫", text: "Lớp học, buổi tư vấn, hội thảo pháp luật", value: "tuvan" },
+                    { emoji: "🏘️", text: "Đến từng nhà, gặp gỡ người dân trao quà", value: "sechia" },
+                    { emoji: "🏕️", text: "Ngoài trời, hoạt động trò chơi tập thể", value: "ganket" },
+                    { emoji: "🏢", text: "Hậu trường, kho vật tư, chuẩn bị sân bãi", value: "haucan" },
+                    { emoji: "💼", text: "Kết nối với chính quyền, đoàn thể địa phương", value: "vienchuc" }
+                ]
+            },
+            {
+                question: "Nếu được chọn một nhiệm vụ quan trọng trong chiến dịch, bạn muốn làm gì nhất?",
+                options: [
+                    { emoji: "🎥", text: "Làm phim dựng phim, chia sẻ khoảnh khắc, ghi lại hành trình tình nguyện", value: "kysu" },
+                    { emoji: "🎤", text: "Biểu diễn văn nghệ, mang tiếng hát mùa xuân đến người dân", value: "giaidieu" },
+                    { emoji: "📖", text: "Mang pháp luật đến cộng đồng", value: "tuvan" },
+                    { emoji: "💕", text: "Sẻ chia niềm yêu thương", value: "sechia" },
+                    { emoji: "🎊", text: "Tổ chức trò chơi, hoạt động giao lưu", value: "ganket" },
+                    { emoji: "📦", text: "Lo toàn bộ vật tư, công tác hậu cần chiến dịch", value: "haucan" },
+                    { emoji: "🌟", text: "Truyền cảm hứng, xây dựng tinh thần đội", value: "tuhao" },
+                    { emoji: "🏆", text: "Tham gia nhiều hoạt động, xung kích", value: "chienssi" },
+                    { emoji: "🍃", text: "Tuyên truyền bảo vệ môi trường", value: "vanminh" },
+                    { emoji: "🗂️", text: "Quảng bá văn hóa truyền thống", value: "bansac" },
+                    { emoji: "🤵", text: "Chia sẻ kiến thức kinh nghiệm giảng dạy", value: "vienchuc" }
+                ]
+            }
+        ];
+
+        let currentQuestion = 0;
+        let answers = [];
+
+        // Open Quiz
+        window.openQuizModal = function () {
+            document.getElementById('quiz-modal').classList.add('show');
+            currentQuestion = 0;
+            answers = [];
+            renderQuestion();
+        };
+
+        // Close Quiz
+        window.closeQuizModal = function () {
+            document.getElementById('quiz-modal').classList.remove('show');
+        };
+
+        // Render Question
+        function renderQuestion() {
+            const q = quizQuestions[currentQuestion];
+            const body = document.getElementById('quiz-body');
+            const footer = document.getElementById('quiz-footer');
+
+            // Progress
+            let progressHtml = '<div class="quiz-progress">';
+            for (let i = 0; i < quizQuestions.length; i++) {
+                progressHtml += `<div class="step ${i <= currentQuestion ? 'active' : ''}"></div>`;
+            }
+            progressHtml += '</div>';
+
+            // Options
+            let optionsHtml = '<div class="quiz-options">';
+            q.options.forEach((opt, i) => {
+                const selected = answers[currentQuestion] === opt.value ? 'selected' : '';
+                optionsHtml += `
+                    <div class="quiz-option ${selected}" onclick="selectOption('${opt.value}')">
+                        <span class="emoji">${opt.emoji}</span>
+                        <span>${opt.text}</span>
+                    </div>
+                `;
+            });
+            optionsHtml += '</div>';
+
+            body.innerHTML = `
+                ${progressHtml}
+                <div class="quiz-question">${currentQuestion + 1}. ${q.question}</div>
+                ${optionsHtml}
+            `;
+
+            // Footer buttons
+            document.getElementById('btn-quiz-back').style.display = currentQuestion === 0 ? 'none' : 'block';
+            const nextBtn = document.getElementById('btn-quiz-next');
+            nextBtn.disabled = !answers[currentQuestion];
+
+            if (currentQuestion === quizQuestions.length - 1) {
+                nextBtn.innerHTML = '<i class="fa-solid fa-magic"></i> Xem kết quả AI';
+            } else {
+                nextBtn.innerHTML = 'Tiếp theo <i class="fa-solid fa-arrow-right"></i>';
+            }
+
+            footer.style.display = 'flex';
+        }
+
+        // Select option
+        window.selectOption = function (value) {
+            answers[currentQuestion] = value;
+            renderQuestion();
+        };
+
+        // Next question
+        window.nextQuestion = async function () {
+            if (!answers[currentQuestion]) return;
+
+            if (currentQuestion < quizQuestions.length - 1) {
+                currentQuestion++;
+                renderQuestion();
+            } else {
+                // Get AI result
+                await getAIRecommendation();
+            }
+        };
+
+        // Previous question
+        window.prevQuestion = function () {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                renderQuestion();
+            }
+        };
+
+        // Get AI Recommendation
+        async function getAIRecommendation() {
+            const body = document.getElementById('quiz-body');
+            const footer = document.getElementById('quiz-footer');
+
+            footer.style.display = 'none';
+            body.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <i class="fa-solid fa-robot fa-bounce" style="font-size: 3rem; color: #8b5cf6;"></i>
+                    <p style="margin-top: 20px; font-weight: 600;">AI đang phân tích...</p>
+                </div>
+            `;
+
+            const answersText = answers.map((a, i) => `Câu ${i + 1}: ${a}`).join(', ');
+
+            const systemPrompt = `Bạn là AI tư vấn đội hình cho chiến dịch Xuân Tình Nguyện UEL 2026.
+
+CÁC ĐỘI HÌNH (11 đội):
+1. Xuân Tự hào (40 chiến sĩ) - Truyền cảm hứng, xây dựng tinh thần đội, tổ chức các hoạt động nội bộ
+2. Xuân Bản sắc (40 chiến sĩ) - Quảng bá văn hóa truyền thống, thiết kế truyền thông, viết bài
+3. Xuân Sẻ chia (40 chiến sĩ) - Chuẩn bị và trao quà Tết, hỗ trợ bà con nghèo, gia đình khó khăn
+4. Xuân Gắn kết (40 chiến sĩ) - Tổ chức trò chơi, team building, hoạt động giao lưu cộng đồng
+5. Xuân Chiến sĩ (40 chiến sĩ) - Tham gia đa dạng hoạt động, xung kích, nhiệt huyết, năng động
+6. Tết Văn minh (40 chiến sĩ) - Tuyên truyền bảo vệ môi trường, nếp sống văn minh ngày Tết
+7. Tư vấn và giảng dạy pháp luật cộng đồng (36 chiến sĩ) - Tư vấn pháp luật, giảng dạy kiến thức pháp lý
+8. Giai điệu Mùa Xuân (35 chiến sĩ) - Ca hát, nhảy múa, biểu diễn văn nghệ phục vụ bà con
+9. Viên chức trẻ (20 chiến sĩ) - Liên hệ, phối hợp với UBND, Đoàn thanh niên địa phương
+10. Ký sự Tết (30 chiến sĩ) - Quay phim, chụp ảnh, làm phóng sự về hành trình tình nguyện
+11. Hậu cần (10 chiến sĩ) - Chuẩn bị vật tư, logistics, đảm bảo hậu cần toàn chiến dịch
+
+MAPPING GIÁ TRỊ CÂU TRẢ LỜI:
+- kysu = Ký sự Tết
+- giaidieu = Giai điệu Mùa Xuân
+- tuvan = Tư vấn và giảng dạy pháp luật cộng đồng
+- sechia = Xuân Sẻ chia
+- ganket = Xuân Gắn kết
+- haucan = Hậu cần
+- tuhao = Xuân Tự hào
+- chienssi = Xuân Chiến sĩ
+- vanminh = Tết Văn minh
+- bansac = Xuân Bản sắc
+- vienchuc = Viên chức trẻ
+
+DỰA TRÊN CÂU TRẢ LỜI, HÃY PHÂN TÍCH VÀ TRẢ VỀ JSON:
+{
+    "team": "Tên đội hình phù hợp nhất (đúng tên trong danh sách)",
+    "emoji": "Emoji đại diện (1 emoji)",
+    "reason": "Lý do ngắn gọn tại sao phù hợp (2-3 câu)",
+    "tips": "Lời khuyên cho ứng viên (1-2 câu)"
+}
+
+CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.`;
+
+            try {
+                const result = await callGroqAI(`Câu trả lời của ứng viên: ${answersText}. Hãy gợi ý đội hình phù hợp nhất.`, {
+                    systemPrompt,
+                    temperature: 0.7,
+                    maxTokens: 500
+                });
+
+                if (result.success) {
+                    let jsonStr = result.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    const data = JSON.parse(jsonStr);
+                    showResult(data);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Quiz AI error:', error);
+                body.innerHTML = `
+                    <div class="quiz-result">
+                        <div class="quiz-result-icon">❌</div>
+                        <div class="quiz-result-team">Có lỗi xảy ra</div>
+                        <div class="quiz-result-desc">${error.message}</div>
+                        <div class="quiz-result-cta">
+                            <button onclick="closeQuizModal()" class="quiz-btn quiz-btn-next">Đóng</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Show result
+        function showResult(data) {
+            const body = document.getElementById('quiz-body');
+            body.innerHTML = `
+                <div class="quiz-result">
+                    <div class="quiz-result-icon">${data.emoji || '🎉'}</div>
+                    <div class="quiz-result-team">${data.team}</div>
+                    <div class="quiz-result-desc">
+                        <p><strong>Tại sao phù hợp:</strong> ${data.reason}</p>
+                        <p style="margin-top: 10px;"><strong>💡 Lời khuyên:</strong> ${data.tips}</p>
+                    </div>
+                    <div class="quiz-result-cta">
+                        <a href="https://forms.google.com/your-registration-form" target="_blank">
+                            <i class="fa-solid fa-user-plus"></i> Đăng ký ngay!
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
 </body>
 
 </html>

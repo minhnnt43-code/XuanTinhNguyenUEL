@@ -1510,3 +1510,126 @@ select:disabled {
     padding: 15px;
     font-size: 0.9rem;
 }
+
+/* ===== AI INSIGHTS WIDGET ===== */
+.ai-insights-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #fef3c7 100%);
+    border: 2px solid #22c55e;
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-insights-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.ai-insights-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.ai-insights-header h3 {
+    margin: 0;
+    color: #166534;
+    font-size: 1.1rem;
+}
+
+.ai-insights-header h3 i {
+    margin-right: 8px;
+    color: #22c55e;
+}
+
+.ai-insights-content {
+    position: relative;
+    z-index: 1;
+}
+
+.ai-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #666;
+    padding: 20px;
+}
+
+.ai-loading i {
+    color: #22c55e;
+    font-size: 1.2rem;
+}
+
+.ai-insights-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ai-insights-list li {
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-left: 4px solid #22c55e;
+}
+
+.ai-insights-list li.warning {
+    border-left-color: #f59e0b;
+    background: rgba(254, 243, 199, 0.5);
+}
+
+.ai-insights-list li.danger {
+    border-left-color: #dc2626;
+    background: rgba(254, 226, 226, 0.5);
+}
+
+.ai-insights-list li.suggestion {
+    border-left-color: #3b82f6;
+    background: rgba(219, 234, 254, 0.5);
+}
+
+.ai-insights-list li i {
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+    color: inherit;
+}
+
+.ai-insights-list li.warning i {
+    color: #f59e0b;
+}
+
+.ai-insights-list li.danger i {
+    color: #dc2626;
+}
+
+.ai-insights-list li.suggestion i {
+    color: #3b82f6;
+}
+
+.ai-insights-list li i:first-child {
+    color: #22c55e;
+}
+
+.ai-error {
+    color: #dc2626;
+    text-align: center;
+    padding: 20px;
+}
+
+.ai-error i {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    display: block;
+}

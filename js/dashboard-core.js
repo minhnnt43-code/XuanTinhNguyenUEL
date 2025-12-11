@@ -22,6 +22,7 @@ import {
     backupAllJSON, backupUsersJSON, backupActivitiesJSON,
     backupAllExcel, backupUsersExcel, backupActivitiesExcel
 } from './backup.js';
+import { initAIDashboard } from './ai-dashboard.js';
 // AI features - TẠM TẮT, LÀM SAU
 // import { aiCreateActivity, aiGenerateReport } from './ai-features.js';
 
@@ -138,6 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ẩn loading, hiện section mặc định
         hideSection('section-loading');
         showDefaultSection();
+
+        // Init AI Dashboard (nếu là admin)
+        if (['super_admin', 'admin', 'bch_truong'].includes(userData.role)) {
+            initAIDashboard();
+        }
     });
 
     // Logout
