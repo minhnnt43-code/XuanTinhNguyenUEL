@@ -69,42 +69,63 @@
     position: relative;
 }
 
+/* Overlay nhẹ để chữ nổi bật hơn */
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+}
+
 .hero-content {
     position: relative;
     z-index: 2;
     padding: 40px;
-    color: var(--primary);
 }
 
 .decor-icon {
     font-size: 3rem;
     margin-bottom: 20px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .sub-title {
     font-size: 1.2rem;
     text-transform: uppercase;
     letter-spacing: 3px;
-    color: var(--primary-dark);
+    color: #166534;
+    /* Xanh lá đậm - dễ đọc trên nền vàng */
     margin-bottom: 10px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    font-weight: 700;
 }
 
 .main-title {
     font-size: 3.5rem;
     font-weight: 900;
     margin-bottom: 15px;
-    color: var(--primary);
+    color: #166534;
+    /* Xanh lá đậm */
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3);
 }
 
 .highlight-text {
-    color: var(--secondary);
+    color: #15803d;
+    /* Xanh lá trung */
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
 }
 
 .slogan {
     font-size: 1.3rem;
     font-style: italic;
     margin-bottom: 30px;
-    color: var(--primary-dark);
+    color: #b91c1c;
+    /* Đỏ đậm - nổi bật trên vàng */
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
 }
 
 /* Countdown */
@@ -115,6 +136,8 @@
 .countdown-label {
     font-size: 1rem;
     margin-bottom: 15px;
+    color: #166534;
+    font-weight: 600;
 }
 
 .timer {
@@ -124,21 +147,25 @@
 }
 
 .time-box {
-    background: var(--primary);
+    background: rgba(255, 255, 255, 0.95);
     padding: 15px 25px;
     border-radius: var(--radius-md);
-    color: white;
+    color: #166534;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 2px solid rgba(22, 101, 52, 0.2);
 }
 
 .time-box span {
     display: block;
     font-size: 2.5rem;
     font-weight: 800;
+    color: #166534;
 }
 
 .time-box small {
     font-size: 0.85rem;
-    opacity: 0.8;
+    color: #15803d;
+    font-weight: 600;
 }
 
 /* CTA Buttons */
@@ -152,6 +179,7 @@
     border-radius: var(--radius-lg);
     margin: 10px;
     transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn-register {
@@ -165,14 +193,16 @@
 }
 
 .btn-cta.btn-secondary {
-    background: var(--primary);
+    background: #f97316;
+    /* Orange - nổi bật trên nền vàng */
     color: white;
-    border: 2px solid var(--primary);
+    border: 2px solid #f97316;
 }
 
 .btn-cta.btn-secondary:hover {
-    background: var(--primary-dark);
-    border-color: var(--primary-dark);
+    background: #ea580c;
+    border-color: #ea580c;
+    transform: translateY(-3px);
 }
 
 /* Sections */

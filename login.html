@@ -464,19 +464,18 @@
 
         // Login button handler
         btnLogin.addEventListener('click', async () => {
-            // Disable button
+            // Disable button và hiển thị loading
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
 
             // Hide error
             errorMessage.classList.remove('show');
 
             try {
-                const { user, userData } = await loginWithGoogle();
-
-                // Redirect to unified dashboard
-                window.location.href = 'dashboard.html';
-
+                // Với redirect, không cần await kết quả
+                // onAuthChange sẽ tự động xử lý khi redirect về
+                await loginWithGoogle();
+                // Lưu ý: Code này có thể không chạy vì page sẽ redirect đi
             } catch (error) {
                 console.error('Login error:', error);
 

@@ -5,7 +5,8 @@
 
 import { auth, provider, db } from './firebase.js';
 import {
-    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -167,30 +168,13 @@ async function checkSuperAdmin(email) {
 // ============================================================
 
 /**
- * Đăng nhập bằng Google
+ * Đăng nhập bằng Google (dùng Redirect thay vì Popup để tránh lỗi COOP)
  */
 async function loginWithGoogle() {
     try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-
-        // Kiểm tra domain email (TẠM TẮT ĐỂ TEST)
-        // if (!isAllowedDomain(user.email)) {
-        //     await signOut(auth);
-        //     throw new Error('Vui lòng sử dụng email @st.uel.edu.vn hoặc @uel.edu.vn để đăng nhập!');
-        // }
-
-        // Kiểm tra Super Admin
-        const isSuperAdmin = await checkSuperAdmin(user.email);
-
-        // Lưu thông tin user
-        const userData = await saveUserData(user, {
-            role: isSuperAdmin ? ROLES.SUPER_ADMIN : undefined
-        });
-
-        console.log("✅ Đăng nhập thành công:", user.email);
-        return { user, userData };
-
+        // Sử dụng Redirect thay vì Popup để tránh lỗi Cross-Origin-Opener-Policy
+        await signInWithRedirect(auth, provider);
+        // Sau khi redirect về, kết quả sẽ được xử lý bởi onAuthStateChanged
     } catch (error) {
         console.error("❌ Lỗi đăng nhập:", error);
         throw error;
