@@ -19,6 +19,7 @@ let itemsPerPage = 24;
 let searchTerm = '';
 let filterTeam = '';
 let filterStatus = '';
+let filterCityCard = '';
 let showAlertFn = null;
 let showConfirmFn = null;
 
@@ -67,6 +68,13 @@ function setupEventListeners() {
     // Filter Status
     document.getElementById('cards-filter-status')?.addEventListener('change', (e) => {
         filterStatus = e.target.value;
+        currentPage = 1;
+        render();
+    });
+
+    // Filter City Card
+    document.getElementById('cards-filter-city')?.addEventListener('change', (e) => {
+        filterCityCard = e.target.value;
         currentPage = 1;
         render();
     });
@@ -130,7 +138,8 @@ async function loadCardsData() {
                 name: data.name || '',
                 mssv: data.mssv || '',
                 team_id: data.team_id || '',
-                team_name: teamsMap[data.team_id] || 'Chưa phân đội'
+                team_name: teamsMap[data.team_id] || 'Chưa phân đội',
+                city_card_link: data.city_card_link || ''
             });
         });
 
@@ -153,11 +162,16 @@ function getFilteredData() {
         cardsMap[card.user_id] = card;
     });
 
-    let data = allMembers.map(member => ({
-        ...member,
-        card: cardsMap[member.id] || null,
-        hasCard: !!cardsMap[member.id]
-    }));
+    let data = allMembers.map(member => {
+        const card = cardsMap[member.id] || null;
+        return {
+            ...member,
+            card: card,
+            hasCard: !!card,
+            // city_card_link được lưu trong xtn_cards (từ saveCityCardLink)
+            city_card_link: card?.city_card_link || member.city_card_link || ''
+        };
+    });
 
     // Filter by team
     if (filterTeam) {
@@ -169,6 +183,13 @@ function getFilteredData() {
         data = data.filter(d => d.hasCard);
     } else if (filterStatus === 'not-created') {
         data = data.filter(d => !d.hasCard);
+    }
+
+    // Filter by city card
+    if (filterCityCard === 'has-city') {
+        data = data.filter(d => d.city_card_link && d.city_card_link.trim() !== '');
+    } else if (filterCityCard === 'no-city') {
+        data = data.filter(d => !d.city_card_link || d.city_card_link.trim() === '');
     }
 
     // Search
@@ -230,6 +251,9 @@ function renderGrid() {
                     <div class="card-item-info">
                         <h4>${item.name}</h4>
                         <p>${item.team_name}</p>
+                        <div class="card-badges">
+                            ${item.city_card_link ? '<span class="badge badge-info" title="Có Thẻ Cấp Thành"><i class="fa-solid fa-city"></i></span>' : '<span class="badge badge-secondary" title="Chưa có Thẻ Cấp Thành"><i class="fa-regular fa-city"></i></span>'}
+                        </div>
                         <small>${formatDate(card.created_at)}</small>
                     </div>
                 </div>
@@ -246,6 +270,9 @@ function renderGrid() {
                     <div class="card-item-info">
                         <h4>${item.name}</h4>
                         <p>${item.team_name}</p>
+                        <div class="card-badges">
+                            ${item.city_card_link ? '<span class="badge badge-info" title="Có Thẻ Cấp Thành"><i class="fa-solid fa-city"></i></span>' : '<span class="badge badge-secondary" title="Chưa có Thẻ Cấp Thành"><i class="fa-regular fa-city"></i></span>'}
+                        </div>
                     </div>
                 </div>
             `;
@@ -265,7 +292,7 @@ function renderTable() {
     const paged = filtered.slice(startIdx, startIdx + itemsPerPage);
 
     if (paged.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;">Không có dữ liệu</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888;">Không có dữ liệu</td></tr>';
         return;
     }
 
@@ -274,6 +301,9 @@ function renderTable() {
         const statusBadge = item.hasCard
             ? '<span class="badge badge-success">Đã tạo</span>'
             : '<span class="badge badge-warning">Chưa tạo</span>';
+        const cityBadge = item.city_card_link
+            ? `<a href="${item.city_card_link}" target="_blank" class="badge badge-info" title="Xem Thẻ Cấp Thành"><i class="fa-solid fa-external-link"></i> Có</a>`
+            : '<span class="badge badge-secondary">Chưa có</span>';
         const createdAt = item.card ? formatDate(item.card.created_at) : '-';
         const actions = item.hasCard
             ? `<a href="${item.card.drive_link || '#'}" target="_blank" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eye"></i></a>
@@ -286,6 +316,7 @@ function renderTable() {
             <td>${item.mssv || '-'}</td>
             <td>${item.team_name}</td>
             <td>${statusBadge}</td>
+            <td>${cityBadge}</td>
             <td>${createdAt}</td>
             <td>${actions}</td>
         </tr>`;
@@ -354,7 +385,9 @@ async function exportToExcel() {
             'Họ và Tên': item.name,
             'MSSV': item.mssv || '',
             'Đội hình': item.team_name,
-            'Trạng thái': item.hasCard ? 'Đã tạo' : 'Chưa tạo',
+            'Trạng thái Thẻ': item.hasCard ? 'Đã tạo' : 'Chưa tạo',
+            'Link Thẻ Cấp Thành': item.city_card_link || '',
+            'Trạng thái Cấp Thành': item.city_card_link ? 'Có' : 'Chưa có',
             'Thời gian tạo': item.card ? formatDate(item.card.created_at) : ''
         }));
 

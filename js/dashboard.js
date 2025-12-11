@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDynamicQuestionsToForm(this.value || null);
     });
 
-    // Dev role switcher
-    document.getElementById('btn-dev-apply')?.addEventListener('click', applyDevRole);
+    // [COMMENTED OUT - Production] Dev role switcher
+    // document.getElementById('btn-dev-apply')?.addEventListener('click', applyDevRole);
 });
 
 // ============================================================
@@ -1165,8 +1165,9 @@ window.initTeams = async () => {
 };
 
 // ============================================================
-// DEV: ROLE SWITCHER
+// [COMMENTED OUT - Production] DEV: ROLE SWITCHER
 // ============================================================
+/*
 async function applyDevRole() {
     const testRole = document.getElementById('dev-role-switch').value;
     if (!testRole) {
@@ -1179,7 +1180,6 @@ async function applyDevRole() {
         setupMenuByRole();
         showSection('section-pending');
     } else if (testRole === 'pending') {
-        // Force hiển thị form đăng ký + load teams + questions
         userData.role = 'pending';
         setupMenuByRole();
         await loadTeamsToRegisterForm();
@@ -1201,6 +1201,7 @@ async function applyDevRole() {
     }
     document.getElementById('user-name').textContent = userData.name + ' ' + roleLabel;
 }
+*/
 
 // ============================================================
 // TEAMS CRUD
@@ -1754,8 +1755,9 @@ window.deleteSelectedQuestions = async function () {
 };
 
 // ============================================================
-// DEV ROLE SWITCHER - Chỉ dùng để test
+// [COMMENTED OUT - Production] DEV ROLE SWITCHER - Chỉ dùng để test
 // ============================================================
+/*
 function applyDevRole() {
     const select = document.getElementById('dev-role-switch');
     if (!select) return;
@@ -1763,12 +1765,10 @@ function applyDevRole() {
     const fakeRole = select.value;
 
     if (!fakeRole) {
-        // Giữ role thật - reload lại
         location.reload();
         return;
     }
 
-    // Fake role để test UI
     if (fakeRole === 'pending-submitted') {
         userData.role = 'pending';
         userData._hasSubmitted = true;
@@ -1779,10 +1779,8 @@ function applyDevRole() {
 
     console.log('🔧 DEV: Switched to role:', userData.role);
 
-    // Re-setup menu
     setupMenuByRole();
 
-    // Show appropriate section
     if (userData.role === 'pending') {
         if (userData._hasSubmitted) {
             showSection('section-pending');
@@ -1793,3 +1791,4 @@ function applyDevRole() {
         showSection('section-dashboard');
     }
 }
+*/

@@ -247,11 +247,12 @@ h6,
     border-bottom: 2px solid #FFFF33;
 }
 
-/* Two Column */
+/* Two Column - Zoom Resistant */
 .two-column {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
+    grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+    gap: clamp(15px, 3vw, 30px);
+    align-items: start;
 }
 
 /* Stats Grid */
@@ -397,23 +398,39 @@ h6,
     display: block;
 }
 
-/* Preview Card */
+/* Preview Card - Flexbox Centering (Zoom Resistant) */
 .preview-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
 }
 
+.preview-card h3 {
+    align-self: flex-start;
+    text-align: left;
+    width: 100%;
+}
+
+.preview-card>div:last-child {
+    width: 100%;
+    max-width: min(100%, 450px);
+}
+
+/* Avatar canvas - Zoom Resistant */
 #avatar-canvas {
     width: 100%;
-    max-width: 350px;
+    max-width: 100%;
     border: 2px solid #fde68a;
     border-radius: 10px;
     cursor: move;
     margin-bottom: 15px;
 }
 
+/* Card canvas - Zoom Resistant */
 #card-canvas {
     width: 100%;
-    max-width: 250px;
+    max-width: 100%;
     border: 2px solid #fde68a;
     border-radius: 10px;
     margin-bottom: 15px;
@@ -527,6 +544,14 @@ textarea {
 textarea:focus {
     outline: none;
     border-color: #FFFF33;
+}
+
+/* Readonly Field */
+.readonly-field {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+    cursor: not-allowed !important;
+    border: 1px dashed #d1d5db !important;
 }
 
 /* Buttons */
@@ -656,19 +681,33 @@ textarea:focus {
     margin-right: 8px;
 }
 
-/* Canvas Wrapper */
+/* Canvas Wrapper - Zoom Resistant */
 .canvas-wrapper {
     width: 100%;
-    max-width: 450px;
+    max-width: min(100%, 450px);
     margin: 0 auto 15px;
-    aspect-ratio: 1/1;
     border-radius: 8px;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Avatar wrapper - vuông 1:1 */
+.canvas-wrapper.avatar-wrapper {
+    aspect-ratio: 1 / 1;
+}
+
+/* Card wrapper - tỷ lệ 11:17 (5.5cm x 8.5cm) */
+.canvas-wrapper.card-wrapper {
+    aspect-ratio: 11 / 17;
+    max-width: min(100%, 350px);
 }
 
 .canvas-wrapper canvas {
     width: 100%;
-    height: 100%;
+    height: auto;
+    max-width: 100%;
     display: block;
     cursor: grab;
 }
@@ -677,17 +716,22 @@ textarea:focus {
     cursor: grabbing;
 }
 
-/* Preview Card - căn giữa nội dung */
+/* Preview Card - Flexbox Override */
 .preview-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
 }
 
 .preview-card h3 {
+    align-self: flex-start;
     text-align: left;
+    width: 100%;
 }
 
 .preview-card .btn {
-    max-width: 450px;
+    max-width: min(100%, 450px);
     margin-left: auto;
     margin-right: auto;
 }

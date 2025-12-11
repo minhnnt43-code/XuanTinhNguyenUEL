@@ -18,6 +18,10 @@ import {
 import { initActivityModule } from './activity.js';
 import { initCardsAdmin, setHelpers as setCardsAdminHelpers } from './dashboard-cards-admin.js';
 import { exportChienSi, importFromExcel, validateImportData, downloadImportTemplate } from './excel-utils.js';
+import {
+    backupAllJSON, backupUsersJSON, backupActivitiesJSON,
+    backupAllExcel, backupUsersExcel, backupActivitiesExcel
+} from './backup.js';
 // AI features - TẠM TẮT, LÀM SAU
 // import { aiCreateActivity, aiGenerateReport } from './ai-features.js';
 
@@ -199,8 +203,66 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDynamicQuestionsToForm(this.value || null);
     });
 
-    // Dev role switcher
-    document.getElementById('btn-dev-apply')?.addEventListener('click', applyDevRole);
+    // Backup buttons - JSON
+    document.getElementById('btn-backup-all-json')?.addEventListener('click', async () => {
+        try {
+            await backupAllJSON();
+            showAlert('Backup JSON toàn bộ thành công!', 'success', 'Hoàn thành');
+        } catch (e) {
+            console.error('[Backup] Error:', e);
+            showAlert('Lỗi backup dữ liệu!', 'error', 'Lỗi');
+        }
+    });
+    document.getElementById('btn-backup-users-json')?.addEventListener('click', async () => {
+        try {
+            await backupUsersJSON();
+            showAlert('Backup thành viên thành công!', 'success', 'Hoàn thành');
+        } catch (e) {
+            console.error('[Backup] Error:', e);
+            showAlert('Lỗi backup dữ liệu!', 'error', 'Lỗi');
+        }
+    });
+    document.getElementById('btn-backup-activities-json')?.addEventListener('click', async () => {
+        try {
+            await backupActivitiesJSON();
+            showAlert('Backup hoạt động thành công!', 'success', 'Hoàn thành');
+        } catch (e) {
+            console.error('[Backup] Error:', e);
+            showAlert('Lỗi backup dữ liệu!', 'error', 'Lỗi');
+        }
+    });
+
+    // Backup buttons - Excel
+    document.getElementById('btn-backup-all-excel')?.addEventListener('click', async () => {
+        try {
+            await backupAllExcel();
+            showAlert('Backup Excel toàn bộ thành công!', 'success', 'Hoàn thành');
+        } catch (e) {
+            console.error('[Backup] Error:', e);
+            showAlert('Lỗi backup dữ liệu!', 'error', 'Lỗi');
+        }
+    });
+    document.getElementById('btn-backup-users-excel')?.addEventListener('click', async () => {
+        try {
+            await backupUsersExcel();
+            showAlert('Backup thành viên thành công!', 'success', 'Hoàn thành');
+        } catch (e) {
+            console.error('[Backup] Error:', e);
+            showAlert('Lỗi backup dữ liệu!', 'error', 'Lỗi');
+        }
+    });
+    document.getElementById('btn-backup-activities-excel')?.addEventListener('click', async () => {
+        try {
+            await backupActivitiesExcel();
+            showAlert('Backup hoạt động thành công!', 'success', 'Hoàn thành');
+        } catch (e) {
+            console.error('[Backup] Error:', e);
+            showAlert('Lỗi backup dữ liệu!', 'error', 'Lỗi');
+        }
+    });
+
+    // [COMMENTED OUT - Production] Dev role switcher
+    // document.getElementById('btn-dev-apply')?.addEventListener('click', applyDevRole);
 });
 
 // ============================================================
@@ -577,6 +639,24 @@ async function loadMembers() {
             teamFilterOptions += `<option value="${t.id}">${t.name}</option>`;
         });
 
+        // Sort theo chức vụ hierarchy
+        const positionOrder = {
+            'Chỉ huy Trưởng': 1,
+            'Chỉ huy Phó Thường trực': 2,
+            'Chỉ huy Phó': 3,
+            'Thành viên Ban Chỉ huy': 4,
+            'Đội trưởng': 5,
+            'Đội phó': 6,
+            'Chiến sĩ': 7
+        };
+        membersDataCache.sort((a, b) => {
+            const orderA = positionOrder[a.position] || 99;
+            const orderB = positionOrder[b.position] || 99;
+            if (orderA !== orderB) return orderA - orderB;
+            // Nếu cùng chức vụ, sort theo tên
+            return a.name.localeCompare(b.name, 'vi');
+        });
+
         let html = `
             <div class="members-toolbar" style="display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap:wrap;">
                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
@@ -599,6 +679,7 @@ async function loadMembers() {
                         <th style="width:40px;"></th>
                         <th>Họ tên</th>
                         <th>Chức vụ</th>
+                        <th>Khoa/Ngành</th>
                         <th>Email</th>
                         <th>SĐT</th>
                         <th>Đội hình</th>
@@ -625,6 +706,7 @@ async function loadMembers() {
                             ${m.position}
                         </span>
                     </td>
+                    <td style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.faculty || ''}">${m.faculty || '-'}</td>
                     <td style="font-size:13px;">${m.email || '-'}</td>
                     <td>${m.phone || '-'}</td>
                     <td>
@@ -787,7 +869,17 @@ window.editMember = async function (userId) {
 
     if (formValues) {
         try {
+            const oldTeamId = m.team_id;
+            const newTeamId = formValues.team_id;
+
             await setDoc(doc(db, 'xtn_users', userId), formValues, { merge: true });
+
+            // Sync 2 chiều: cập nhật stats đội hình nếu đổi đội
+            if (oldTeamId !== newTeamId) {
+                await syncTeamStats(oldTeamId);
+                await syncTeamStats(newTeamId);
+            }
+
             await showAlert('Đã cập nhật thành công!', 'success', 'Hoàn thành');
             loadMembers();
         } catch (e) {
@@ -795,6 +887,32 @@ window.editMember = async function (userId) {
         }
     }
 };
+
+// Sync số thành viên của đội hình
+async function syncTeamStats(teamId) {
+    if (!teamId) return;
+
+    try {
+        // Đếm số thành viên thuộc đội này
+        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        let count = 0;
+        usersSnap.forEach(d => {
+            if (d.data().team_id === teamId) count++;
+        });
+
+        // Cập nhật vào xtn_teams
+        await setDoc(doc(db, 'xtn_teams', teamId), {
+            stats: {
+                total_members: count,
+                updated_at: new Date().toISOString()
+            }
+        }, { merge: true });
+
+        console.log(`[Sync] Team ${teamId}: ${count} members`);
+    } catch (e) {
+        console.warn('[Sync] Team stats error:', e);
+    }
+}
 
 window.deleteMember = async function (userId) {
     const m = membersDataCache.find(x => x.id === userId);
@@ -810,7 +928,14 @@ window.deleteMember = async function (userId) {
 
     if (result.isConfirmed) {
         try {
+            const teamId = m?.team_id;
             await deleteDoc(doc(db, 'xtn_users', userId));
+
+            // Sync stats đội hình sau khi xóa
+            if (teamId) {
+                await syncTeamStats(teamId);
+            }
+
             await showAlert('Đã xóa!', 'success', 'Hoàn thành');
             loadMembers();
         } catch (e) {
@@ -1252,8 +1377,9 @@ async function loadTeamsToQuestionForm() {
 }
 
 // ============================================================
-// DEV ROLE SWITCHER
+// [COMMENTED OUT - Production] DEV ROLE SWITCHER
 // ============================================================
+/*
 function applyDevRole() {
     const select = document.getElementById('dev-role-switch');
     if (!select) return;
@@ -1275,14 +1401,12 @@ function applyDevRole() {
     console.log('🔧 DEV: Switched to role:', userData.role);
     setupMenuByRole();
 
-    // ĐÃ XÓA section-register và section-pending
     if (userData.role === 'pending') {
         showSection('section-avatar');
     } else {
         showSection('section-dashboard');
     }
 
-    // Update name display
     let roleLabel = '';
     switch (userData.role) {
         case 'pending': roleLabel = '🟡 Chờ duyệt'; break;
@@ -1292,6 +1416,7 @@ function applyDevRole() {
     }
     document.getElementById('user-name').textContent = userData.name + ' ' + roleLabel;
 }
+*/
 
 // ============================================================
 // EXCEL IMPORT/EXPORT HANDLERS

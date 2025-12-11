@@ -40,7 +40,7 @@ async function initCountdown() {
         const docRef = doc(db, "xtn_settings", "config");
         const docSnap = await getDoc(docRef);
 
-        let targetDateStr = "Jan 15, 2025 07:00:00"; // Mặc định nếu chưa setup
+        let targetDateStr = "Jan 9, 2026 07:00:00"; // Ngày ra quân XTN 2026
         if (docSnap.exists() && docSnap.data().target_date) {
             targetDateStr = docSnap.data().target_date;
         }
@@ -213,12 +213,93 @@ function setupConfessionModal() {
 }
 
 // ==================================================
-// E. CHẠY ỨNG DỤNG
+// E. HERO BACKGROUND SLIDESHOW
+// ==================================================
+function initSlideshow() {
+    const slides = document.querySelectorAll('.hero-slideshow .slide');
+    const dots = document.querySelectorAll('.slide-dots .dot');
+
+    if (slides.length === 0) return;
+
+    let currentSlide = 0;
+    const slideInterval = 5000; // 5 seconds per slide
+
+    function showSlide(index) {
+        // Remove active from all slides and dots
+        slides.forEach(slide => slide.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+
+        // Set current slide
+        currentSlide = index;
+        if (currentSlide >= slides.length) currentSlide = 0;
+        if (currentSlide < 0) currentSlide = slides.length - 1;
+
+        // Add active to current
+        slides[currentSlide].classList.add('active');
+        dots[currentSlide].classList.add('active');
+    }
+
+    function nextSlide() {
+        showSlide(currentSlide + 1);
+    }
+
+    // Auto advance slides
+    let autoSlide = setInterval(nextSlide, slideInterval);
+
+    // Click on dots to navigate
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            clearInterval(autoSlide);
+            showSlide(index);
+            autoSlide = setInterval(nextSlide, slideInterval);
+        });
+    });
+
+    // Pause on hover (optional)
+    const heroSection = document.querySelector('.hero-section');
+    if (heroSection) {
+        heroSection.addEventListener('mouseenter', () => {
+            clearInterval(autoSlide);
+        });
+        heroSection.addEventListener('mouseleave', () => {
+            autoSlide = setInterval(nextSlide, slideInterval);
+        });
+    }
+}
+
+// ==================================================
+// F. MOBILE NAVIGATION TOGGLE
+// ==================================================
+function initMobileNav() {
+    const mobileToggle = document.querySelector('.mobile-toggle');
+    const navLinks = document.querySelector('.nav-links');
+
+    if (mobileToggle && navLinks) {
+        mobileToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('show');
+        });
+    }
+}
+
+// ==================================================
+// G. CHẠY ỨNG DỤNG
 // ==================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Core functions
     initCountdown();
+    initSlideshow();
+    initMobileNav();
+
+    // Load data from Firebase
     loadGallery();
-    loadLeaders();
-    loadConfessions();
-    setupConfessionModal();
+
+    // Optional: only load if elements exist
+    const leadersContainer = document.getElementById('leaders-container');
+    if (leadersContainer) loadLeaders();
+
+    const confessionsContainer = document.getElementById('confessions-container');
+    if (confessionsContainer) {
+        loadConfessions();
+        setupConfessionModal();
+    }
 });

@@ -5,7 +5,7 @@
  */
 
 import { db } from './firebase.js';
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ============================================================
 // STATE
@@ -92,14 +92,24 @@ export async function initCardCanvas() {
         drawCard();
     };
 
-    // Auto-fill from userData
+    // Auto-fill from userData (bao gồm vai trò và đội hình)
     if (userData) {
-        document.getElementById('card-name').value = userData.name || '';
-        document.getElementById('card-mssv').value = userData.mssv || '';
-    }
+        const nameInput = document.getElementById('card-name');
+        const mssvInput = document.getElementById('card-mssv');
+        const roleInput = document.getElementById('card-role');
+        const teamInput = document.getElementById('card-team');
 
-    // Load teams
-    await loadTeamsToDropdown();
+        if (nameInput) nameInput.value = userData.name || '';
+        if (mssvInput) mssvInput.value = userData.mssv || '';
+        if (roleInput) roleInput.value = userData.role || 'Chiến sĩ';
+        if (teamInput) teamInput.value = userData.team_name || 'Chưa phân đội';
+
+        // Load existing card status
+        await loadCardStatus();
+
+        // Load city card link
+        await loadCityCardLink();
+    }
 
     // Setup event listeners
     setupEventListeners();
@@ -241,6 +251,18 @@ function setupEventListeners() {
     const form = document.getElementById('card-form');
     if (form) {
         form.addEventListener('submit', handleCardForm);
+    }
+
+    // Confirm card button
+    const confirmBtn = document.getElementById('btn-card-confirm');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmCard);
+    }
+
+    // Save city card link button
+    const saveCityBtn = document.getElementById('btn-save-city-card');
+    if (saveCityBtn) {
+        saveCityBtn.addEventListener('click', saveCityCardLink);
     }
 }
 
@@ -491,4 +513,127 @@ export function downloadCard() {
     link.click();
 
     console.log('[Card] Downloaded:', fileName);
+
+    // Enable confirm button after download
+    const confirmBtn = document.getElementById('btn-card-confirm');
+    if (confirmBtn) confirmBtn.disabled = false;
 }
+
+// ============================================================
+// CARD STATUS - Xác nhận đã tạo thẻ
+// ============================================================
+async function loadCardStatus() {
+    if (!userData?.uid) return;
+
+    try {
+        const cardDoc = await getDoc(doc(db, 'xtn_cards', userData.uid));
+        const statusDiv = document.getElementById('card-confirm-status');
+        const confirmBtn = document.getElementById('btn-card-confirm');
+
+        if (cardDoc.exists()) {
+            const data = cardDoc.data();
+            if (data.confirmed) {
+                if (statusDiv) {
+                    statusDiv.innerHTML = `
+                        <span style="color:#16a34a;"><i class="fa-solid fa-circle-check"></i> 
+                        Đã xác nhận tạo thẻ lúc ${data.confirmed_at?.toDate?.().toLocaleString('vi-VN') || 'N/A'}</span>
+                    `;
+                }
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = '<i class="fa-solid fa-check"></i> Đã xác nhận';
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[Card] Could not load card status:', e);
+    }
+}
+
+export async function confirmCard() {
+    if (!userData?.uid) {
+        alert('Vui lòng đăng nhập lại!');
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, 'xtn_cards', userData.uid), {
+            user_id: userData.uid,
+            name: document.getElementById('card-name')?.value || '',
+            mssv: document.getElementById('card-mssv')?.value || '',
+            role: document.getElementById('card-role')?.value || '',
+            team: document.getElementById('card-team')?.value || '',
+            confirmed: true,
+            confirmed_at: serverTimestamp()
+        }, { merge: true });
+
+        const statusDiv = document.getElementById('card-confirm-status');
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <span style="color:#16a34a;"><i class="fa-solid fa-circle-check"></i> 
+                Đã xác nhận thành công!</span>
+            `;
+        }
+
+        const confirmBtn = document.getElementById('btn-card-confirm');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fa-solid fa-check"></i> Đã xác nhận';
+        }
+
+        console.log('[Card] Confirmed successfully');
+    } catch (e) {
+        console.error('[Card] Confirm error:', e);
+        alert('Có lỗi xảy ra, vui lòng thử lại!');
+    }
+}
+
+// ============================================================
+// CITY CARD LINK - Lưu link Drive thẻ cấp thành phố
+// ============================================================
+async function loadCityCardLink() {
+    if (!userData?.uid) return;
+
+    try {
+        const cardDoc = await getDoc(doc(db, 'xtn_cards', userData.uid));
+        if (cardDoc.exists()) {
+            const data = cardDoc.data();
+            const linkInput = document.getElementById('card-city-link');
+            if (linkInput && data.city_card_link) {
+                linkInput.value = data.city_card_link;
+            }
+        }
+    } catch (e) {
+        console.warn('[Card] Could not load city card link:', e);
+    }
+}
+
+export async function saveCityCardLink() {
+    if (!userData?.uid) {
+        alert('Vui lòng đăng nhập lại!');
+        return;
+    }
+
+    const linkInput = document.getElementById('card-city-link');
+    const link = linkInput?.value?.trim() || '';
+
+    if (link && !link.includes('drive.google.com')) {
+        alert('Vui lòng nhập link Google Drive hợp lệ!');
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, 'xtn_cards', userData.uid), {
+            user_id: userData.uid,
+            city_card_link: link,
+            city_card_updated_at: serverTimestamp()
+        }, { merge: true });
+
+        alert('Đã lưu link thẻ thành phố!');
+        console.log('[Card] City card link saved');
+    } catch (e) {
+        console.error('[Card] Save city link error:', e);
+        alert('Có lỗi xảy ra, vui lòng thử lại!');
+    }
+}
+

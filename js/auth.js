@@ -199,9 +199,10 @@ async function loginWithGoogle() {
 }
 
 /**
- * Xử lý kết quả redirect sau khi đăng nhập Google
- * Gọi function này khi page load để check redirect result
+ * [COMMENTED OUT - Production] Xử lý kết quả redirect sau khi đăng nhập Google
+ * Không dùng nữa vì đã chuyển sang popup login
  */
+/*
 async function handleRedirectResult() {
     try {
         console.log('🔐 [Auth] Checking for redirect result...');
@@ -211,10 +212,8 @@ async function handleRedirectResult() {
             const user = result.user;
             console.log('🔐 [Auth] Redirect result found:', user.email);
 
-            // Kiểm tra Super Admin
             const isSuperAdmin = await checkSuperAdmin(user.email);
 
-            // Lưu thông tin user
             await saveUserData(user, {
                 role: isSuperAdmin ? ROLES.SUPER_ADMIN : undefined
             });
@@ -222,7 +221,7 @@ async function handleRedirectResult() {
             console.log("✅ Đăng nhập thành công qua redirect:", user.email);
             return { user, success: true };
         } else {
-            console.log('🔐 [Auth] No redirect result (user may already be logged in or not redirected)');
+            console.log('🔐 [Auth] No redirect result');
             return { user: null, success: false };
         }
     } catch (error) {
@@ -230,6 +229,7 @@ async function handleRedirectResult() {
         throw error;
     }
 }
+*/
 
 /**
  * Đăng xuất
@@ -403,7 +403,7 @@ export {
 
     // Auth functions
     loginWithGoogle,
-    handleRedirectResult,
+    // handleRedirectResult, // [COMMENTED OUT - Production]
     logout,
     onAuthChange,
 

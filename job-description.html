@@ -5,92 +5,403 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mô tả công việc - Xuân Tình Nguyện UEL 2026</title>
-
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- CSS -->
     <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/index.css">
 
     <style>
-        .job-page {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #1a5d3a 0%, #0d3320 100%);
-            padding: 40px 20px;
-        }
-
-        .job-container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        .job-header {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-
-        .job-header h1 {
-            font-size: 2rem;
-            margin: 0 0 10px;
-        }
-
-        .job-header p {
-            opacity: 0.9;
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .job-content {
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #166534 0%, #0d3320 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .page-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #166534 0%, #0d3320 100%);
+            clip-path: polygon(0 50%, 100% 0, 100% 100%, 0% 100%);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .header-logo {
+            height: 80px;
+        }
+
+        .header-text h1 {
+            font-size: 2rem;
+            color: #166534;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .header-text p {
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        /* Main */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+
+        .section-card {
+            background: #fff;
+            border-radius: 20px;
             padding: 40px;
-        }
-
-        .job-section {
             margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
-        .job-section h2 {
-            color: #1a5d3a;
-            font-size: 1.3rem;
+        .section-title {
+            text-align: center;
+            color: #166534;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .section-title i {
+            color: #dc2626;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 4px solid #16a34a;
+            flex: 0 0 calc(33.333% - 15px);
+            max-width: calc(33.333% - 15px);
+        }
+
+        .info-card h3 {
+            color: #166534;
             margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e5e5e5;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .job-section h2 i {
+        .info-card h3 i {
             color: #dc2626;
         }
 
-        .job-section ul {
+        .info-card ul {
             padding-left: 20px;
-        }
-
-        .job-section li {
-            margin-bottom: 10px;
-            line-height: 1.6;
-        }
-
-        .job-section p {
-            line-height: 1.8;
             color: #444;
         }
 
+        .info-card li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .info-card p {
+            color: #444;
+            line-height: 1.8;
+        }
+
+        /* Quota Grid - 6 trên 5 dưới căn giữa */
+        .quota-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 13px;
+        }
+
+        .quota-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #16a34a;
+            border-radius: 15px;
+            padding: 15px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 0 0 calc(16.666% - 13px);
+            /* 6 cột */
+            max-width: calc(16.666% - 13px);
+        }
+
+        .quota-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(22, 163, 74, 0.3);
+            border-color: #dc2626;
+        }
+
+        .quota-card.active {
+            border-color: #dc2626;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+
+        .quota-card .team-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #166534;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quota-card .team-quota {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #dc2626;
+        }
+
+        .quota-card .team-quota small {
+            font-size: 1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 20px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 2px solid #e5e7eb;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header h3 {
+            color: #166534;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header h3 i {
+            color: #dc2626;
+        }
+
+        .modal-close {
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .modal-close:hover {
+            background: #b91c1c;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-gallery {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modal-gallery img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .modal-gallery img:hover {
+            border-color: #dc2626;
+            transform: scale(1.03);
+        }
+
+        .modal-description {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #16a34a;
+        }
+
+        .modal-description h4 {
+            color: #166534;
+            margin-bottom: 10px;
+        }
+
+        .modal-description p {
+            color: #444;
+            line-height: 1.8;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lightbox.show {
+            display: flex;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 85vh;
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 85vh;
+            border-radius: 10px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            color: #166534;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+
+        .lightbox-nav:hover {
+            background: #fff;
+        }
+
+        .lightbox-prev {
+            left: -70px;
+        }
+
+        .lightbox-next {
+            right: -70px;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        /* Highlight Box */
         .highlight-box {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 15px 20px;
-            border-radius: 0 10px 10px 0;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid #f59e0b;
+            padding: 20px 25px;
+            border-radius: 0 15px 15px 0;
             margin: 20px 0;
         }
 
@@ -98,142 +409,410 @@
             color: #b45309;
         }
 
-        .btn-back {
+        /* Buttons */
+        .action-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            background: #1a5d3a;
-            color: white;
-            padding: 12px 25px;
+            gap: 10px;
+            padding: 15px 35px;
             border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
             text-decoration: none;
-            font-weight: 600;
             transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .btn-back {
+            background: #fff;
+            color: #166534;
+            border: 2px solid #fff;
         }
 
         .btn-back:hover {
-            background: #0d3320;
-            transform: translateY(-2px);
+            background: transparent;
+            color: #fff;
         }
 
-        .btn-register-big {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            margin-left: 15px;
+        .btn-register {
+            background: #dc2626;
+            color: #fff;
+            border: 2px solid #fff;
         }
 
-        .btn-register-big:hover {
+        .btn-register:hover {
+            background: #b91c1c;
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
         }
 
-        .job-actions {
-            text-align: center;
-            padding: 30px 40px 40px;
-            background: #f9fafb;
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .quota-card {
+                flex: 0 0 calc(25% - 12px);
+                max-width: calc(25% - 12px);
+            }
+
+            .info-card {
+                flex: 0 0 calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
+
+            .lightbox-prev {
+                left: 10px;
+            }
+
+            .lightbox-next {
+                right: 10px;
+            }
         }
 
-        @media (max-width: 600px) {
-            .job-header h1 {
-                font-size: 1.5rem;
-            }
-
-            .job-content {
-                padding: 25px;
-            }
-
-            .job-actions {
+        @media (max-width: 768px) {
+            .header-content {
                 flex-direction: column;
             }
 
-            .btn-register-big {
-                margin-left: 0;
-                margin-top: 15px;
+            .header-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .section-card {
+                padding: 25px;
+            }
+
+            .quota-card {
+                flex: 0 0 calc(33.333% - 10px);
+                max-width: calc(33.333% - 10px);
+            }
+
+            .info-card {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+
+            .modal-gallery {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .btn {
+                display: flex;
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quota-card {
+                flex: 0 0 calc(50% - 8px);
+                max-width: calc(50% - 8px);
+            }
+
+            .modal-gallery {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="job-page">
-        <div class="job-container">
-            <div class="job-header">
+    <header class="page-header">
+        <div class="header-content">
+            <img src="images/bieutrungxtn.png" alt="Logo XTN" class="header-logo">
+            <div class="header-text">
                 <h1><i class="fa-solid fa-briefcase"></i> Mô Tả Công Việc</h1>
                 <p>Chiến sĩ Xuân Tình Nguyện UEL 2026</p>
             </div>
+        </div>
+    </header>
 
-            <div class="job-content">
-                <div class="job-section">
-                    <h2><i class="fa-solid fa-calendar"></i> Thời gian chiến dịch</h2>
-                    <p><strong>15/12/2025 - 15/02/2026</strong> (Khoảng 2 tháng)</p>
+    <div class="main-container">
+        <!-- Mô tả hoạt động chung -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <i class="fa-solid fa-clipboard-list"></i>
+                Mô Tả Hoạt Động Chung
+            </h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-calendar"></i> Thời gian chiến dịch</h3>
+                    <p><strong>15/12/2025 - 15/02/2026</strong><br>(Khoảng 2 tháng)</p>
                 </div>
-
-                <div class="job-section">
-                    <h2><i class="fa-solid fa-list-check"></i> Nhiệm vụ chính</h2>
-                    <ul>
-                        <li>Tham gia các hoạt động tình nguyện vì cộng đồng</li>
-                        <li>Hỗ trợ tổ chức các chương trình Tết cho người dân</li>
-                        <li>Tham gia các buổi sinh hoạt, training của đội</li>
-                        <li>Hoàn thành các task được giao từ Đội trưởng/BCH</li>
-                        <li>Báo cáo tiến độ và kết quả hoạt động</li>
-                    </ul>
-                </div>
-
-                <div class="job-section">
-                    <h2><i class="fa-solid fa-clock"></i> Thời gian cam kết</h2>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-clock"></i> Thời gian cam kết</h3>
                     <ul>
                         <li><strong>Trung bình:</strong> 4-6 giờ/tuần</li>
-                        <li><strong>Cao điểm:</strong> Tuần Tết có thể nhiều hơn</li>
-                        <li>Linh hoạt theo lịch học của sinh viên</li>
+                        <li><strong>Cao điểm:</strong> Tuần Tết nhiều hơn</li>
                     </ul>
                 </div>
-
-                <div class="job-section">
-                    <h2><i class="fa-solid fa-star"></i> Yêu cầu</h2>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-list-check"></i> Nhiệm vụ chính</h3>
                     <ul>
-                        <li>Là sinh viên Trường ĐH Kinh tế - Luật (UEL)</li>
-                        <li>Có tinh thần trách nhiệm, nhiệt tình</li>
-                        <li>Cam kết tham gia đủ các hoạt động của đội</li>
-                        <li>Có khả năng làm việc nhóm</li>
+                        <li>Tham gia hoạt động tình nguyện</li>
+                        <li>Hỗ trợ tổ chức chương trình</li>
+                        <li>Hoàn thành task từ BCH</li>
                     </ul>
                 </div>
-
-                <div class="job-section">
-                    <h2><i class="fa-solid fa-gift"></i> Quyền lợi</h2>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-star"></i> Yêu cầu</h3>
                     <ul>
-                        <li>Được cấp Thẻ Chiến sĩ chính thức</li>
-                        <li>Nhận Giấy chứng nhận sau chiến dịch</li>
+                        <li>Sinh viên ĐH Kinh tế - Luật</li>
+                        <li>Tinh thần trách nhiệm</li>
+                        <li>Cam kết tham gia hoạt động</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-gift"></i> Quyền lợi</h3>
+                    <ul>
+                        <li>Được cấp Thẻ Chiến sĩ</li>
+                        <li>Nhận Giấy chứng nhận</li>
                         <li>Được tính điểm rèn luyện</li>
-                        <li>Cơ hội networking, kết bạn</li>
-                        <li>Trải nghiệm ý nghĩa trong dịp Tết</li>
                     </ul>
-                </div>
-
-                <div class="highlight-box">
-                    <strong>⚠️ Lưu ý:</strong> Nội dung chi tiết có thể được cập nhật bởi Ban Chỉ huy. Vui lòng theo dõi
-                    Fanpage để cập nhật thông tin mới nhất.
                 </div>
             </div>
+            <div class="highlight-box">
+                <strong>⚠️ Lưu ý:</strong> Nội dung có thể được cập nhật. Theo dõi Fanpage để biết thêm.
+            </div>
+        </section>
 
-            <div class="job-actions">
-                <a href="index.html" class="btn-back">
-                    <i class="fa-solid fa-arrow-left"></i> Quay lại
-                </a>
-                <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn-register-big">
-                    <i class="fa-solid fa-user-plus"></i> Đăng ký ngay
-                </a>
+        <!-- Chỉ tiêu đội hình -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <i class="fa-solid fa-users"></i>
+                Chỉ Tiêu Đội Hình
+            </h2>
+            <p style="text-align:center; color:#666; margin-bottom:20px;">
+                <i class="fa-solid fa-hand-pointer"></i> Click vào đội hình để xem chi tiết
+            </p>
+            <div class="quota-grid">
+                <!-- Hàng 1: 6 đội -->
+                <div class="quota-card" data-team="xuan-tu-hao">
+                    <div class="team-name">Xuân tự hào</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-ban-sac">
+                    <div class="team-name">Xuân bản sắc</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-se-chia">
+                    <div class="team-name">Xuân sẻ chia</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-gan-ket">
+                    <div class="team-name">Xuân gắn kết</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-chien-si">
+                    <div class="team-name">Xuân chiến sĩ</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="tet-van-minh">
+                    <div class="team-name">Tết văn minh</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <!-- Hàng 2: 5 đội (căn giữa) -->
+                <div class="quota-card" data-team="tu-van-phap-luat">
+                    <div class="team-name">Tư vấn và giảng dạy pháp luật cộng đồng</div>
+                    <div class="team-quota">36 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="giai-dieu-mua-xuan">
+                    <div class="team-name">Giai điệu mùa xuân</div>
+                    <div class="team-quota">35 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="vien-chuc-tre">
+                    <div class="team-name">Viên chức trẻ</div>
+                    <div class="team-quota">20 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="ky-su-tet">
+                    <div class="team-name">Ký sự Tết</div>
+                    <div class="team-quota">30 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="hau-can">
+                    <div class="team-name">Hậu cần</div>
+                    <div class="team-quota">10 <small>chiến sĩ</small></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="action-section">
+            <a href="index.html" class="btn btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
+            </a>
+            <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn btn-register">
+                <i class="fa-solid fa-user-plus"></i> Đăng ký ngay
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-users"></i> <span id="modal-team-name">Tên đội hình</span></h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-gallery" id="modal-gallery"></div>
+                <div class="modal-description">
+                    <h4><i class="fa-solid fa-info-circle"></i> Mô tả công việc</h4>
+                    <p id="modal-description">Mô tả đội hình...</p>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Lightbox xem ảnh -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()"><i class="fa-solid fa-times"></i></button>
+            <button class="lightbox-nav lightbox-prev" onclick="prevImage()"><i
+                    class="fa-solid fa-chevron-left"></i></button>
+            <img src="" alt="Preview" id="lightbox-img">
+            <button class="lightbox-nav lightbox-next" onclick="nextImage()"><i
+                    class="fa-solid fa-chevron-right"></i></button>
+            <div class="lightbox-counter"><span id="lightbox-current">1</span> / <span id="lightbox-total">5</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teamData = {
+            'xuan-tu-hao': {
+                name: 'Đội hình Xuân tự hào',
+                description: 'Đội hình Xuân tự hào tập trung vào việc lan tỏa niềm tự hào dân tộc, tổ chức các hoạt động văn hóa truyền thống, giáo dục lịch sử cho các em nhỏ trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=11', 'https://picsum.photos/800/600?random=12', 'https://picsum.photos/800/600?random=13', 'https://picsum.photos/800/600?random=14', 'https://picsum.photos/800/600?random=15']
+            },
+            'xuan-ban-sac': {
+                name: 'Đội hình Xuân bản sắc',
+                description: 'Đội hình Xuân bản sắc giữ gìn và phát huy bản sắc văn hóa dân tộc, tổ chức các hoạt động mang đậm nét truyền thống như gói bánh chưng, viết câu đối...',
+                images: ['https://picsum.photos/800/600?random=21', 'https://picsum.photos/800/600?random=22', 'https://picsum.photos/800/600?random=23', 'https://picsum.photos/800/600?random=24', 'https://picsum.photos/800/600?random=25']
+            },
+            'xuan-se-chia': {
+                name: 'Đội hình Xuân sẻ chia',
+                description: 'Đội hình Xuân sẻ chia thực hiện các hoạt động từ thiện, tặng quà Tết cho các hộ gia đình khó khăn, mang yêu thương đến với mọi người.',
+                images: ['https://picsum.photos/800/600?random=31', 'https://picsum.photos/800/600?random=32', 'https://picsum.photos/800/600?random=33', 'https://picsum.photos/800/600?random=34', 'https://picsum.photos/800/600?random=35']
+            },
+            'xuan-gan-ket': {
+                name: 'Đội hình Xuân gắn kết',
+                description: 'Đội hình Xuân gắn kết tổ chức các hoạt động kết nối cộng đồng, xây dựng tình đoàn kết giữa các thế hệ trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=41', 'https://picsum.photos/800/600?random=42', 'https://picsum.photos/800/600?random=43', 'https://picsum.photos/800/600?random=44', 'https://picsum.photos/800/600?random=45']
+            },
+            'xuan-chien-si': {
+                name: 'Đội hình Xuân chiến sĩ',
+                description: 'Đội hình Xuân chiến sĩ thực hiện các hoạt động hỗ trợ an ninh trật tự, giao thông trong dịp Tết, đảm bảo an toàn cho người dân.',
+                images: ['https://picsum.photos/800/600?random=51', 'https://picsum.photos/800/600?random=52', 'https://picsum.photos/800/600?random=53', 'https://picsum.photos/800/600?random=54', 'https://picsum.photos/800/600?random=55']
+            },
+            'tet-van-minh': {
+                name: 'Đội hình Tết văn minh',
+                description: 'Đội hình Tết văn minh tuyên truyền nếp sống văn minh, bảo vệ môi trường, hạn chế đốt pháo trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=61', 'https://picsum.photos/800/600?random=62', 'https://picsum.photos/800/600?random=63', 'https://picsum.photos/800/600?random=64', 'https://picsum.photos/800/600?random=65']
+            },
+            'tu-van-phap-luat': {
+                name: 'Đội hình Tư vấn & Giảng dạy pháp luật cộng đồng',
+                description: 'Đội hình tư vấn pháp luật miễn phí cho người dân, tổ chức các buổi phổ biến kiến thức pháp luật tại cộng đồng.',
+                images: ['https://picsum.photos/800/600?random=71', 'https://picsum.photos/800/600?random=72', 'https://picsum.photos/800/600?random=73', 'https://picsum.photos/800/600?random=74', 'https://picsum.photos/800/600?random=75']
+            },
+            'giai-dieu-mua-xuan': {
+                name: 'Đội hình Giai điệu mùa xuân',
+                description: 'Đội hình Giai điệu mùa xuân tổ chức các chương trình văn nghệ, biểu diễn nghệ thuật phục vụ nhân dân trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=81', 'https://picsum.photos/800/600?random=82', 'https://picsum.photos/800/600?random=83', 'https://picsum.photos/800/600?random=84', 'https://picsum.photos/800/600?random=85']
+            },
+            'vien-chuc-tre': {
+                name: 'Đội hình Viên chức trẻ',
+                description: 'Đội hình Viên chức trẻ hỗ trợ các hoạt động hành chính, thủ tục giấy tờ cho người dân trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=91', 'https://picsum.photos/800/600?random=92', 'https://picsum.photos/800/600?random=93', 'https://picsum.photos/800/600?random=94', 'https://picsum.photos/800/600?random=95']
+            },
+            'ky-su-tet': {
+                name: 'Đội hình Ký sự Tết',
+                description: 'Đội hình Ký sự Tết ghi lại những khoảnh khắc đẹp của chiến dịch, sản xuất các sản phẩm truyền thông lan tỏa tinh thần tình nguyện.',
+                images: ['https://picsum.photos/800/600?random=101', 'https://picsum.photos/800/600?random=102', 'https://picsum.photos/800/600?random=103', 'https://picsum.photos/800/600?random=104', 'https://picsum.photos/800/600?random=105']
+            },
+            'hau-can': {
+                name: 'Đội hình Hậu cần',
+                description: 'Đội hình Hậu cần đảm bảo logistics, chuẩn bị vật tư, trang thiết bị cho các hoạt động của chiến dịch.',
+                images: ['https://picsum.photos/800/600?random=111', 'https://picsum.photos/800/600?random=112', 'https://picsum.photos/800/600?random=113', 'https://picsum.photos/800/600?random=114', 'https://picsum.photos/800/600?random=115']
+            }
+        };
+
+        let currentImages = [];
+        let currentIndex = 0;
+
+        // Click quota card
+        document.querySelectorAll('.quota-card').forEach(card => {
+            card.addEventListener('click', function () {
+                const team = teamData[this.dataset.team];
+                if (!team) return;
+
+                document.getElementById('modal-team-name').textContent = team.name;
+                document.getElementById('modal-description').textContent = team.description;
+
+                currentImages = team.images;
+                const gallery = document.getElementById('modal-gallery');
+                gallery.innerHTML = team.images.map((img, i) =>
+                    `<img src="${img}" alt="Ảnh ${i + 1}" onclick="openLightbox(${i})">`
+                ).join('');
+
+                document.getElementById('modal-overlay').classList.add('show');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Lightbox
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightbox();
+            document.getElementById('lightbox').classList.add('show');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('show');
+        }
+
+        function updateLightbox() {
+            document.getElementById('lightbox-img').src = currentImages[currentIndex];
+            document.getElementById('lightbox-current').textContent = currentIndex + 1;
+            document.getElementById('lightbox-total').textContent = currentImages.length;
+        }
+
+        function prevImage() {
+            currentIndex = (currentIndex - 1 + currentImages.length) % currentImages.length;
+            updateLightbox();
+        }
+
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % currentImages.length;
+            updateLightbox();
+        }
+
+        // Event listeners
+        document.getElementById('modal-overlay').addEventListener('click', e => {
+            if (e.target === document.getElementById('modal-overlay')) closeModal();
+        });
+
+        document.getElementById('lightbox').addEventListener('click', e => {
+            if (e.target === document.getElementById('lightbox')) closeLightbox();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeModal();
+            }
+            if (document.getElementById('lightbox').classList.contains('show')) {
+                if (e.key === 'ArrowLeft') prevImage();
+                if (e.key === 'ArrowRight') nextImage();
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -199,7 +199,7 @@
                     <div class="right-col">
                         <div class="card preview-card">
                             <h3><i class="fa-solid fa-eye"></i> 3. Xem trước & Tải về</h3>
-                            <div class="canvas-wrapper">
+                            <div class="canvas-wrapper avatar-wrapper">
                                 <canvas id="avatar-canvas" width="1000" height="1000"></canvas>
                             </div>
                             <button id="btn-avatar-download" class="btn btn-success btn-block" disabled>
@@ -234,23 +234,16 @@
                                     <input type="text" id="card-mssv" placeholder="Nhập mã số sinh viên">
                                 </div>
                                 <div class="form-group">
-                                    <label>Vai trò</label>
-                                    <select id="card-role">
-                                        <option value="Chỉ huy Trưởng">Chỉ huy Trưởng</option>
-                                        <option value="Chỉ huy Phó Thường trực">Chỉ huy Phó Thường trực</option>
-                                        <option value="Chỉ huy Phó">Chỉ huy Phó</option>
-                                        <option value="Thành viên Ban Chỉ huy">Thành viên Ban Chỉ huy</option>
-                                        <option value="Đội trưởng">Đội trưởng</option>
-                                        <option value="Đội phó">Đội phó</option>
-                                        <option value="Chiến sĩ">Chiến sĩ</option>
-                                    </select>
+                                    <label>Vai trò <i class="fa-solid fa-lock" style="color:#888;"
+                                            title="Tự động lấy từ hệ thống"></i></label>
+                                    <input type="text" id="card-role" readonly class="readonly-field"
+                                        placeholder="Chiến sĩ" title="Vai trò được gán từ hệ thống">
                                 </div>
                                 <div class="form-group">
-                                    <label>Đội hình</label>
-                                    <select id="card-team">
-                                        <option value="">-- Chọn đội hình --</option>
-                                        <!-- Load từ Firebase -->
-                                    </select>
+                                    <label>Đội hình <i class="fa-solid fa-lock" style="color:#888;"
+                                            title="Tự động lấy từ hệ thống"></i></label>
+                                    <input type="text" id="card-team" readonly class="readonly-field"
+                                        placeholder="Chưa phân đội" title="Đội hình được gán từ hệ thống">
                                 </div>
                                 <div class="form-group">
                                     <label>Ảnh chân dung</label>
@@ -275,16 +268,38 @@
                                 </button>
                             </form>
                         </div>
+
+                        <!-- Thẻ Cấp Thành phố -->
+                        <div class="card" style="margin-top:20px;">
+                            <h3><i class="fa-solid fa-city"></i> Thẻ Cấp Thành phố</h3>
+                            <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">
+                                Nếu bạn có thẻ cấp thành phố, hãy nhập link Google Drive bên dưới.
+                            </p>
+                            <div class="form-group">
+                                <label>Link Drive Thẻ Thành phố</label>
+                                <input type="url" id="card-city-link" placeholder="https://drive.google.com/file/d/..."
+                                    class="form-control">
+                            </div>
+                            <button type="button" id="btn-save-city-card" class="btn btn-secondary btn-block">
+                                <i class="fa-solid fa-save"></i> Lưu Link Thẻ
+                            </button>
+                        </div>
                     </div>
                     <div class="right-col">
                         <div class="card preview-card">
                             <h3><i class="fa-solid fa-eye"></i> Xem trước thẻ</h3>
-                            <div class="canvas-wrapper" style="position:relative;">
+                            <div class="canvas-wrapper card-wrapper">
                                 <canvas id="card-canvas" width="1100" height="1700"></canvas>
                             </div>
-                            <button id="btn-card-download" class="btn btn-success btn-block" disabled>
-                                <i class="fa-solid fa-download"></i> Tải về Thẻ
-                            </button>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <button id="btn-card-download" class="btn btn-success" style="flex:1;" disabled>
+                                    <i class="fa-solid fa-download"></i> Tải về
+                                </button>
+                                <button id="btn-card-confirm" class="btn btn-primary" style="flex:1;" disabled>
+                                    <i class="fa-solid fa-check-circle"></i> Đã tạo thẻ
+                                </button>
+                            </div>
+                            <div id="card-confirm-status" style="margin-top:10px; text-align:center;"></div>
                         </div>
                     </div>
                 </div>
@@ -767,9 +782,16 @@
                         </div>
                         <div class="form-group">
                             <select id="cards-filter-status">
-                                <option value="">-- Tất cả --</option>
+                                <option value="">-- Thẻ Chiến sĩ --</option>
                                 <option value="created">Đã tạo thẻ</option>
                                 <option value="not-created">Chưa tạo thẻ</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select id="cards-filter-city">
+                                <option value="">-- Thẻ Cấp Thành --</option>
+                                <option value="has-city">Có Thẻ Cấp Thành</option>
+                                <option value="no-city">Chưa có Thẻ Cấp Thành</option>
                             </select>
                         </div>
                         <button id="btn-export-cards" class="btn btn-success">
@@ -795,14 +817,15 @@
                                     <th>Họ và Tên</th>
                                     <th>MSSV</th>
                                     <th>Đội hình</th>
-                                    <th>Trạng thái</th>
+                                    <th>Thẻ Chiến sĩ</th>
+                                    <th>Thẻ Cấp Thành</th>
                                     <th>Thời gian tạo</th>
                                     <th>Hành động</th>
                                 </tr>
                             </thead>
                             <tbody id="cards-table-body">
                                 <tr>
-                                    <td colspan="7" style="text-align:center;color:#888;">Đang tải...</td>
+                                    <td colspan="8" style="text-align:center;color:#888;">Đang tải...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -814,16 +837,6 @@
                     <button id="cards-prev-page" class="btn btn-sm" disabled>&laquo; Trước</button>
                     <span id="cards-page-info" style="margin:0 15px;">Trang 1 / 1</span>
                     <button id="cards-next-page" class="btn btn-sm">Sau &raquo;</button>
-                </div>
-            </section>
-
-            <!-- Section: Cài đặt (Admin) -->
-            <section id="section-settings" class="section">
-                <div class="section-header">
-                    <h1><i class="fa-solid fa-gear"></i> Cài đặt Hệ thống</h1>
-                </div>
-                <div class="card">
-                    <p>Các cài đặt hệ thống sẽ được thêm ở đây.</p>
                 </div>
             </section>
 
@@ -917,7 +930,7 @@
                                     <th>Địa điểm</th>
                                     <th>Nội dung</th>
                                     <th>Đề xuất BCH</th>
-                                    <th>TC Cập nhật</th>
+                                    <th>TG Cập nhật</th>
                                     <th>Người cập nhật</th>
                                     <th>Thao tác</th>
                                 </tr>
@@ -1009,22 +1022,41 @@
                 </div>
 
                 <div class="card">
-                    <h3><i class="fa-solid fa-database"></i> Sao lưu dữ liệu</h3>
+                    <h3><i class="fa-solid fa-database"></i> Sao lưu dữ liệu (JSON)</h3>
                     <p style="color:#666; margin-bottom:20px;">Tải toàn bộ dữ liệu về máy dưới dạng JSON để backup. Bao
-                        gồm: Thành viên, Đội hình, Hoạt động, Đăng ký.</p>
+                        gồm: Thành viên, Đội hình, Hoạt động, Báo cáo, Thẻ chiến sĩ, Đăng ký.</p>
 
                     <div class="btn-row" style="gap:10px; flex-wrap:wrap;">
-                        <button id="btn-backup-all" class="btn btn-primary">
-                            <i class="fa-solid fa-download"></i> Tải toàn bộ dữ liệu (JSON)
+                        <button id="btn-backup-all-json" class="btn btn-primary">
+                            <i class="fa-solid fa-download"></i> Tải toàn bộ (JSON)
                         </button>
-                        <button id="btn-backup-users" class="btn btn-secondary">
+                        <button id="btn-backup-users-json" class="btn btn-secondary">
                             <i class="fa-solid fa-users"></i> Chỉ thành viên
                         </button>
-                        <button id="btn-backup-activities" class="btn btn-secondary">
+                        <button id="btn-backup-activities-json" class="btn btn-secondary">
                             <i class="fa-solid fa-calendar"></i> Chỉ hoạt động
                         </button>
                     </div>
                 </div>
+
+                <div class="card" style="margin-top:20px;">
+                    <h3><i class="fa-solid fa-file-excel" style="color:#22c55e;"></i> Sao lưu dữ liệu (Excel)</h3>
+                    <p style="color:#666; margin-bottom:20px;">Tải dữ liệu về máy dưới dạng file Excel để dễ dàng xem và
+                        chỉnh sửa.</p>
+
+                    <div class="btn-row" style="gap:10px; flex-wrap:wrap;">
+                        <button id="btn-backup-all-excel" class="btn btn-success">
+                            <i class="fa-solid fa-file-excel"></i> Tải toàn bộ (Excel)
+                        </button>
+                        <button id="btn-backup-users-excel" class="btn btn-secondary">
+                            <i class="fa-solid fa-users"></i> Chỉ thành viên
+                        </button>
+                        <button id="btn-backup-activities-excel" class="btn btn-secondary">
+                            <i class="fa-solid fa-calendar"></i> Chỉ hoạt động
+                        </button>
+                    </div>
+                </div>
+
 
                 <div class="card" style="margin-top:20px;">
                     <h3><i class="fa-solid fa-exclamation-triangle" style="color:#dc2626;"></i> Vùng nguy hiểm</h3>

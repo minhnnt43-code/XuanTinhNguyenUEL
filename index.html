@@ -40,31 +40,98 @@
         <div class="mobile-toggle"><i class="fa-solid fa-bars"></i></div>
     </nav>
 
-    <!-- 2. HERO SECTION -->
+    <!-- 2. HERO SECTION WITH BACKGROUND SLIDESHOW -->
     <section id="hero" class="hero-section">
+        <!-- Background Slideshow -->
+        <div class="hero-slideshow">
+            <!-- 10 PLACEHOLDER IMAGES - BẠN SẼ THAY THẾ SAU -->
+            <div class="slide active" style="background-image: url('https://picsum.photos/1920/1080?random=1');"></div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/103QZz5TUDdLDlIEP3pjjo2oSzFKZI-dx');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1Lidw_zXd8kH8Y1Q0BSlZdT4P3LJWprA7');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1_80XttkbXqmqA5HywMOq3JKebJ_skoCS');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1zQdksoC_Odz9CILbSdUV7npDTdx0-piJ');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1PM0t7R50vI1bw4hasusYAQAQBTRhkRVG');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1hMP2NlddRRe0YcjrJHG7SLUPC3MvgnFu');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/12p535-ZXI37aUmzn0Lvb6e_JYXJsMw3V');">
+            </div>
+        </div>
+
+        <!-- Dark Overlay for text readability -->
         <div class="hero-overlay"></div>
+
+        <!-- Slide Navigation Dots -->
+        <div class="slide-dots">
+            <span class="dot active" data-slide="0"></span>
+            <span class="dot" data-slide="1"></span>
+            <span class="dot" data-slide="2"></span>
+            <span class="dot" data-slide="3"></span>
+            <span class="dot" data-slide="4"></span>
+            <span class="dot" data-slide="5"></span>
+            <span class="dot" data-slide="6"></span>
+            <span class="dot" data-slide="7"></span>
+            <span class="dot" data-slide="8"></span>
+            <span class="dot" data-slide="9"></span>
+        </div>
+
+        <!-- Hero Content -->
         <div class="hero-content">
-            <div class="decor-icon">🌸🎐</div>
-            <h2 class="sub-title">Chiến dịch tình nguyện</h2>
-            <h1 class="main-title">XUÂN TÌNH NGUYỆN <br> <span class="highlight-text">UEL 2026</span></h1>
+            <!-- Logo Biểu trưng XTN thay cho title -->
+            <img src="images/bieutrungxtn.png" alt="Xuân Tình Nguyện UEL 2026" class="hero-logo">
+
             <p class="slogan">"Gom nhặt yêu thương - Sẻ chia Tết ấm"</p>
 
+            <!-- Countdown -->
             <div class="countdown-wrapper">
-                <p class="countdown-label">⏳ Thời gian đếm ngược đến ngày ra quân:</p>
+                <p class="countdown-label">
+                    <i class="fa-solid fa-clock"></i> Đếm ngược đến ngày ra quân
+                </p>
                 <div id="countdown" class="timer">
-                    <div class="time-box"><span id="days">00</span><small>Ngày</small></div>
-                    <div class="time-box"><span id="hours">00</span><small>Giờ</small></div>
-                    <div class="time-box"><span id="minutes">00</span><small>Phút</small></div>
-                    <div class="time-box"><span id="seconds">00</span><small>Giây</small></div>
+                    <div class="time-box">
+                        <span id="days">00</span>
+                        <small>Ngày</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="hours">00</span>
+                        <small>Giờ</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="minutes">00</span>
+                        <small>Phút</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="seconds">00</span>
+                        <small>Giây</small>
+                    </div>
                 </div>
             </div>
 
-            <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn-cta btn-register">
-                <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
-            </a>
-            <a href="job-description.html" class="btn-cta btn-secondary">
-                <i class="fa-solid fa-briefcase"></i> Mô tả công việc
-            </a>
+            <!-- CTA Buttons -->
+            <div class="cta-buttons">
+                <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn-cta btn-register">
+                    <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
+                </a>
+                <a href="job-description.html" class="btn-cta btn-secondary">
+                    <i class="fa-solid fa-briefcase"></i> Mô tả công việc
+                </a>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="scroll-indicator">
+            <i class="fa-solid fa-chevron-down"></i>
         </div>
     </section>
 
@@ -78,9 +145,6 @@
             <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải kỷ niệm...</div>
         </div>
     </section>
-
-
-
 
     <!-- FOOTER -->
     <footer class="footer-official">

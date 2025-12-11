@@ -40,6 +40,7 @@ let unsubscribeReports = null;
 let unsubscribeLogs = null;
 let isInitialized = false;
 let currentUserTeam = null; // Team của user hiện tại (team_name)
+let tempParticipants = []; // Danh sách tham gia tạm thời khi edit activity
 
 // ===== DOM ELEMENTS =====
 const elements = {};
@@ -137,11 +138,29 @@ export async function initActivityModule() {
 
     populateTeamSelects();
     populateWeekSelects();
+
+    // Set default date filter to last 1 week
+    setDefaultDateFilters();
+
     subscribeToData();
     renderCalendar();
 
     isInitialized = true;
     console.log('[Activity] Module initialized successfully');
+}
+
+// Set default date filters to last 1 week
+function setDefaultDateFilters() {
+    const today = new Date();
+    const oneWeekAgo = new Date(today);
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    if (elements.statsDateFrom) {
+        elements.statsDateFrom.value = formatDate(oneWeekAgo, 'yyyy-mm-dd');
+    }
+    if (elements.statsDateTo) {
+        elements.statsDateTo.value = formatDate(today, 'yyyy-mm-dd');
+    }
 }
 
 // Lấy team_name của user hiện tại từ xtn_teams
@@ -236,8 +255,11 @@ function setupEventListeners() {
     elements.btnNextWeek?.addEventListener('click', () => navigateWeek(1));
     elements.btnAddActivity?.addEventListener('click', () => openActivityModal());
 
-    // Stats
+    // Stats - Auto filter on change
     elements.btnStatsFilter?.addEventListener('click', () => renderStats());
+    elements.statsTeamFilter?.addEventListener('change', () => renderStats());
+    elements.statsDateFrom?.addEventListener('change', () => renderStats());
+    elements.statsDateTo?.addEventListener('change', () => renderStats());
     elements.btnExportCsv?.addEventListener('click', exportToCSV);
 
     // Report
@@ -516,6 +538,13 @@ function openActivityModal(activity = null, date = null, team = null) {
                             </select>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Danh sách tham gia thực tế</label>
+                        <button type="button" class="btn btn-info btn-block" id="btn-participants-list" style="margin-top:5px;">
+                            <i class="fa-solid fa-users"></i> 
+                            Quản lý danh sách (<span id="participants-count">${activity?.participants?.length || 0}</span> người)
+                        </button>
+                    </div>
                 </div>
                 <div class="activity-modal-footer">
                     ${isEdit ? `<button class="btn btn-danger" id="modal-delete"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
@@ -531,10 +560,18 @@ function openActivityModal(activity = null, date = null, team = null) {
     const modal = document.getElementById('activity-modal');
     const closeModal = () => modal.remove();
 
+    // Initialize tempParticipants from activity
+    tempParticipants = activity?.participants ? [...activity.participants] : [];
+
     document.getElementById('modal-close').addEventListener('click', closeModal);
     document.getElementById('modal-cancel').addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
+    });
+
+    // Button danh sách tham gia
+    document.getElementById('btn-participants-list')?.addEventListener('click', () => {
+        openParticipantsModal();
     });
 
     document.getElementById('modal-save').addEventListener('click', async () => {
@@ -562,6 +599,7 @@ async function saveActivity(id = null) {
         content: document.getElementById('modal-content').value,
         expectedParticipants: parseInt(document.getElementById('modal-participants').value) || 0,
         bchSuggestion: document.getElementById('modal-bch-suggestion').value || 'Không',
+        participants: tempParticipants, // Danh sách tham gia thực tế
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || 'unknown'
     };
@@ -598,6 +636,158 @@ async function deleteActivity(id) {
         console.error('[Activity] Delete error:', error);
         alert('Có lỗi xảy ra khi xóa hoạt động!');
     }
+}
+
+// ===== PARTICIPANTS MODAL =====
+function openParticipantsModal() {
+    // Remove existing modal if any
+    document.getElementById('participants-modal')?.remove();
+
+    const modalHtml = `
+        <div class="activity-modal active" id="participants-modal" style="z-index:10001;">
+            <div class="activity-modal-content" style="max-width:800px;max-height:90vh;overflow-y:auto;">
+                <div class="activity-modal-header">
+                    <h3><i class="fa-solid fa-users"></i> Danh sách tham gia</h3>
+                    <button class="close-btn" id="participants-close">&times;</button>
+                </div>
+                <div class="activity-modal-body">
+                    <div style="margin-bottom:15px;">
+                        <button class="btn btn-success btn-sm" id="btn-add-participant">
+                            <i class="fa-solid fa-plus"></i> Thêm người
+                        </button>
+                        <span style="margin-left:15px;color:#666;">
+                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> người
+                        </span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" style="min-width:100%;">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">STT</th>
+                                    <th>Họ và Tên</th>
+                                    <th>MSSV</th>
+                                    <th>Đội hình</th>
+                                    <th>Vai trò</th>
+                                    <th style="width:80px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="participants-tbody">
+                                ${renderParticipantsRows()}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="activity-modal-footer">
+                    <button class="btn btn-secondary" id="participants-cancel">Đóng</button>
+                    <button class="btn btn-primary" id="participants-save">
+                        <i class="fa-solid fa-save"></i> Lưu danh sách
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modal = document.getElementById('participants-modal');
+    const closeModal = () => {
+        modal.remove();
+        // Update count on main modal
+        const countEl = document.getElementById('participants-count');
+        if (countEl) countEl.textContent = tempParticipants.length;
+    };
+
+    document.getElementById('participants-close').addEventListener('click', closeModal);
+    document.getElementById('participants-cancel').addEventListener('click', closeModal);
+
+    document.getElementById('participants-save').addEventListener('click', closeModal);
+
+    document.getElementById('btn-add-participant').addEventListener('click', () => {
+        addParticipantRow();
+    });
+
+    // Attach event listeners for existing rows
+    attachParticipantRowEvents();
+}
+
+function renderParticipantsRows() {
+    if (tempParticipants.length === 0) {
+        return '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">Chưa có người tham gia</td></tr>';
+    }
+
+    return tempParticipants.map((p, i) => `
+        <tr data-index="${i}">
+            <td>${i + 1}</td>
+            <td><input type="text" class="p-name" value="${p.name || ''}" placeholder="Họ và tên" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;"></td>
+            <td><input type="text" class="p-mssv" value="${p.mssv || ''}" placeholder="MSSV" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;"></td>
+            <td>
+                <select class="p-team" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="">-- Chọn --</option>
+                    ${CONFIG.teams.map(t => `<option value="${t}" ${p.team === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+            </td>
+            <td>
+                <select class="p-role" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="Chiến sĩ" ${p.role === 'Chiến sĩ' || !p.role ? 'selected' : ''}>Chiến sĩ</option>
+                    <option value="Đội trưởng" ${p.role === 'Đội trưởng' ? 'selected' : ''}>Đội trưởng</option>
+                    <option value="Đội phó" ${p.role === 'Đội phó' ? 'selected' : ''}>Đội phó</option>
+                    <option value="BCH" ${p.role === 'BCH' ? 'selected' : ''}>BCH</option>
+                </select>
+            </td>
+            <td>
+                <button class="btn-icon delete-participant" data-index="${i}" title="Xóa" style="color:#dc2626;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function addParticipantRow() {
+    tempParticipants.push({ name: '', mssv: '', team: '', role: 'Chiến sĩ' });
+    refreshParticipantsTable();
+}
+
+function refreshParticipantsTable() {
+    const tbody = document.getElementById('participants-tbody');
+    if (tbody) {
+        tbody.innerHTML = renderParticipantsRows();
+        attachParticipantRowEvents();
+    }
+    const totalEl = document.getElementById('total-participants');
+    if (totalEl) totalEl.textContent = tempParticipants.length;
+}
+
+function attachParticipantRowEvents() {
+    const tbody = document.getElementById('participants-tbody');
+    if (!tbody) return;
+
+    // Delete buttons
+    tbody.querySelectorAll('.delete-participant').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index);
+            tempParticipants.splice(index, 1);
+            refreshParticipantsTable();
+        });
+    });
+
+    // Input changes - update tempParticipants in real-time
+    tbody.querySelectorAll('tr[data-index]').forEach(row => {
+        const index = parseInt(row.dataset.index);
+
+        row.querySelector('.p-name')?.addEventListener('input', (e) => {
+            tempParticipants[index].name = e.target.value;
+        });
+        row.querySelector('.p-mssv')?.addEventListener('input', (e) => {
+            tempParticipants[index].mssv = e.target.value;
+        });
+        row.querySelector('.p-team')?.addEventListener('change', (e) => {
+            tempParticipants[index].team = e.target.value;
+        });
+        row.querySelector('.p-role')?.addEventListener('change', (e) => {
+            tempParticipants[index].role = e.target.value;
+        });
+    });
 }
 
 // ===== STATS FUNCTIONS =====
@@ -746,7 +936,7 @@ function exportToCSV() {
         return;
     }
 
-    const headers = ['STT', 'Ngày', 'Đội hình', 'Giờ BĐ', 'Giờ KT', 'Địa điểm', 'Nội dung', 'Số tham gia', 'Đề xuất BCH', 'Người cập nhật', 'TC Cập nhật'];
+    const headers = ['STT', 'Ngày', 'Đội hình', 'Giờ BĐ', 'Giờ KT', 'Địa điểm', 'Nội dung', 'Số tham gia', 'Đề xuất BCH', 'Người cập nhật', 'TG Cập nhật'];
     const rows = filtered.map((a, i) => {
         let updatedTime = '';
         if (a.updatedAt) {
@@ -987,13 +1177,20 @@ function openReportModal(report = null) {
         return;
     }
 
-    // Get activities for this team to auto-fill content
-    const teamActivities = activities.filter(a => a.team === defaultTeam);
-    const activityOptions = teamActivities.map(a =>
-        `<option value="${a.date}: ${a.content || 'Hoạt động'}" ${report?.activityContent?.includes(a.date) ? 'selected' : ''}>
+    // Get activities for this team to auto-fill content (sắp xếp theo ngày gần nhất)
+    const teamActivities = activities
+        .filter(a => a.team === defaultTeam)
+        .sort((a, b) => b.date.localeCompare(a.date)); // Sort descending (gần nhất trước)
+
+    // Mặc định chọn hoạt động gần nhất nếu tạo mới
+    const defaultActivity = !isEdit && teamActivities.length > 0 ? teamActivities[0] : null;
+
+    const activityOptions = teamActivities.map((a, i) => {
+        const isSelected = report?.linkedActivityId === a.id || (!isEdit && i === 0);
+        return `<option value="${a.id}" data-date="${a.date}" data-content="${a.content || ''}" ${isSelected ? 'selected' : ''}>
             ${formatDate(a.date, 'full')} - ${a.content || 'Hoạt động'}
-        </option>`
-    ).join('');
+        </option>`;
+    }).join('');
 
     // Evidence links
     const evidenceLinks = (report?.evidence || []).join('\n');
@@ -1161,6 +1358,7 @@ function openReportModal(report = null) {
             team: selectedTeamValue,
             date: document.getElementById('report-date').value,
             participants: document.getElementById('report-participants').value,
+            linkedActivityId: document.getElementById('report-activity-select')?.value || '', // Liên kết hoạt động
             activityContent: document.getElementById('report-activity-content').value,
             reportContent: document.getElementById('report-content').value,
             evidence: evidenceArray,
