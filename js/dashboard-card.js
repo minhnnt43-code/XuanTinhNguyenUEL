@@ -258,6 +258,14 @@ function setupEventListeners() {
         });
     }
 
+    // NEW: Simple upload button click handler
+    const photoBtn = document.getElementById('btn-card-photo');
+    if (photoBtn) {
+        photoBtn.addEventListener('click', () => {
+            document.getElementById('card-photo').click();
+        });
+    }
+
     // Zoom slider
     const zoomSlider = document.getElementById('card-zoom');
     if (zoomSlider) {

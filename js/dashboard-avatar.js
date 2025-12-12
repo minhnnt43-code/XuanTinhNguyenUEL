@@ -123,6 +123,14 @@ export function initAvatarCanvas() {
         });
     }
 
+    // NEW: Simple upload button click handler
+    const uploadBtn = document.getElementById('btn-avatar-upload');
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => {
+            document.getElementById('avatar-upload').click();
+        });
+    }
+
     // Reset button
     if (avatarResetBtn) {
         avatarResetBtn.addEventListener('click', resetAvatarFull);
@@ -160,9 +168,11 @@ function handleAvatarFile(file) {
             if (avatarResetBtn) avatarResetBtn.style.display = 'block';
             if (avatarDownloadBtn) avatarDownloadBtn.disabled = false;
 
-            // Update upload label
-            if (avatarUploadLabel) {
-                avatarUploadLabel.innerHTML = '<i class="fa-solid fa-check-circle" style="color: #00723F;"></i><p style="color: #00723F;">Ảnh đã tải lên!</p><small>Nhấn để thay ảnh khác</small>';
+            // Update status
+            const status = document.getElementById('avatar-upload-status');
+            if (status) {
+                status.innerHTML = '<i class="fa-solid fa-check-circle" style="color:#00723F;"></i> Ảnh đã tải lên!';
+                status.style.color = '#00723F';
             }
 
             drawAvatarCanvas();
