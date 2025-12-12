@@ -249,6 +249,13 @@ function setupEventListeners() {
                 handlePhotoFile(file);
             }
         });
+
+        // Mobile touch support - manually trigger file input
+        uploadLabel.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('card-photo');
+            if (fileInput) fileInput.click();
+        });
     }
 
     // Zoom slider

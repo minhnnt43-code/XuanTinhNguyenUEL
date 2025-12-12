@@ -129,10 +129,11 @@ export async function refreshInsights() {
         console.error('[AI Dashboard] Insights error:', error);
         container.innerHTML = `
             <div class="ai-error">
-                <i class="fa-solid fa-exclamation-triangle"></i>
-                <p>Không thể tải AI Insights. ${error.message}</p>
+                <i class="fa-solid fa-coffee"></i>
+                <p style="margin: 10px 0;">AI đang nghỉ ngơi một chút! ☕</p>
+                <small style="color:#888; display:block; margin-bottom:10px;">Hệ thống sẽ sẵn sàng trong vài phút nữa.</small>
                 <button class="btn btn-sm btn-secondary" onclick="document.getElementById('btn-refresh-insights').click()">
-                    Thử lại
+                    <i class="fa-solid fa-sync"></i> Thử lại
                 </button>
             </div>
         `;

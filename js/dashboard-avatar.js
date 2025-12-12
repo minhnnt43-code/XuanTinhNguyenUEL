@@ -114,6 +114,13 @@ export function initAvatarCanvas() {
                 handleAvatarFile(files[0]);
             }
         });
+
+        // Mobile touch support - manually trigger file input
+        avatarUploadLabel.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('avatar-upload');
+            if (fileInput) fileInput.click();
+        });
     }
 
     // Reset button
