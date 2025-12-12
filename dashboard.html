@@ -36,6 +36,39 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/activity.css">
     <link rel="stylesheet" href="css/animations.css">
+
+    <!-- Critical Mobile Styles (inline to bypass cache) -->
+    <style>
+        @media (max-width: 900px) {
+            .mobile-menu-toggle {
+                display: block !important;
+            }
+
+            .sidebar-overlay {
+                display: block !important;
+            }
+
+            .sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 260px !important;
+                height: 100vh !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s ease !important;
+                z-index: 150 !important;
+                background: linear-gradient(180deg, #FFFDE7 0%, #FFF9C4 40%, #FEFCE8 70%, #F0FDF4 100%) !important;
+            }
+
+            .sidebar.active {
+                transform: translateX(0) !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
