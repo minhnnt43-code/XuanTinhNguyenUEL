@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô tả công việc - Xuân Tình Nguyện UEL 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/base.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #166534 0%, #0d3320 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .page-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #166534 0%, #0d3320 100%);
+            clip-path: polygon(0 50%, 100% 0, 100% 100%, 0% 100%);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .header-logo {
+            height: 80px;
+        }
+
+        .header-text h1 {
+            font-size: 2rem;
+            color: #166534;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .header-text p {
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        /* Main */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+
+        .section-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-title {
+            text-align: center;
+            color: #166534;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .section-title i {
+            color: #dc2626;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 4px solid #16a34a;
+            flex: 0 0 calc(33.333% - 15px);
+            max-width: calc(33.333% - 15px);
+        }
+
+        .info-card h3 {
+            color: #166534;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card h3 i {
+            color: #dc2626;
+        }
+
+        .info-card ul {
+            padding-left: 20px;
+            color: #444;
+        }
+
+        .info-card li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .info-card p {
+            color: #444;
+            line-height: 1.8;
+        }
+
+        /* Quota Grid - 6 trên 5 dưới căn giữa */
+        .quota-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 13px;
+        }
+
+        .quota-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #16a34a;
+            border-radius: 15px;
+            padding: 15px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 0 0 calc(16.666% - 13px);
+            /* 6 cột */
+            max-width: calc(16.666% - 13px);
+        }
+
+        .quota-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(22, 163, 74, 0.3);
+            border-color: #dc2626;
+        }
+
+        .quota-card.active {
+            border-color: #dc2626;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+
+        .quota-card .team-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #166534;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quota-card .team-quota {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #dc2626;
+        }
+
+        .quota-card .team-quota small {
+            font-size: 1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 20px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 2px solid #e5e7eb;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header h3 {
+            color: #166534;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header h3 i {
+            color: #dc2626;
+        }
+
+        .modal-close {
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .modal-close:hover {
+            background: #b91c1c;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-gallery {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modal-gallery img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .modal-gallery img:hover {
+            border-color: #dc2626;
+            transform: scale(1.03);
+        }
+
+        .modal-description {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #16a34a;
+        }
+
+        .modal-description h4 {
+            color: #166534;
+            margin-bottom: 10px;
+        }
+
+        .modal-description p {
+            color: #444;
+            line-height: 1.8;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lightbox.show {
+            display: flex;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 85vh;
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 85vh;
+            border-radius: 10px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            color: #166534;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+
+        .lightbox-nav:hover {
+            background: #fff;
+        }
+
+        .lightbox-prev {
+            left: -70px;
+        }
+
+        .lightbox-next {
+            right: -70px;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid #f59e0b;
+            padding: 20px 25px;
+            border-radius: 0 15px 15px 0;
+            margin: 20px 0;
+        }
+
+        .highlight-box strong {
+            color: #b45309;
+        }
+
+        /* Buttons */
+        .action-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 35px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .btn-back {
+            background: #fff;
+            color: #166534;
+            border: 2px solid #fff;
+        }
+
+        .btn-back:hover {
+            background: transparent;
+            color: #fff;
+        }
+
+        .btn-register {
+            background: #dc2626;
+            color: #fff;
+            border: 2px solid #fff;
+        }
+
+        .btn-register:hover {
+            background: #b91c1c;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .quota-card {
+                flex: 0 0 calc(25% - 12px);
+                max-width: calc(25% - 12px);
+            }
+
+            .info-card {
+                flex: 0 0 calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
+
+            .lightbox-prev {
+                left: 10px;
+            }
+
+            .lightbox-next {
+                right: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+            }
+
+            .header-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .section-card {
+                padding: 25px;
+            }
+
+            .quota-card {
+                flex: 0 0 calc(33.333% - 10px);
+                max-width: calc(33.333% - 10px);
+            }
+
+            .info-card {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+
+            .modal-gallery {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .btn {
+                display: flex;
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quota-card {
+                flex: 0 0 calc(50% - 8px);
+                max-width: calc(50% - 8px);
+            }
+
+            .modal-gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <img src="images/bieutrungxtn.png" alt="Logo XTN" class="header-logo">
+            <div class="header-text">
+                <h1><i class="fa-solid fa-briefcase"></i> Mô Tả Công Việc</h1>
+                <p>Chiến sĩ Xuân Tình Nguyện UEL 2026</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Mô tả hoạt động chung -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <i class="fa-solid fa-clipboard-list"></i>
+                Mô Tả Hoạt Động Chung
+            </h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-calendar"></i> Thời gian chiến dịch</h3>
+                    <p><strong>15/12/2025 - 15/02/2026</strong><br>(Khoảng 2 tháng)</p>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-clock"></i> Thời gian cam kết</h3>
+                    <ul>
+                        <li><strong>Trung bình:</strong> 4-6 giờ/tuần</li>
+                        <li><strong>Cao điểm:</strong> Tuần Tết nhiều hơn</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-list-check"></i> Nhiệm vụ chính</h3>
+                    <ul>
+                        <li>Tham gia hoạt động tình nguyện</li>
+                        <li>Hỗ trợ tổ chức chương trình</li>
+                        <li>Hoàn thành task từ BCH</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-star"></i> Yêu cầu</h3>
+                    <ul>
+                        <li>Sinh viên ĐH Kinh tế - Luật</li>
+                        <li>Tinh thần trách nhiệm</li>
+                        <li>Cam kết tham gia hoạt động</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-gift"></i> Quyền lợi</h3>
+                    <ul>
+                        <li>Được cấp Thẻ Chiến sĩ</li>
+                        <li>Nhận Giấy chứng nhận</li>
+                        <li>Được tính điểm rèn luyện</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box">
+                <strong>⚠️ Lưu ý:</strong> Nội dung có thể được cập nhật. Theo dõi Fanpage để biết thêm.
+            </div>
+        </section>
+
+        <!-- Chỉ tiêu đội hình -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <i class="fa-solid fa-users"></i>
+                Chỉ Tiêu Đội Hình
+            </h2>
+            <p style="text-align:center; color:#666; margin-bottom:20px;">
+                <i class="fa-solid fa-hand-pointer"></i> Click vào đội hình để xem chi tiết
+            </p>
+            <div class="quota-grid">
+                <!-- Hàng 1: 6 đội -->
+                <div class="quota-card" data-team="xuan-tu-hao">
+                    <div class="team-name">Xuân tự hào</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-ban-sac">
+                    <div class="team-name">Xuân bản sắc</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-se-chia">
+                    <div class="team-name">Xuân sẻ chia</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-gan-ket">
+                    <div class="team-name">Xuân gắn kết</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="xuan-chien-si">
+                    <div class="team-name">Xuân chiến sĩ</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="tet-van-minh">
+                    <div class="team-name">Tết văn minh</div>
+                    <div class="team-quota">40 <small>chiến sĩ</small></div>
+                </div>
+                <!-- Hàng 2: 5 đội (căn giữa) -->
+                <div class="quota-card" data-team="tu-van-phap-luat">
+                    <div class="team-name">Tư vấn và giảng dạy pháp luật cộng đồng</div>
+                    <div class="team-quota">36 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="giai-dieu-mua-xuan">
+                    <div class="team-name">Giai điệu mùa xuân</div>
+                    <div class="team-quota">35 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="vien-chuc-tre">
+                    <div class="team-name">Viên chức trẻ</div>
+                    <div class="team-quota">20 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="ky-su-tet">
+                    <div class="team-name">Ký sự Tết</div>
+                    <div class="team-quota">30 <small>chiến sĩ</small></div>
+                </div>
+                <div class="quota-card" data-team="hau-can">
+                    <div class="team-name">Hậu cần</div>
+                    <div class="team-quota">10 <small>chiến sĩ</small></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="action-section">
+            <a href="index.html" class="btn btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
+            </a>
+            <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn btn-register">
+                <i class="fa-solid fa-user-plus"></i> Đăng ký ngay
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-users"></i> <span id="modal-team-name">Tên đội hình</span></h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-gallery" id="modal-gallery"></div>
+                <div class="modal-description">
+                    <h4><i class="fa-solid fa-info-circle"></i> Mô tả công việc</h4>
+                    <p id="modal-description">Mô tả đội hình...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox xem ảnh -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()"><i class="fa-solid fa-times"></i></button>
+            <button class="lightbox-nav lightbox-prev" onclick="prevImage()"><i
+                    class="fa-solid fa-chevron-left"></i></button>
+            <img src="" alt="Preview" id="lightbox-img">
+            <button class="lightbox-nav lightbox-next" onclick="nextImage()"><i
+                    class="fa-solid fa-chevron-right"></i></button>
+            <div class="lightbox-counter"><span id="lightbox-current">1</span> / <span id="lightbox-total">5</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teamData = {
+            'xuan-tu-hao': {
+                name: 'Đội hình Xuân tự hào',
+                description: 'Đội hình Xuân tự hào tập trung vào việc lan tỏa niềm tự hào dân tộc, tổ chức các hoạt động văn hóa truyền thống, giáo dục lịch sử cho các em nhỏ trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=11', 'https://picsum.photos/800/600?random=12', 'https://picsum.photos/800/600?random=13', 'https://picsum.photos/800/600?random=14', 'https://picsum.photos/800/600?random=15']
+            },
+            'xuan-ban-sac': {
+                name: 'Đội hình Xuân bản sắc',
+                description: 'Đội hình Xuân bản sắc giữ gìn và phát huy bản sắc văn hóa dân tộc, tổ chức các hoạt động mang đậm nét truyền thống như gói bánh chưng, viết câu đối...',
+                images: ['https://picsum.photos/800/600?random=21', 'https://picsum.photos/800/600?random=22', 'https://picsum.photos/800/600?random=23', 'https://picsum.photos/800/600?random=24', 'https://picsum.photos/800/600?random=25']
+            },
+            'xuan-se-chia': {
+                name: 'Đội hình Xuân sẻ chia',
+                description: 'Đội hình Xuân sẻ chia thực hiện các hoạt động từ thiện, tặng quà Tết cho các hộ gia đình khó khăn, mang yêu thương đến với mọi người.',
+                images: ['https://picsum.photos/800/600?random=31', 'https://picsum.photos/800/600?random=32', 'https://picsum.photos/800/600?random=33', 'https://picsum.photos/800/600?random=34', 'https://picsum.photos/800/600?random=35']
+            },
+            'xuan-gan-ket': {
+                name: 'Đội hình Xuân gắn kết',
+                description: 'Đội hình Xuân gắn kết tổ chức các hoạt động kết nối cộng đồng, xây dựng tình đoàn kết giữa các thế hệ trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=41', 'https://picsum.photos/800/600?random=42', 'https://picsum.photos/800/600?random=43', 'https://picsum.photos/800/600?random=44', 'https://picsum.photos/800/600?random=45']
+            },
+            'xuan-chien-si': {
+                name: 'Đội hình Xuân chiến sĩ',
+                description: 'Đội hình Xuân chiến sĩ thực hiện các hoạt động hỗ trợ an ninh trật tự, giao thông trong dịp Tết, đảm bảo an toàn cho người dân.',
+                images: ['https://picsum.photos/800/600?random=51', 'https://picsum.photos/800/600?random=52', 'https://picsum.photos/800/600?random=53', 'https://picsum.photos/800/600?random=54', 'https://picsum.photos/800/600?random=55']
+            },
+            'tet-van-minh': {
+                name: 'Đội hình Tết văn minh',
+                description: 'Đội hình Tết văn minh tuyên truyền nếp sống văn minh, bảo vệ môi trường, hạn chế đốt pháo trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=61', 'https://picsum.photos/800/600?random=62', 'https://picsum.photos/800/600?random=63', 'https://picsum.photos/800/600?random=64', 'https://picsum.photos/800/600?random=65']
+            },
+            'tu-van-phap-luat': {
+                name: 'Đội hình Tư vấn & Giảng dạy pháp luật cộng đồng',
+                description: 'Đội hình tư vấn pháp luật miễn phí cho người dân, tổ chức các buổi phổ biến kiến thức pháp luật tại cộng đồng.',
+                images: ['https://picsum.photos/800/600?random=71', 'https://picsum.photos/800/600?random=72', 'https://picsum.photos/800/600?random=73', 'https://picsum.photos/800/600?random=74', 'https://picsum.photos/800/600?random=75']
+            },
+            'giai-dieu-mua-xuan': {
+                name: 'Đội hình Giai điệu mùa xuân',
+                description: 'Đội hình Giai điệu mùa xuân tổ chức các chương trình văn nghệ, biểu diễn nghệ thuật phục vụ nhân dân trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=81', 'https://picsum.photos/800/600?random=82', 'https://picsum.photos/800/600?random=83', 'https://picsum.photos/800/600?random=84', 'https://picsum.photos/800/600?random=85']
+            },
+            'vien-chuc-tre': {
+                name: 'Đội hình Viên chức trẻ',
+                description: 'Đội hình Viên chức trẻ hỗ trợ các hoạt động hành chính, thủ tục giấy tờ cho người dân trong dịp Tết.',
+                images: ['https://picsum.photos/800/600?random=91', 'https://picsum.photos/800/600?random=92', 'https://picsum.photos/800/600?random=93', 'https://picsum.photos/800/600?random=94', 'https://picsum.photos/800/600?random=95']
+            },
+            'ky-su-tet': {
+                name: 'Đội hình Ký sự Tết',
+                description: 'Đội hình Ký sự Tết ghi lại những khoảnh khắc đẹp của chiến dịch, sản xuất các sản phẩm truyền thông lan tỏa tinh thần tình nguyện.',
+                images: ['https://picsum.photos/800/600?random=101', 'https://picsum.photos/800/600?random=102', 'https://picsum.photos/800/600?random=103', 'https://picsum.photos/800/600?random=104', 'https://picsum.photos/800/600?random=105']
+            },
+            'hau-can': {
+                name: 'Đội hình Hậu cần',
+                description: 'Đội hình Hậu cần đảm bảo logistics, chuẩn bị vật tư, trang thiết bị cho các hoạt động của chiến dịch.',
+                images: ['https://picsum.photos/800/600?random=111', 'https://picsum.photos/800/600?random=112', 'https://picsum.photos/800/600?random=113', 'https://picsum.photos/800/600?random=114', 'https://picsum.photos/800/600?random=115']
+            }
+        };
+
+        let currentImages = [];
+        let currentIndex = 0;
+
+        // Click quota card
+        document.querySelectorAll('.quota-card').forEach(card => {
+            card.addEventListener('click', function () {
+                const team = teamData[this.dataset.team];
+                if (!team) return;
+
+                document.getElementById('modal-team-name').textContent = team.name;
+                document.getElementById('modal-description').textContent = team.description;
+
+                currentImages = team.images;
+                const gallery = document.getElementById('modal-gallery');
+                gallery.innerHTML = team.images.map((img, i) =>
+                    `<img src="${img}" alt="Ảnh ${i + 1}" onclick="openLightbox(${i})">`
+                ).join('');
+
+                document.getElementById('modal-overlay').classList.add('show');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Lightbox
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightbox();
+            document.getElementById('lightbox').classList.add('show');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('show');
+        }
+
+        function updateLightbox() {
+            document.getElementById('lightbox-img').src = currentImages[currentIndex];
+            document.getElementById('lightbox-current').textContent = currentIndex + 1;
+            document.getElementById('lightbox-total').textContent = currentImages.length;
+        }
+
+        function prevImage() {
+            currentIndex = (currentIndex - 1 + currentImages.length) % currentImages.length;
+            updateLightbox();
+        }
+
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % currentImages.length;
+            updateLightbox();
+        }
+
+        // Event listeners
+        document.getElementById('modal-overlay').addEventListener('click', e => {
+            if (e.target === document.getElementById('modal-overlay')) closeModal();
+        });
+
+        document.getElementById('lightbox').addEventListener('click', e => {
+            if (e.target === document.getElementById('lightbox')) closeLightbox();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeModal();
+            }
+            if (document.getElementById('lightbox').classList.contains('show')) {
+                if (e.key === 'ArrowLeft') prevImage();
+                if (e.key === 'ArrowRight') nextImage();
+            }
+        });
+    </script>
+
+    <!-- AI QUIZ WIDGET -->
+    <style>
+        /* AI Quiz Floating Button */
+        .ai-quiz-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .ai-quiz-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        .ai-quiz-btn .pulse {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50px;
+            border: 3px solid #8b5cf6;
+            animation: quizPulse 2s infinite;
+        }
+
+        @keyframes quizPulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Quiz Modal */
+        .quiz-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            padding: 20px;
+        }
+
+        .quiz-modal.show {
+            display: flex;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .quiz-header {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+            padding: 25px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+
+        .quiz-header h2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .quiz-header p {
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .quiz-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .quiz-body {
+            padding: 30px;
+        }
+
+        .quiz-progress {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 25px;
+        }
+
+        .quiz-progress .step {
+            flex: 1;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .quiz-progress .step.active {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quiz-option {
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quiz-option:hover {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        .quiz-option.selected {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+        }
+
+        .quiz-option .emoji {
+            font-size: 1.5rem;
+        }
+
+        .quiz-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .quiz-btn {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quiz-btn-back {
+            background: #f3f4f6;
+            border: none;
+            color: #374151;
+        }
+
+        .quiz-btn-next {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            border: none;
+            color: white;
+        }
+
+        .quiz-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Result */
+        .quiz-result {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .quiz-result-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .quiz-result-team {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6d28d9;
+            margin-bottom: 10px;
+        }
+
+        .quiz-result-desc {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .quiz-result-cta {
+            margin-top: 25px;
+        }
+
+        .quiz-result-cta a {
+            display: inline-block;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+
+    <!-- Quiz Button -->
+    <button class="ai-quiz-btn" onclick="openQuizModal()">
+        <span class="pulse"></span>
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        AI Gợi ý Đội hình
+    </button>
+
+    <!-- Quiz Modal -->
+    <div class="quiz-modal" id="quiz-modal">
+        <div class="quiz-container">
+            <div class="quiz-header" style="position: relative;">
+                <button class="quiz-close" onclick="closeQuizModal()">&times;</button>
+                <h2><i class="fa-solid fa-robot"></i> Quiz AI Đề xuất Đội hình</h2>
+                <p>Trả lời 5 câu hỏi để AI gợi ý đội phù hợp nhất với bạn!</p>
+            </div>
+            <div class="quiz-body" id="quiz-body">
+                <!-- Questions will be loaded here -->
+            </div>
+            <div class="quiz-footer" id="quiz-footer">
+                <button class="quiz-btn quiz-btn-back" id="btn-quiz-back" onclick="prevQuestion()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </button>
+                <button class="quiz-btn quiz-btn-next" id="btn-quiz-next" onclick="nextQuestion()">
+                    Tiếp theo <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { callGroqAI } from './js/groq-api.js';
+
+        // Quiz Questions - 5 câu hỏi với 7-8 options mỗi câu, bao quát 11 đội hình
+        const quizQuestions = [
+            {
+                question: "Khi tham gia một hoạt động tập thể, bạn thường đảm nhận vai trò nào và cảm thấy thoải mái nhất?",
+                options: [
+                    { emoji: "📸", text: "Quay phim, chụp ảnh ghi lại những khoảnh khắc đẹp", value: "kysu" },
+                    { emoji: "🎤", text: "Dẫn chương trình, hát múa, biểu diễn văn nghệ", value: "giaidieu" },
+                    { emoji: "⚖️", text: "Tư vấn, giải thích kiến thức pháp luật cho mọi người", value: "tuvan" },
+                    { emoji: "🎁", text: "Chuẩn bị quà tặng, mang niềm vui đến người khác", value: "sechia" },
+                    { emoji: "🏃", text: "Tổ chức trò chơi, team building, hoạt động vui nhộn", value: "ganket" },
+                    { emoji: "📦", text: "Lo liệu hậu cần, vật tư, đảm bảo mọi thứ sẵn sàng", value: "haucan" },
+                    { emoji: "🌟", text: "Truyền cảm hứng, lan tỏa năng lượng tích cực", value: "tuhao" },
+                    { emoji: "📋", text: "Phối hợp với cơ quan, tổ chức địa phương", value: "vienchuc" }
+                ]
+            },
+            {
+                question: "Điều gì khiến bạn cảm thấy có ý nghĩa nhất khi tham gia hoạt động tình nguyện?",
+                options: [
+                    { emoji: "🎥", text: "Được kể câu chuyện đẹp qua hình ảnh, video", value: "kysu" },
+                    { emoji: "🎵", text: "Mang tiếng hát, điệu nhảy đến với mọi người", value: "giaidieu" },
+                    { emoji: "📚", text: "Giúp người dân hiểu biết hơn về quyền lợi pháp lý", value: "tuvan" },
+                    { emoji: "💝", text: "Trao tặng quà, thấy nụ cười của người nhận", value: "sechia" },
+                    { emoji: "🤝", text: "Tạo ra sự gắn kết giữa mọi người qua hoạt động", value: "ganket" },
+                    { emoji: "🔧", text: "Đảm bảo mọi thứ vận hành suôn sẻ phía sau", value: "haucan" },
+                    { emoji: "🏆", text: "Góp phần xây dựng hình ảnh đẹp cho chiến dịch", value: "tuhao" },
+                    { emoji: "🏛️", text: "Kết nối với chính quyền, đoàn thể địa phương", value: "vienchuc" }
+                ]
+            },
+            {
+                question: "Bạn có kỹ năng hoặc sở thích đặc biệt nào trong số các lĩnh vực dưới đây?",
+                options: [
+                    { emoji: "📹", text: "Quay phim, edit video, chụp ảnh chuyên nghiệp", value: "kysu" },
+                    { emoji: "🎭", text: "Ca hát, nhảy múa, biểu diễn nghệ thuật", value: "giaidieu" },
+                    { emoji: "⚖️", text: "Kiến thức pháp luật, kỹ năng tư vấn, giảng dạy", value: "tuvan" },
+                    { emoji: "🎁", text: "Sắp xếp, đóng gói, phân phát quà tặng", value: "sechia" },
+                    { emoji: "🎯", text: "Dẫn game, tổ chức team building, MC sự kiện", value: "ganket" },
+                    { emoji: "🚚", text: "Logistics, quản lý kho, vận chuyển vật tư", value: "haucan" },
+                    { emoji: "📣", text: "Truyền thông, viết bài, thiết kế", value: "bansac" },
+                    { emoji: "👔", text: "Giao tiếp với cơ quan chính quyền, đoàn thể", value: "vienchuc" },
+                    { emoji: "🌍", text: "Bảo vệ môi trường, tuyên truyền nếp sống văn minh", value: "vanminh" }
+                ]
+            },
+            {
+                question: "Môi trường làm việc nào bạn cảm thấy phù hợp và phát huy tốt nhất?",
+                options: [
+                    { emoji: "🎬", text: "Đi thực địa quay phim, ghi hình phóng sự", value: "kysu" },
+                    { emoji: "🎪", text: "Sân khấu, buổi biểu diễn, sự kiện văn nghệ", value: "giaidieu" },
+                    { emoji: "🏫", text: "Lớp học, buổi tư vấn, hội thảo pháp luật", value: "tuvan" },
+                    { emoji: "🏘️", text: "Đến từng nhà, gặp gỡ người dân trao quà", value: "sechia" },
+                    { emoji: "🏕️", text: "Ngoài trời, hoạt động trò chơi tập thể", value: "ganket" },
+                    { emoji: "🏢", text: "Hậu trường, kho vật tư, chuẩn bị sân bãi", value: "haucan" },
+                    { emoji: "💼", text: "Kết nối với chính quyền, đoàn thể địa phương", value: "vienchuc" }
+                ]
+            },
+            {
+                question: "Nếu được chọn một nhiệm vụ quan trọng trong chiến dịch, bạn muốn làm gì nhất?",
+                options: [
+                    { emoji: "🎥", text: "Làm phim dựng phim, chia sẻ khoảnh khắc, ghi lại hành trình tình nguyện", value: "kysu" },
+                    { emoji: "🎤", text: "Biểu diễn văn nghệ, mang tiếng hát mùa xuân đến người dân", value: "giaidieu" },
+                    { emoji: "📖", text: "Mang pháp luật đến cộng đồng", value: "tuvan" },
+                    { emoji: "💕", text: "Sẻ chia niềm yêu thương", value: "sechia" },
+                    { emoji: "🎊", text: "Tổ chức trò chơi, hoạt động giao lưu", value: "ganket" },
+                    { emoji: "📦", text: "Lo toàn bộ vật tư, công tác hậu cần chiến dịch", value: "haucan" },
+                    { emoji: "🌟", text: "Truyền cảm hứng, xây dựng tinh thần đội", value: "tuhao" },
+                    { emoji: "🏆", text: "Tham gia nhiều hoạt động, xung kích", value: "chienssi" },
+                    { emoji: "🍃", text: "Tuyên truyền bảo vệ môi trường", value: "vanminh" },
+                    { emoji: "🗂️", text: "Quảng bá văn hóa truyền thống", value: "bansac" },
+                    { emoji: "🤵", text: "Chia sẻ kiến thức kinh nghiệm giảng dạy", value: "vienchuc" }
+                ]
+            }
+        ];
+
+        let currentQuestion = 0;
+        let answers = [];
+
+        // Open Quiz
+        window.openQuizModal = function () {
+            document.getElementById('quiz-modal').classList.add('show');
+            currentQuestion = 0;
+            answers = [];
+            renderQuestion();
+        };
+
+        // Close Quiz
+        window.closeQuizModal = function () {
+            document.getElementById('quiz-modal').classList.remove('show');
+        };
+
+        // Render Question
+        function renderQuestion() {
+            const q = quizQuestions[currentQuestion];
+            const body = document.getElementById('quiz-body');
+            const footer = document.getElementById('quiz-footer');
+
+            // Progress
+            let progressHtml = '<div class="quiz-progress">';
+            for (let i = 0; i < quizQuestions.length; i++) {
+                progressHtml += `<div class="step ${i <= currentQuestion ? 'active' : ''}"></div>`;
+            }
+            progressHtml += '</div>';
+
+            // Options
+            let optionsHtml = '<div class="quiz-options">';
+            q.options.forEach((opt, i) => {
+                const selected = answers[currentQuestion] === opt.value ? 'selected' : '';
+                optionsHtml += `
+                    <div class="quiz-option ${selected}" onclick="selectOption('${opt.value}')">
+                        <span class="emoji">${opt.emoji}</span>
+                        <span>${opt.text}</span>
+                    </div>
+                `;
+            });
+            optionsHtml += '</div>';
+
+            body.innerHTML = `
+                ${progressHtml}
+                <div class="quiz-question">${currentQuestion + 1}. ${q.question}</div>
+                ${optionsHtml}
+            `;
+
+            // Footer buttons
+            document.getElementById('btn-quiz-back').style.display = currentQuestion === 0 ? 'none' : 'block';
+            const nextBtn = document.getElementById('btn-quiz-next');
+            nextBtn.disabled = !answers[currentQuestion];
+
+            if (currentQuestion === quizQuestions.length - 1) {
+                nextBtn.innerHTML = '<i class="fa-solid fa-magic"></i> Xem kết quả AI';
+            } else {
+                nextBtn.innerHTML = 'Tiếp theo <i class="fa-solid fa-arrow-right"></i>';
+            }
+
+            footer.style.display = 'flex';
+        }
+
+        // Select option
+        window.selectOption = function (value) {
+            answers[currentQuestion] = value;
+            renderQuestion();
+        };
+
+        // Next question
+        window.nextQuestion = async function () {
+            if (!answers[currentQuestion]) return;
+
+            if (currentQuestion < quizQuestions.length - 1) {
+                currentQuestion++;
+                renderQuestion();
+            } else {
+                // Get AI result
+                await getAIRecommendation();
+            }
+        };
+
+        // Previous question
+        window.prevQuestion = function () {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                renderQuestion();
+            }
+        };
+
+        // Get AI Recommendation
+        async function getAIRecommendation() {
+            const body = document.getElementById('quiz-body');
+            const footer = document.getElementById('quiz-footer');
+
+            footer.style.display = 'none';
+            body.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <i class="fa-solid fa-robot fa-bounce" style="font-size: 3rem; color: #8b5cf6;"></i>
+                    <p style="margin-top: 20px; font-weight: 600;">AI đang phân tích...</p>
+                </div>
+            `;
+
+            const answersText = answers.map((a, i) => `Câu ${i + 1}: ${a}`).join(', ');
+
+            const systemPrompt = `Bạn là AI tư vấn đội hình cho chiến dịch Xuân Tình Nguyện UEL 2026.
+
+CÁC ĐỘI HÌNH (11 đội):
+1. Xuân Tự hào (40 chiến sĩ) - Truyền cảm hứng, xây dựng tinh thần đội, tổ chức các hoạt động nội bộ
+2. Xuân Bản sắc (40 chiến sĩ) - Quảng bá văn hóa truyền thống, thiết kế truyền thông, viết bài
+3. Xuân Sẻ chia (40 chiến sĩ) - Chuẩn bị và trao quà Tết, hỗ trợ bà con nghèo, gia đình khó khăn
+4. Xuân Gắn kết (40 chiến sĩ) - Tổ chức trò chơi, team building, hoạt động giao lưu cộng đồng
+5. Xuân Chiến sĩ (40 chiến sĩ) - Tham gia đa dạng hoạt động, xung kích, nhiệt huyết, năng động
+6. Tết Văn minh (40 chiến sĩ) - Tuyên truyền bảo vệ môi trường, nếp sống văn minh ngày Tết
+7. Tư vấn và giảng dạy pháp luật cộng đồng (36 chiến sĩ) - Tư vấn pháp luật, giảng dạy kiến thức pháp lý
+8. Giai điệu Mùa Xuân (35 chiến sĩ) - Ca hát, nhảy múa, biểu diễn văn nghệ phục vụ bà con
+9. Viên chức trẻ (20 chiến sĩ) - Liên hệ, phối hợp với UBND, Đoàn thanh niên địa phương
+10. Ký sự Tết (30 chiến sĩ) - Quay phim, chụp ảnh, làm phóng sự về hành trình tình nguyện
+11. Hậu cần (10 chiến sĩ) - Chuẩn bị vật tư, logistics, đảm bảo hậu cần toàn chiến dịch
+
+MAPPING GIÁ TRỊ CÂU TRẢ LỜI:
+- kysu = Ký sự Tết
+- giaidieu = Giai điệu Mùa Xuân
+- tuvan = Tư vấn và giảng dạy pháp luật cộng đồng
+- sechia = Xuân Sẻ chia
+- ganket = Xuân Gắn kết
+- haucan = Hậu cần
+- tuhao = Xuân Tự hào
+- chienssi = Xuân Chiến sĩ
+- vanminh = Tết Văn minh
+- bansac = Xuân Bản sắc
+- vienchuc = Viên chức trẻ
+
+DỰA TRÊN CÂU TRẢ LỜI, HÃY PHÂN TÍCH VÀ TRẢ VỀ JSON:
+{
+    "team": "Tên đội hình phù hợp nhất (đúng tên trong danh sách)",
+    "emoji": "Emoji đại diện (1 emoji)",
+    "reason": "Lý do ngắn gọn tại sao phù hợp (2-3 câu)",
+    "tips": "Lời khuyên cho ứng viên (1-2 câu)"
+}
+
+CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.`;
+
+            try {
+                const result = await callGroqAI(`Câu trả lời của ứng viên: ${answersText}. Hãy gợi ý đội hình phù hợp nhất.`, {
+                    systemPrompt,
+                    temperature: 0.7,
+                    maxTokens: 500
+                });
+
+                if (result.success) {
+                    let jsonStr = result.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    const data = JSON.parse(jsonStr);
+                    showResult(data);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Quiz AI error:', error);
+                body.innerHTML = `
+                    <div class="quiz-result">
+                        <div class="quiz-result-icon">❌</div>
+                        <div class="quiz-result-team">Có lỗi xảy ra</div>
+                        <div class="quiz-result-desc">${error.message}</div>
+                        <div class="quiz-result-cta">
+                            <button onclick="closeQuizModal()" class="quiz-btn quiz-btn-next">Đóng</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Show result
+        function showResult(data) {
+            const body = document.getElementById('quiz-body');
+            body.innerHTML = `
+                <div class="quiz-result">
+                    <div class="quiz-result-icon">${data.emoji || '🎉'}</div>
+                    <div class="quiz-result-team">${data.team}</div>
+                    <div class="quiz-result-desc">
+                        <p><strong>Tại sao phù hợp:</strong> ${data.reason}</p>
+                        <p style="margin-top: 10px;"><strong>💡 Lời khuyên:</strong> ${data.tips}</p>
+                    </div>
+                    <div class="quiz-result-cta">
+                        <a href="https://forms.google.com/your-registration-form" target="_blank">
+                            <i class="fa-solid fa-user-plus"></i> Đăng ký ngay!
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+
+</html>

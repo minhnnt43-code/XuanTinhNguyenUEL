@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuân Tình Nguyện UEL 2026</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Merriweather:wght@700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/animations.css">
+
+    <!-- AOS - Animate on Scroll -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- 1. NAVIGATION -->
+    <nav class="navbar">
+        <div class="logo-container">
+            <a href="index.html">
+                <img src="images/cumlogo.png" alt="Logo UEL XTN" class="nav-logo">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li>
+                <a href="login.html" class="btn-login">
+                    <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
+                </a>
+            </li>
+        </ul>
+        <div class="mobile-toggle"><i class="fa-solid fa-bars"></i></div>
+    </nav>
+
+    <!-- 2. HERO SECTION WITH BACKGROUND SLIDESHOW -->
+    <section id="hero" class="hero-section">
+        <!-- Background Slideshow -->
+        <div class="hero-slideshow">
+            <!-- 10 PLACEHOLDER IMAGES - BẠN SẼ THAY THẾ SAU -->
+            <div class="slide active" style="background-image: url('https://picsum.photos/1920/1080?random=1');"></div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/103QZz5TUDdLDlIEP3pjjo2oSzFKZI-dx');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1Lidw_zXd8kH8Y1Q0BSlZdT4P3LJWprA7');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1_80XttkbXqmqA5HywMOq3JKebJ_skoCS');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1zQdksoC_Odz9CILbSdUV7npDTdx0-piJ');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1PM0t7R50vI1bw4hasusYAQAQBTRhkRVG');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1hMP2NlddRRe0YcjrJHG7SLUPC3MvgnFu');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/12p535-ZXI37aUmzn0Lvb6e_JYXJsMw3V');">
+            </div>
+        </div>
+
+        <!-- Dark Overlay for text readability -->
+        <div class="hero-overlay"></div>
+
+        <!-- Slide Navigation Dots -->
+        <div class="slide-dots">
+            <span class="dot active" data-slide="0"></span>
+            <span class="dot" data-slide="1"></span>
+            <span class="dot" data-slide="2"></span>
+            <span class="dot" data-slide="3"></span>
+            <span class="dot" data-slide="4"></span>
+            <span class="dot" data-slide="5"></span>
+            <span class="dot" data-slide="6"></span>
+            <span class="dot" data-slide="7"></span>
+            <span class="dot" data-slide="8"></span>
+            <span class="dot" data-slide="9"></span>
+        </div>
+
+        <!-- Hero Content -->
+        <div class="hero-content">
+            <!-- Logo Biểu trưng XTN thay cho title -->
+            <img src="images/bieutrungxtn.png" alt="Xuân Tình Nguyện UEL 2026" class="hero-logo">
+
+            <p class="slogan">"Gom nhặt yêu thương - Sẻ chia Tết ấm"</p>
+
+            <!-- Countdown -->
+            <div class="countdown-wrapper">
+                <p class="countdown-label">
+                    <i class="fa-solid fa-clock"></i> Đếm ngược đến ngày ra quân
+                </p>
+                <div id="countdown" class="timer">
+                    <div class="time-box">
+                        <span id="days">00</span>
+                        <small>Ngày</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="hours">00</span>
+                        <small>Giờ</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="minutes">00</span>
+                        <small>Phút</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="seconds">00</span>
+                        <small>Giây</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="cta-buttons">
+                <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn-cta btn-register">
+                    <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
+                </a>
+                <a href="job-description.html" class="btn-cta btn-secondary">
+                    <i class="fa-solid fa-briefcase"></i> Mô tả công việc
+                </a>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="scroll-indicator">
+            <i class="fa-solid fa-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- 3. GALLERY - Simple Carousel -->
+    <section id="gallery" class="section-container gallery-section">
+        <div class="section-header" data-aos="fade-up">
+            <h2 class="section-title">
+                <i class="fa-solid fa-images"></i>
+                Gieo sắc Xuân sang
+            </h2>
+            <p class="section-desc">Những khoảnh khắc rực rỡ của các mùa Xuân tình nguyện qua các năm</p>
+        </div>
+
+        <!-- Carousel Container -->
+        <div class="gallery-carousel-wrapper" data-aos="fade-up" data-aos-delay="200">
+            <button class="carousel-nav prev" onclick="scrollGallery(-1)">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <div class="carousel-track" id="galleryTrack">
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=1" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=2" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=3" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=4" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=5" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=6" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=7" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=8" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=9" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=10" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=11" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=12" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=13" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=14" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=15" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=16" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=17" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=18" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=19" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=20" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=21" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=22" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=23" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=24" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=25" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=26" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=27" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=28" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=29" alt="XTN"></div>
+                <div class="carousel-item"><img src="https://picsum.photos/400/300?random=30" alt="XTN"></div>
+            </div>
+
+            <button class="carousel-nav next" onclick="scrollGallery(1)">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- 4. ĐỊA BÀN HOẠT ĐỘNG -->
+    <section id="dia-ban" class="section-container dia-ban-section">
+        <div class="section-header" data-aos="fade-up">
+            <h2 class="section-title">
+                <i class="fa-solid fa-map-location-dot"></i>
+                Địa Bàn Hoạt Động
+            </h2>
+            <p class="section-desc">
+                Xuân Tình Nguyện UEL 2026 hoạt động tại Trường ĐH Kinh tế - Luật và 7 địa bàn dân cư trên địa bàn TP.HCM
+            </p>
+        </div>
+
+        <!-- ROW 1: UEL - Full Width -->
+        <a href="https://maps.google.com/?q=Trường+Đại+học+Kinh+tế+Luật+ĐHQG-HCM" target="_blank"
+            class="location-card featured" data-aos="fade-up" data-aos-delay="200">
+            <h3>Trường Đại học Kinh tế - Luật, ĐHQG-HCM</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square card-link-icon"></i>
+        </a>
+
+        <!-- ROW 2: All 7 Community Locations in 1 Row -->
+        <div class="location-row" data-aos="fade-up" data-aos-delay="300">
+            <a href="https://maps.google.com/?q=Phường+Linh+Xuân+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">1</div>
+                <h4>Phường Linh Xuân</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+
+            <a href="https://maps.google.com/?q=Phường+Long+Bình+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">2</div>
+                <h4>Phường Long Bình</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+
+            <a href="https://maps.google.com/?q=Phường+Thới+An+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">3</div>
+                <h4>Phường Thới An</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+
+            <a href="https://maps.google.com/?q=Phường+Trung+Mỹ+Tây+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">4</div>
+                <h4>Phường Trung Mỹ Tây</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+
+            <a href="https://maps.google.com/?q=Phường+Tân+Thới+Hiệp+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">5</div>
+                <h4>Phường Tân Thới Hiệp</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+
+            <a href="https://maps.google.com/?q=Phường+Tân+Chánh+Hiệp+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">6</div>
+                <h4>Phường Tân Chánh Hiệp</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+
+            <a href="https://maps.google.com/?q=Xã+Cần+Giờ+TP+HCM" target="_blank" class="location-card">
+                <div class="card-number">7</div>
+                <h4>Xã Cần Giờ</h4>
+                <span class="card-area">Thành phố Hồ Chí Minh</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Floating Contact Button (Bottom Left) -->
+    <div class="floating-contact">
+        <button class="contact-fab" onclick="toggleContactPopup()">
+            <i class="fa-solid fa-phone"></i>
+        </button>
+        <div class="contact-popup" id="contactPopup">
+            <div class="popup-header">
+                <h4>Thắc mắc về website này vui lòng liên hệ</h4>
+                <button class="popup-close" onclick="toggleContactPopup()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="popup-content">
+                <a href="tel:0899012608" class="contact-item">
+                    <i class="fa-solid fa-phone"></i>
+                    <span>0899.012.608 (Phone/Zalo)</span>
+                </a>
+                <a href="mailto:minhlq23504b@st.uel.edu.vn" class="contact-item">
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>minhlq23504b@st.uel.edu.vn</span>
+                </a>
+                <a href="https://facebook.com/lamquocminh18" target="_blank" class="contact-item">
+                    <i class="fa-brands fa-facebook"></i>
+                    <span>Lâm Quốc Minh</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer-official">
+        <div class="footer-content"
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; padding:30px 40px;">
+
+            <!-- Logo + Copyright -->
+            <div style="display:flex; align-items:center; gap:15px;">
+                <img src="images/bieutrungxtn.png" alt="Logo XTN" style="height:50px;">
+                <div>
+                    <strong style="color:#fff;">Xuân Tình Nguyện UEL 2026</strong>
+                    <p style="margin:0; font-size:12px; color:rgba(255,255,255,0.7);">© Hội Sinh viên Việt Nam Trường
+                        Đại học Kinh tế - Luật</p>
+                </div>
+            </div>
+
+            <!-- Social Icons -->
+            <div class="social-icons" style="display:flex; gap:15px;">
+                <a href="https://www.facebook.com/xuantinhnguyen.uel" target="_blank" title="Facebook"
+                    style="color:#fff; font-size:20px;">
+                    <i class="fa-brands fa-facebook-f"></i>
+                </a>
+                <a href="https://www.instagram.com/youth.uel" target="_blank" title="Instagram"
+                    style="color:#fff; font-size:20px;">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+                <a href="https://www.tiktok.com/@youth.uel" target="_blank" title="TikTok"
+                    style="color:#fff; font-size:20px;">
+                    <i class="fa-brands fa-tiktok"></i>
+                </a>
+                <a href="https://youth.uel.edu.vn/" target="_blank" title="Website" style="color:#fff; font-size:20px;">
+                    <i class="fa-solid fa-globe"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- AI CHATBOT WIDGET -->
+    <div id="ai-chatbot" class="ai-chatbot-widget">
+        <button id="ai-chatbot-toggle" class="ai-chatbot-toggle" title="Trợ lý AI XTN">
+            <i class="fa-solid fa-robot"></i>
+            <span class="chatbot-pulse"></span>
+        </button>
+        <div id="ai-chatbot-panel" class="ai-chatbot-panel" style="display: none;">
+            <div class="chatbot-header">
+                <div class="chatbot-title">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>Trợ lý XTN 2026</span>
+                </div>
+                <button id="ai-chatbot-close" class="chatbot-close">&times;</button>
+            </div>
+            <div id="chatbot-messages" class="chatbot-messages">
+                <!-- Messages will be added here -->
+            </div>
+            <div class="chatbot-suggestions" id="chatbot-suggestions">
+                <button class="suggestion-btn" data-question="Thời gian chiến dịch?">📅 Thời gian?</button>
+                <button class="suggestion-btn" data-question="Điều kiện tham gia?">📋 Điều kiện?</button>
+                <button class="suggestion-btn" data-question="Các đội hình?">👥 Đội hình?</button>
+            </div>
+            <div class="chatbot-input-area">
+                <input type="text" id="chatbot-input" placeholder="Hỏi gì đó về XTN 2026..." autocomplete="off">
+                <button id="chatbot-send" class="chatbot-send">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING SUPPORT BUTTON -->
+    <a href="https://zalo.me/0899012608" target="_blank" class="support-pin" aria-label="Liên hệ hỗ trợ">
+        <i class="fa-solid fa-headset"></i>
+        <div class="support-tooltip">
+            <strong>Cần hỗ trợ? Liên hệ:</strong>
+            <div class="contact-line">
+                <i class="fa-solid fa-user"></i> Lâm Quốc Minh
+            </div>
+            <div class="contact-line">
+                <i class="fa-solid fa-phone"></i> 0899.012.608 (Zalo)
+            </div>
+            <div class="contact-line">
+                <i class="fa-brands fa-facebook"></i> fb.com/lamquocminh18
+            </div>
+        </div>
+    </a>
+
+    <!-- SCRIPT -->
+    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/ai-chatbot.js"></script>
+
+    <!-- AOS Init -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 50
+        });
+
+        // Toggle Contact Popup
+        function toggleContactPopup() {
+            const popup = document.getElementById('contactPopup');
+            popup.classList.toggle('active');
+        }
+
+        // Gallery Scroll Navigation
+        function scrollGallery(direction) {
+            const track = document.getElementById('galleryTrack');
+            if (!track) return;
+            const scrollAmount = 320;
+            track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+        }
+    </script>
+</body>
+
+</html>
