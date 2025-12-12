@@ -37,35 +37,78 @@
     <link rel="stylesheet" href="css/activity.css">
     <link rel="stylesheet" href="css/animations.css">
 
-    <!-- Critical Mobile Styles (inline to bypass cache) -->
+    <!-- Critical Mobile Styles - DROPDOWN MENU -->
     <style>
         @media (max-width: 900px) {
             .mobile-menu-toggle {
                 display: block !important;
-            }
-
-            .sidebar-overlay {
-                display: block !important;
+                position: fixed !important;
+                top: 15px !important;
+                left: 15px !important;
+                z-index: 200 !important;
             }
 
             .sidebar {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 260px !important;
-                height: 100vh !important;
-                transform: translateX(-100%) !important;
-                transition: transform 0.3s ease !important;
-                z-index: 150 !important;
-                background: linear-gradient(180deg, #FFFDE7 0%, #FFF9C4 40%, #FEFCE8 70%, #F0FDF4 100%) !important;
+                display: none !important;
             }
 
-            .sidebar.active {
-                transform: translateX(0) !important;
+            .mobile-dropdown-menu {
+                display: none;
+                position: fixed;
+                top: 60px;
+                left: 10px;
+                right: 10px;
+                background: linear-gradient(180deg, #FFFDE7 0%, #FFF9C4 100%);
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                z-index: 190;
+                max-height: 70vh;
+                overflow-y: auto;
+                padding: 15px;
+                border: 2px solid #FFD700;
+            }
+
+            .mobile-dropdown-menu.active {
+                display: block !important;
+            }
+
+            .mobile-dropdown-menu .menu-item {
+                display: block;
+                padding: 12px 15px;
+                margin: 5px 0;
+                background: white;
+                border-radius: 10px;
+                text-decoration: none;
+                color: #1f2937;
+                font-weight: 500;
+                cursor: pointer;
+            }
+
+            .mobile-dropdown-menu .menu-item:active {
+                background: #FFD700;
+            }
+
+            .mobile-dropdown-menu .menu-section-title {
+                font-weight: 700;
+                color: #00723F;
+                padding: 10px 5px 5px;
+                font-size: 0.85rem;
+            }
+
+            .sidebar-overlay.active {
+                display: block !important;
+                opacity: 1 !important;
             }
 
             .main-content {
                 margin-left: 0 !important;
+                padding-top: 70px !important;
+            }
+        }
+
+        @media (min-width: 901px) {
+            .mobile-dropdown-menu {
+                display: none !important;
             }
         }
     </style>
@@ -76,6 +119,25 @@
     <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle Menu">
         <i class="fa-solid fa-bars"></i>
     </button>
+
+    <!-- Mobile Dropdown Menu -->
+    <nav class="mobile-dropdown-menu" id="mobile-dropdown-menu">
+        <div class="menu-section-title">📊 Tổng quan</div>
+        <a class="menu-item" data-section="section-dashboard">🏠 Tổng quan</a>
+
+        <div class="menu-section-title">🛠️ Công cụ</div>
+        <a class="menu-item" data-section="section-avatar">🖼️ Tạo Avatar</a>
+        <a class="menu-item" data-section="section-card">🪪 Tạo Thẻ Chiến sĩ</a>
+
+        <div class="menu-section-title">👥 Quản lý</div>
+        <a class="menu-item" data-section="section-activities">📅 Quản lý Hoạt động</a>
+        <a class="menu-item" data-section="section-members">👥 Danh sách Chiến sĩ</a>
+        <a class="menu-item" data-section="section-cards-admin">🪪 Quản trị Thẻ</a>
+        <a class="menu-item" data-section="section-teams">🎯 Đội hình</a>
+
+        <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
+        <a class="menu-item" id="mobile-logout" style="color: #dc2626;">🚪 Đăng xuất</a>
+    </nav>
 
     <!-- Sidebar Overlay (for mobile) -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>

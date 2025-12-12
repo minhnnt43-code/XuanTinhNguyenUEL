@@ -329,28 +329,28 @@ function showConfirm(message, title = 'Xác nhận') {
 // ============================================================
 function setupMobileMenu() {
     const toggle = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.getElementById('sidebar');
+    const dropdown = document.getElementById('mobile-dropdown-menu');
     const overlay = document.getElementById('sidebar-overlay');
 
-    console.log('[Mobile] Setup:', { toggle: !!toggle, sidebar: !!sidebar, overlay: !!overlay });
+    console.log('[Mobile] Setup (dropdown):', { toggle: !!toggle, dropdown: !!dropdown, overlay: !!overlay });
 
-    if (!toggle || !sidebar || !overlay) {
+    if (!toggle || !dropdown || !overlay) {
         console.warn('[Mobile] Missing elements, retrying in 500ms...');
         setTimeout(setupMobileMenu, 500);
         return;
     }
 
-    // Toggle sidebar
+    // Toggle dropdown menu
     toggle.addEventListener('click', (e) => {
         e.preventDefault();
         console.log('[Mobile] Toggle clicked!');
 
-        sidebar.classList.toggle('active');
+        dropdown.classList.toggle('active');
         overlay.classList.toggle('active');
 
         // Change icon
         const icon = toggle.querySelector('i');
-        if (sidebar.classList.contains('active')) {
+        if (dropdown.classList.contains('active')) {
             icon.className = 'fa-solid fa-times';
         } else {
             icon.className = 'fa-solid fa-bars';
@@ -359,23 +359,38 @@ function setupMobileMenu() {
 
     // Close when clicking overlay
     overlay.addEventListener('click', () => {
-        sidebar.classList.remove('active');
+        dropdown.classList.remove('active');
         overlay.classList.remove('active');
         toggle.querySelector('i').className = 'fa-solid fa-bars';
     });
 
-    // Close when clicking menu item (on mobile)
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-            if (window.innerWidth <= 900) {
-                sidebar.classList.remove('active');
+    // Handle dropdown menu item clicks
+    dropdown.querySelectorAll('.menu-item[data-section]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sectionId = item.getAttribute('data-section');
+            if (sectionId) {
+                // Close menu
+                dropdown.classList.remove('active');
                 overlay.classList.remove('active');
                 toggle.querySelector('i').className = 'fa-solid fa-bars';
+
+                // Show section
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById(sectionId)?.classList.add('active');
             }
         });
     });
 
-    console.log('[Mobile] Menu setup complete!');
+    // Mobile logout
+    document.getElementById('mobile-logout')?.addEventListener('click', async () => {
+        const { signOut } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+        const { auth } = await import('./firebase.js');
+        await signOut(auth);
+        window.location.href = 'login.html';
+    });
+
+    console.log('[Mobile] Dropdown menu setup complete!');
 }
 
 function showAlert(message, type = 'info', title = 'Thông báo') {
