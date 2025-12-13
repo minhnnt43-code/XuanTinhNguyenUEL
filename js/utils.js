@@ -289,7 +289,7 @@ function showToast(message, type = 'info', duration = 3000) {
  * Confirm dialog
  */
 function confirmDialog(message, title = 'Xác nhận') {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: title,
@@ -302,7 +302,7 @@ function confirmDialog(message, title = 'Xác nhận') {
                 resolve(result.isConfirmed);
             });
         } else {
-            resolve(confirm(message));
+            resolve(await showConfirmModal(message, { title }));
         }
     });
 }

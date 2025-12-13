@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mô tả công việc - Xuân Tình Nguyện UEL 2026</title>
+    <link rel="icon" type="image/png" href="images/logoxtn.png">
+    <meta name="description" content="Mô tả công việc và chỉ tiêu đội hình cho Chiến sĩ Xuân Tình Nguyện UEL 2026">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="css/base.css">
 
     <style>
@@ -18,27 +22,92 @@
 
         body {
             font-family: 'Montserrat', sans-serif;
-            background: linear-gradient(135deg, #166534 0%, #0d3320 100%);
             min-height: 100vh;
-        }
-
-        /* Header */
-        .page-header {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-            padding: 30px 20px;
-            text-align: center;
+            overflow-x: hidden;
             position: relative;
         }
 
-        .page-header::after {
-            content: '';
-            position: absolute;
-            bottom: -30px;
+        /* Background Slideshow */
+        .bg-slideshow {
+            position: fixed;
+            top: 0;
             left: 0;
-            right: 0;
-            height: 60px;
-            background: linear-gradient(135deg, #166534 0%, #0d3320 100%);
-            clip-path: polygon(0 50%, 100% 0, 100% 100%, 0% 100%);
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        .bg-slideshow .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            animation: slideshow 24s infinite;
+        }
+
+        .bg-slideshow .slide:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .bg-slideshow .slide:nth-child(2) {
+            animation-delay: 6s;
+        }
+
+        .bg-slideshow .slide:nth-child(3) {
+            animation-delay: 12s;
+        }
+
+        .bg-slideshow .slide:nth-child(4) {
+            animation-delay: 18s;
+        }
+
+        @keyframes slideshow {
+            0% {
+                opacity: 0;
+            }
+
+            4% {
+                opacity: 1;
+            }
+
+            25% {
+                opacity: 1;
+            }
+
+            29% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Yellow overlay for readability */
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg,
+                    rgba(251, 191, 36, 0.8) 0%,
+                    rgba(245, 158, 11, 0.85) 50%,
+                    rgba(252, 211, 77, 0.8) 100%);
+            z-index: -1;
+        }
+
+        /* Header - Compact Green */
+        .page-header {
+            background: linear-gradient(135deg, #166534 0%, #15803d 100%);
+            padding: 15px 20px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
         .header-content {
@@ -47,22 +116,30 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 20px;
+            gap: 15px;
         }
 
         .header-logo {
-            height: 80px;
+            height: 55px;
         }
 
         .header-text h1 {
-            font-size: 2rem;
-            color: #166534;
-            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+            font-size: 1.4rem;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-text h1 i {
+            color: #fbbf24;
         }
 
         .header-text p {
-            color: #15803d;
+            color: #fbbf24;
             font-weight: 600;
+            font-size: 0.85rem;
         }
 
         /* Main */
@@ -154,21 +231,70 @@
             padding: 15px 8px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             flex: 0 0 calc(16.666% - 13px);
             /* 6 cột */
             max-width: calc(16.666% - 13px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quota-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+            opacity: 0;
+        }
+
+        .quota-card:hover::before {
+            animation: shine 0.6s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% {
+                left: -50%;
+                opacity: 1;
+            }
+
+            100% {
+                left: 150%;
+                opacity: 0;
+            }
         }
 
         .quota-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(22, 163, 74, 0.3);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow:
+                0 15px 40px rgba(22, 163, 74, 0.35),
+                0 0 20px rgba(22, 163, 74, 0.2);
             border-color: #dc2626;
         }
 
         .quota-card.active {
             border-color: #dc2626;
             background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            animation: pulseActive 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseActive {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 20px 5px rgba(220, 38, 38, 0.2);
+            }
         }
 
         .quota-card .team-name {
@@ -187,6 +313,24 @@
             font-size: 1.6rem;
             font-weight: 900;
             color: #dc2626;
+            animation: countPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes countPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .quota-card:hover .team-quota {
+            animation: none;
+            transform: scale(1.1);
         }
 
         .quota-card .team-quota small {
@@ -520,7 +664,27 @@
 </head>
 
 <body>
-    <header class="page-header">
+    <!-- Background Slideshow - Loaded dynamically from Firebase -->
+    <div class="bg-slideshow" id="bg-slideshow">
+        <!-- Fallback slides (will be replaced by media-loader.js if Firebase data exists) -->
+        <div class="slide"
+            style="background-image: url('https://lh3.googleusercontent.com/d/103QZz5TUDdLDlIEP3pjjo2oSzFKZI-dx');">
+        </div>
+        <div class="slide"
+            style="background-image: url('https://lh3.googleusercontent.com/d/1Lidw_zXd8kH8Y1Q0BSlZdT4P3LJWprA7');">
+        </div>
+        <div class="slide"
+            style="background-image: url('https://lh3.googleusercontent.com/d/1_80XttkbXqmqA5HywMOq3JKebJ_skoCS');">
+        </div>
+        <div class="slide"
+            style="background-image: url('https://lh3.googleusercontent.com/d/1zQdksoC_Odz9CILbSdUV7npDTdx0-piJ');">
+        </div>
+    </div>
+
+    <!-- Yellow Overlay -->
+    <div class="bg-overlay"></div>
+
+    <header class="page-header" data-aos="fade-down">
         <div class="header-content">
             <img src="images/bieutrungxtn.png" alt="Logo XTN" class="header-logo">
             <div class="header-text">
@@ -532,7 +696,7 @@
 
     <div class="main-container">
         <!-- Mô tả hoạt động chung -->
-        <section class="section-card">
+        <section class="section-card" data-aos="fade-up" data-aos-delay="100">
             <h2 class="section-title">
                 <i class="fa-solid fa-clipboard-list"></i>
                 Mô Tả Hoạt Động Chung
@@ -580,7 +744,7 @@
         </section>
 
         <!-- Chỉ tiêu đội hình -->
-        <section class="section-card">
+        <section class="section-card" data-aos="fade-up" data-aos-delay="200">
             <h2 class="section-title">
                 <i class="fa-solid fa-users"></i>
                 Chỉ Tiêu Đội Hình
@@ -1367,6 +1531,39 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.`;
                 </div>
             `;
         }
+    </script>
+
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-cubic',
+            once: true,
+            offset: 50
+        });
+    </script>
+
+    <!-- Dynamic Image Loader from Firebase -->
+    <script type="module">
+        import { loadJDBackground, loadAllTeamGalleries } from './js/media-loader.js';
+
+        // Load background slideshow from Firebase
+        loadJDBackground('bg-slideshow');
+
+        // Load team galleries and update teamData
+        loadAllTeamGalleries().then(galleries => {
+            if (Object.keys(galleries).length > 0) {
+                // Update existing teamData with Firebase images
+                for (const teamId in galleries) {
+                    if (window.teamData && window.teamData[teamId]) {
+                        window.teamData[teamId].images = galleries[teamId];
+                    }
+                }
+                console.log('[JD] Updated team galleries from Firebase');
+            }
+        });
     </script>
 </body>
 

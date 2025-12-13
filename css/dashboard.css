@@ -33,6 +33,14 @@ body.is-doihinh-admin #menu-activity.admin-only {
     font-style: normal;
 }
 
+/* Font UTM Impact - Thẻ Chiến Sĩ */
+@font-face {
+    font-family: 'UTM Impact';
+    src: url('../fonts/UTM Impact.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Font áp dụng - Be Vietnam Pro primary */
 body {
     font-family: var(--font-primary), 'UTM Avo', Arial, sans-serif;
@@ -80,12 +88,14 @@ h6,
     box-shadow: 4px 0 15px rgba(255, 215, 0, 0.1);
 }
 
-/* User Info - Vàng Gold Gradient */
+/* User Info - Vertical Layout */
 .sidebar-user {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 15px;
-    padding: 20px 15px;
+    text-align: center;
+    gap: 12px;
+    padding: 25px 15px;
     background: linear-gradient(135deg, #FFD700, #FFC107);
     color: #1f2937;
     border-radius: 0 0 20px 20px;
@@ -93,13 +103,13 @@ h6,
 }
 
 .user-avatar {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     flex-shrink: 0;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+    border: 4px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar img {
@@ -109,32 +119,91 @@ h6,
 }
 
 .user-info-text {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
 }
 
 .user-name {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    margin: 0 0 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin: 0;
+    color: #1f2937;
 }
 
-.user-position {
+/* Role Badge - Pill Style */
+.user-role-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: white;
+    border-radius: 20px;
     font-size: 0.8rem;
-    margin: 0 0 2px;
-    color: #4b5563;
-    opacity: 0.9;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+/* Role Badge Color Variants - theo chức danh (position) */
+/* Chỉ huy Trưởng - Đỏ đậm */
+.user-role-badge.pos-commander {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+/* Chỉ huy Phó Thường trực - Cam đỏ */
+.user-role-badge.pos-vice-standing {
+    background: linear-gradient(135deg, #ea580c, #f97316);
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+}
+
+/* Chỉ huy Phó - Cam */
+.user-role-badge.pos-vice {
+    background: linear-gradient(135deg, #f97316, #fb923c);
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+/* Thành viên Thường trực BCH - Cyan đậm */
+.user-role-badge.pos-standing-member {
+    background: linear-gradient(135deg, #0891b2, #06b6d4);
+    box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
+}
+
+/* Thành viên Ban Chỉ huy - Cyan */
+.user-role-badge.pos-member-bch {
+    background: linear-gradient(135deg, #0891b2, #22d3ee);
+    box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
+}
+
+/* Đội trưởng - Xanh dương */
+.user-role-badge.pos-team-leader {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+/* Đội phó - Xanh dương nhạt */
+.user-role-badge.pos-team-vice {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Chiến sĩ - Xanh lá */
+.user-role-badge.pos-soldier {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+/* Sinh viên - Xanh lá */
+.user-role-badge.pos-student {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
 }
 
 .user-team {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     margin: 0;
-    color: #16a34a;
-    font-weight: 600;
+    color: #4b5563;
+    font-weight: 500;
 }
 
 
@@ -2421,5 +2490,159 @@ select:disabled {
     .btn {
         touch-action: manipulation;
         -webkit-tap-highlight-color: rgba(255, 215, 0, 0.3);
+    }
+}
+
+/* ===== DATA TABLE - MEMBERS LIST ===== */
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    font-size: 14px;
+}
+
+.data-table thead {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.data-table thead th {
+    padding: 14px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+.data-table tbody tr:hover {
+    background: #fffbeb;
+}
+
+.data-table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    color: #334155;
+}
+
+.data-table tbody td strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* Checkbox column */
+.data-table th:first-child,
+.data-table td:first-child {
+    width: 40px;
+    text-align: center;
+}
+
+.data-table input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #16a34a;
+}
+
+/* MSSV column */
+.data-table td:nth-child(3) {
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: #0369a1;
+    font-weight: 500;
+}
+
+/* Email column - truncate */
+.data-table td:has(a[href^="mailto"]),
+.data-table td:nth-child(6) {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+/* Action buttons */
+.data-table .btn-sm {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.data-table .btn-sm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.data-table .btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+    border: none;
+}
+
+.data-table .btn-secondary:hover {
+    background: #cbd5e1;
+    color: #1e293b;
+}
+
+.data-table .btn-danger {
+    background: #fecaca;
+    color: #dc2626;
+    border: none;
+}
+
+.data-table .btn-danger:hover {
+    background: #fca5a5;
+    color: #b91c1c;
+}
+
+/* Badge styles */
+.data-table .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive table */
+@media (max-width: 1200px) {
+    .data-table {
+        font-size: 13px;
+    }
+
+    .data-table thead th,
+    .data-table tbody td {
+        padding: 10px 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table thead th {
+        font-size: 11px;
     }
 }

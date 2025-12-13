@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Xuân Tình Nguyện 2026</title>
+    <link rel="icon" type="image/png" href="images/logoxtn.png">
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -30,6 +31,9 @@
 
     <!-- SweetAlert2 for beautiful dialogs -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Toast Notification System -->
+    <script src="js/toast.js"></script>
 
     <!-- CSS -->
     <link rel="stylesheet" href="css/base.css">
@@ -174,14 +178,14 @@
     <div class="dashboard-wrapper">
         <!-- ===== SIDEBAR ===== -->
         <aside class="sidebar" id="sidebar">
-            <!-- User Info -->
+            <!-- User Info - Vertical Layout -->
             <div class="sidebar-user">
                 <div class="user-avatar">
                     <img id="user-avatar-img" src="images/default-avatar.png" alt="Avatar">
                 </div>
                 <div class="user-info-text">
                     <h3 class="user-name" id="user-name">Đang tải...</h3>
-                    <p class="user-position" id="user-position">-</p>
+                    <span class="user-role-badge" id="user-position">-</span>
                     <p class="user-team" id="user-team">-</p>
                 </div>
             </div>
@@ -241,6 +245,12 @@
 
                         <div class="menu-item" data-section="section-settings">
                             <i class="fa-solid fa-gear"></i> Cài đặt
+                        </div>
+                        <div class="menu-item kysutet-team-only" data-section="section-media-manager">
+                            <i class="fa-solid fa-images"></i> Quản lý Hình ảnh Giao diện
+                        </div>
+                        <div class="menu-item super-admin-only" data-section="section-activity-logs">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử hoạt động
                         </div>
                     </div>
                 </div>
@@ -818,90 +828,25 @@
             <section id="section-teams" class="section">
                 <div class="section-header">
                     <h1><i class="fa-solid fa-people-group"></i> Quản lý Đội hình</h1>
-                    <p>Thêm, sửa, xóa các đội hình. Dữ liệu sẽ hiển thị trong form đăng ký.</p>
+                    <p>Xem danh sách đội hình, số lượng Chiến sĩ và hoạt động của mỗi đội.</p>
                 </div>
 
-                <!-- Form thêm/sửa đội -->
+                <!-- Toolbar -->
                 <div class="card" style="margin-bottom:20px;">
-                    <h3 id="team-form-title"><i class="fa-solid fa-plus"></i> Thêm đội mới</h3>
-                    <form id="team-form">
-                        <input type="hidden" id="team-edit-id">
-
-                        <div class="form-group">
-                            <label>Tên đội <span class="required">*</span></label>
-                            <input type="text" id="team-name" required placeholder="Đội 1 - Sức Khỏe">
-                        </div>
-
-                        <h4 style="margin:15px 0 10px;color:#dc2626;"><i class="fa-solid fa-user-tie"></i> Ban Chỉ huy
-                            Đội</h4>
-
-                        <!-- Đội trưởng -->
-                        <div class="bch-member">
-                            <label class="bch-label">Đội trưởng</label>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <input type="text" id="team-captain-name" placeholder="Họ và tên">
-                                </div>
-                                <div class="form-group">
-                                    <input type="email" id="team-captain-email" placeholder="Email">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Đội phó 1 -->
-                        <div class="bch-member">
-                            <label class="bch-label">Đội phó 1</label>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <input type="text" id="team-vice1-name" placeholder="Họ và tên">
-                                </div>
-                                <div class="form-group">
-                                    <input type="email" id="team-vice1-email" placeholder="Email">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Đội phó 2 -->
-                        <div class="bch-member">
-                            <label class="bch-label">Đội phó 2</label>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <input type="text" id="team-vice2-name" placeholder="Họ và tên">
-                                </div>
-                                <div class="form-group">
-                                    <input type="email" id="team-vice2-email" placeholder="Email">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Container cho đội phó thêm -->
-                        <div id="extra-vice-container"></div>
-
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="addExtraVice()"
-                            style="margin-bottom:15px;">
-                            <i class="fa-solid fa-plus"></i> Thêm đội phó
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <button class="btn btn-primary" onclick="openAddTeamModal()">
+                            <i class="fa-solid fa-plus"></i> Thêm đội mới
                         </button>
-
-                        <div class="btn-row">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa-solid fa-save"></i> Lưu đội
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetTeamForm()">
-                                <i class="fa-solid fa-rotate-left"></i> Reset
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Danh sách đội -->
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-                        <h3 style="margin:0;"><i class="fa-solid fa-list"></i> Danh sách đội hình</h3>
                         <button class="btn btn-danger btn-sm" onclick="deleteSelectedTeams()" id="btn-delete-teams"
                             disabled>
                             <i class="fa-solid fa-trash"></i> Xóa đã chọn (<span id="teams-selected-count">0</span>)
                         </button>
                     </div>
+                </div>
+
+                <!-- Danh sách đội -->
+                <div class="card">
                     <div id="teams-list">
                         <p style="text-align:center;color:#888;">Đang tải...</p>
                     </div>
@@ -1330,6 +1275,16 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Section: Media Manager - kysutet_admin -->
+            <section id="section-media-manager" class="section">
+                <!-- Content will be rendered by JS -->
+            </section>
+
+            <!-- Section: Activity Logs - super_admin only -->
+            <section id="section-activity-logs" class="section">
+                <!-- Content will be rendered by JS -->
+            </section>
         </main>
     </div>
 
@@ -1373,8 +1328,9 @@
         </div>
     </a>
 
-    <!-- Scripts -->
-    <script type="module" src="js/dashboard-core.js"></script>
+    <!-- SCRIPTS -->
+    <script src="js/offline-cache.js"></script>
+    <script type="module" src="js/dashboard-main.js"></script>
 </body>
 
 </html>

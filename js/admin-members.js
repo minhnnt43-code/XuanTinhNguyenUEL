@@ -364,7 +364,8 @@ async function loadTeams() {
 
 // Duyệt đơn đăng ký
 window.approveRegistration = async function (regId, userId) {
-    if (!confirm('Duyệt đơn đăng ký này?')) return;
+    const confirmed = await showConfirmModal('Duyệt đơn đăng ký này?', { title: 'Xác nhận', type: 'info', confirmText: 'Duyệt' });
+    if (!confirmed) return;
 
     try {
         // Cập nhật đơn
@@ -379,17 +380,18 @@ window.approveRegistration = async function (regId, userId) {
             role: 'member'
         });
 
-        alert('✅ Đã duyệt thành công!');
+        showToast('Đã duyệt thành công!', 'success');
         loadPendingRegistrations();
     } catch (error) {
         console.error(error);
-        alert('❌ Có lỗi xảy ra!');
+        showToast('Có lỗi xảy ra!', 'error');
     }
 };
 
 // Từ chối đơn
 window.rejectRegistration = async function (regId) {
-    if (!confirm('Từ chối đơn đăng ký này?')) return;
+    const confirmed = await showConfirmModal('Từ chối đơn đăng ký này?', { title: 'Từ chối', type: 'warning', confirmText: 'Từ chối' });
+    if (!confirmed) return;
 
     try {
         await updateDoc(doc(db, 'xtn_registrations', regId), {
@@ -398,11 +400,11 @@ window.rejectRegistration = async function (regId) {
             reviewed_at: new Date().toISOString()
         });
 
-        alert('Đã từ chối đơn đăng ký.');
+        showToast('Đã từ chối đơn đăng ký.', 'success');
         loadPendingRegistrations();
     } catch (error) {
         console.error(error);
-        alert('❌ Có lỗi xảy ra!');
+        showToast('Có lỗi xảy ra!', 'error');
     }
 };
 
@@ -413,7 +415,7 @@ window.saveTeamName = async function (teamId) {
 
     const newName = input.value.trim();
     if (!newName) {
-        alert('Tên đội không được để trống');
+        showToast('Tên đội không được để trống', 'warning');
         return;
     }
 
@@ -424,16 +426,17 @@ window.saveTeamName = async function (teamId) {
             team_name: newName
         }, { merge: true });
 
-        alert('✅ Đã lưu tên đội!');
+        showToast('Đã lưu tên đội!', 'success');
     } catch (error) {
         console.error(error);
-        alert('❌ Lỗi lưu tên đội!');
+        showToast('Lỗi lưu tên đội!', 'error');
     }
 };
 
 // Khởi tạo 20 đội vào Firestore
 window.initializeAllTeams = async function () {
-    if (!confirm('Khởi tạo 20 đội vào Firestore?')) return;
+    const confirmed = await showConfirmModal('Khởi tạo 20 đội vào Firestore?', { title: 'Khởi tạo', type: 'info', confirmText: 'Khởi tạo' });
+    if (!confirmed) return;
 
     try {
         const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -449,11 +452,11 @@ window.initializeAllTeams = async function () {
             }, { merge: true });
         }
 
-        alert('✅ Đã khởi tạo 20 đội!');
+        showToast('Đã khởi tạo 20 đội!', 'success');
         loadTeams();
     } catch (error) {
         console.error(error);
-        alert('❌ Lỗi khởi tạo!');
+        showToast('Lỗi khởi tạo!', 'error');
     }
 };
 

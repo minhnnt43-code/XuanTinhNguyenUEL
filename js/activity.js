@@ -145,7 +145,9 @@ export async function initActivityModule() {
     // Kiểm tra quyền chỉnh sửa:
     // - super_admin, kysutet_admin: chỉnh sửa TẤT CẢ
     // - doihinh_admin: chỉ chỉnh sửa hoạt động của đội mình
-    canEditActivities = isSuperAdmin() || currentUserRole === 'doihinh_admin';
+    // LƯU Ý: Không dùng isSuperAdmin() vì nó check userRole từ auth.js chưa sync
+    const isAdminRole = currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin';
+    canEditActivities = isAdminRole || currentUserRole === 'doihinh_admin';
     console.log('[Activity] canEditActivities:', canEditActivities, '| role:', currentUserRole, '| team:', currentUserTeam);
 
     populateTeamSelects();
@@ -167,8 +169,11 @@ export async function initActivityModule() {
  * @returns {boolean}
  */
 function canEditTeamActivity(teamName) {
-    // Super admin và kysutet_admin: chỉnh sửa tất cả
-    if (isSuperAdmin()) return true;
+    // super_admin hoặc kysutet_admin: chỉnh sửa TẤT CẢ
+    // LƯU Ý: Dùng currentUserRole trực tiếp thay vì isSuperAdmin()
+    if (currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin') {
+        return true;
+    }
 
     // doihinh_admin: chỉ chỉnh sửa hoạt động đội mình
     if (currentUserRole === 'doihinh_admin') {
@@ -516,9 +521,26 @@ function openActivityModal(activity = null, date = null, team = null) {
     document.getElementById('activity-modal')?.remove();
 
     const isEdit = !!activity;
-    // Lấy team của activity để check quyền
-    const activityTeam = activity?.team || team || '';
+
+    // Với doihinh_admin: nếu không có team được chỉ định, tự động dùng team của user
+    const isFullAdmin = currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin';
+    const defaultTeam = isFullAdmin ? '' : currentUserTeam;
+    const activityTeam = activity?.team || team || defaultTeam || '';
+
     const canEditThisActivity = canEditTeamActivity(activityTeam);
+
+    // Dropdown options: doihinh_admin chỉ thấy team của mình, admin thấy tất cả
+    let teamOptions = '';
+    if (isFullAdmin) {
+        // Super admin / kysutet_admin: thấy tất cả đội
+        teamOptions = `<option value="">-- Chọn đội hình --</option>` +
+            CONFIG.teams.map(t => `
+                <option value="${t}" ${activityTeam === t ? 'selected' : ''}>${t}</option>
+            `).join('');
+    } else {
+        // doihinh_admin: chỉ thấy đội của mình
+        teamOptions = `<option value="${currentUserTeam}" selected>${currentUserTeam}</option>`;
+    }
 
     const modalHtml = `
         <div class="activity-modal active" id="activity-modal">
@@ -530,12 +552,10 @@ function openActivityModal(activity = null, date = null, team = null) {
                 <div class="activity-modal-body">
                     <div class="form-group">
                         <label>Đội hình <span class="required">*</span></label>
-                        <select id="modal-team" required>
-                            <option value="">-- Chọn đội hình --</option>
-                            ${CONFIG.teams.map(t => `
-                                <option value="${t}" ${(activity?.team || team) === t ? 'selected' : ''}>${t}</option>
-                            `).join('')}
+                        <select id="modal-team" required ${!isFullAdmin ? 'disabled style="background:#f3f4f6;"' : ''}>
+                            ${teamOptions}
                         </select>
+                        ${!isFullAdmin ? '<small style="color:#666;">Bạn chỉ có thể tạo hoạt động cho đội của mình</small>' : ''}
                     </div>
                     <div class="form-group">
                         <label>Ngày <span class="required">*</span></label>
@@ -626,7 +646,8 @@ function openActivityModal(activity = null, date = null, team = null) {
     // Chỉ user có quyền với activity đang edit mới có nút Delete
     if (isEdit && canEditThisActivity) {
         document.getElementById('modal-delete')?.addEventListener('click', async () => {
-            if (confirm('Bạn có chắc chắn muốn xóa hoạt động này?')) {
+            const confirmed = await showConfirmModal('Bạn có chắc chắn muốn xóa hoạt động này?', { title: 'Xóa hoạt động', type: 'danger', confirmText: 'Xóa' });
+            if (confirmed) {
                 await deleteActivity(activity.id);
                 closeModal();
             }
@@ -650,13 +671,13 @@ async function saveActivity(id = null) {
     };
 
     if (!data.team || !data.date || !data.startTime || !data.endTime) {
-        alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+        showToast('Vui lòng điền đầy đủ thông tin bắt buộc!', 'warning');
         return;
     }
 
     // KIỂM TRA QUYỀN THEO TEAM
     if (!canEditTeamActivity(data.team)) {
-        alert(`⛔ Bạn không có quyền tạo/sửa hoạt động cho đội "${data.team}"!\n\nBạn chỉ được phép quản lý hoạt động của đội: ${currentUserTeam || 'Chưa được phân đội'}`);
+        showToast(`Bạn không có quyền tạo/sửa hoạt động cho đội "${data.team}"!`, 'error');
         return;
     }
 
@@ -674,7 +695,7 @@ async function saveActivity(id = null) {
         }
     } catch (error) {
         console.error('[Activity] Save error:', error);
-        alert('Có lỗi xảy ra khi lưu hoạt động!');
+        showToast('Có lỗi xảy ra khi lưu hoạt động!', 'error');
     }
 }
 
@@ -684,7 +705,7 @@ async function deleteActivity(id) {
 
         // KIỂM TRA QUYỀN THEO TEAM
         if (activity && !canEditTeamActivity(activity.team)) {
-            alert(`⛔ Bạn không có quyền xóa hoạt động của đội "${activity.team}"!`);
+            showToast(`Bạn không có quyền xóa hoạt động của đội "${activity.team}"!`, 'error');
             return;
         }
 
@@ -692,7 +713,7 @@ async function deleteActivity(id) {
         await logAction('delete', 'activity', id, activity);
     } catch (error) {
         console.error('[Activity] Delete error:', error);
-        alert('Có lỗi xảy ra khi xóa hoạt động!');
+        showToast('Có lỗi xảy ra khi xóa hoạt động!', 'error');
     }
 }
 
@@ -702,8 +723,8 @@ function openParticipantsModal() {
     document.getElementById('participants-modal')?.remove();
 
     const modalHtml = `
-        <div class="activity-modal active" id="participants-modal" style="z-index:10001;">
-            <div class="activity-modal-content" style="max-width:800px;max-height:90vh;overflow-y:auto;">
+        <div class="activity-modal participants-modal active" id="participants-modal" style="z-index:10001;">
+            <div class="activity-modal-content">
                 <div class="activity-modal-header">
                     <h3><i class="fa-solid fa-users"></i> Danh sách tham gia</h3>
                     <button class="close-btn" id="participants-close">&times;</button>
@@ -714,10 +735,13 @@ function openParticipantsModal() {
                             <i class="fa-solid fa-plus"></i> Thêm người
                         </button>
                         <button class="btn btn-info btn-sm" id="btn-import-participants">
-                            <i class="fa-solid fa-file-excel"></i> Import Excel
+                            <i class="fa-solid fa-file-excel"></i> Import
+                        </button>
+                        <button class="btn btn-warning btn-sm" id="btn-export-participants">
+                            <i class="fa-solid fa-file-export"></i> Xuất Excel
                         </button>
                         <button class="btn btn-secondary btn-sm" id="btn-download-participant-template">
-                            <i class="fa-solid fa-download"></i> Tải mẫu
+                            <i class="fa-solid fa-download"></i> Mẫu
                         </button>
                         <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
                         <span style="margin-left:auto;color:#666;">
@@ -731,9 +755,10 @@ function openParticipantsModal() {
                                     <th style="width:40px;">STT</th>
                                     <th>Họ và Tên</th>
                                     <th>MSSV</th>
+                                    <th>Email</th>
                                     <th>Đội hình</th>
                                     <th>Vai trò</th>
-                                    <th style="width:80px;">Thao tác</th>
+                                    <th style="width:70px;">Xóa</th>
                                 </tr>
                             </thead>
                             <tbody id="participants-tbody">
@@ -782,28 +807,32 @@ function openParticipantsModal() {
     // Download Template button
     document.getElementById('btn-download-participant-template')?.addEventListener('click', downloadParticipantsTemplate);
 
+    // Export Excel button
+    document.getElementById('btn-export-participants')?.addEventListener('click', exportParticipantsExcel);
+
     // Attach event listeners for existing rows
     attachParticipantRowEvents();
 }
 
 function renderParticipantsRows() {
     if (tempParticipants.length === 0) {
-        return '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">Chưa có người tham gia</td></tr>';
+        return '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">Chưa có người tham gia</td></tr>';
     }
 
     return tempParticipants.map((p, i) => `
         <tr data-index="${i}">
             <td>${i + 1}</td>
-            <td><input type="text" class="p-name" value="${p.name || ''}" placeholder="Họ và tên" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;"></td>
-            <td><input type="text" class="p-mssv" value="${p.mssv || ''}" placeholder="MSSV" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;"></td>
+            <td><input type="text" class="p-name" value="${p.name || ''}" placeholder="Họ và tên"></td>
+            <td><input type="text" class="p-mssv" value="${p.mssv || ''}" placeholder="MSSV"></td>
+            <td><input type="text" class="p-email" value="${p.email || ''}" placeholder="email@st.uel.edu.vn"></td>
             <td>
-                <select class="p-team" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;">
+                <select class="p-team">
                     <option value="">-- Chọn --</option>
                     ${CONFIG.teams.map(t => `<option value="${t}" ${p.team === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
             </td>
             <td>
-                <select class="p-role" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;">
+                <select class="p-role">
                     <option value="Chiến sĩ" ${p.role === 'Chiến sĩ' || !p.role ? 'selected' : ''}>Chiến sĩ</option>
                     <option value="Đội trưởng" ${p.role === 'Đội trưởng' ? 'selected' : ''}>Đội trưởng</option>
                     <option value="Đội phó" ${p.role === 'Đội phó' ? 'selected' : ''}>Đội phó</option>
@@ -811,7 +840,7 @@ function renderParticipantsRows() {
                 </select>
             </td>
             <td>
-                <button class="btn-icon delete-participant" data-index="${i}" title="Xóa" style="color:#dc2626;">
+                <button class="btn-delete-row delete-participant" data-index="${i}" title="Xóa">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             </td>
@@ -820,7 +849,7 @@ function renderParticipantsRows() {
 }
 
 function addParticipantRow() {
-    tempParticipants.push({ name: '', mssv: '', team: '', role: 'Chiến sĩ' });
+    tempParticipants.push({ name: '', mssv: '', email: '', team: '', role: 'Chiến sĩ' });
     refreshParticipantsTable();
 }
 
@@ -856,6 +885,9 @@ function attachParticipantRowEvents() {
         });
         row.querySelector('.p-mssv')?.addEventListener('input', (e) => {
             tempParticipants[index].mssv = e.target.value;
+        });
+        row.querySelector('.p-email')?.addEventListener('input', (e) => {
+            tempParticipants[index].email = e.target.value;
         });
         row.querySelector('.p-team')?.addEventListener('change', (e) => {
             tempParticipants[index].team = e.target.value;
@@ -913,16 +945,16 @@ async function handleParticipantsExcelImport(e) {
 
                 console.log('[Activity] Imported participants:', addedCount);
                 refreshParticipantsTable();
-                alert(`✅ Đã import ${addedCount} người tham gia!`);
+                showToast(`Đã import ${addedCount} người tham gia!`, 'success');
             } catch (parseError) {
                 console.error('[Activity] Excel parse error:', parseError);
-                alert('❌ Lỗi đọc file Excel! Vui lòng kiểm tra định dạng file.');
+                showToast('Lỗi đọc file Excel! Vui lòng kiểm tra định dạng file.', 'error');
             }
         };
         reader.readAsArrayBuffer(file);
     } catch (error) {
         console.error('[Activity] Import error:', error);
-        alert('❌ Lỗi import: ' + error.message);
+        showToast('Lỗi import: ' + error.message, 'error');
     }
 }
 
@@ -975,7 +1007,64 @@ async function downloadParticipantsTemplate() {
         console.log('[Activity] Template downloaded');
     } catch (error) {
         console.error('[Activity] Template download error:', error);
-        alert('❌ Lỗi tạo file mẫu: ' + error.message);
+        showToast('Lỗi tạo file mẫu: ' + error.message, 'error');
+    }
+}
+
+// ===== EXPORT PARTICIPANTS TO EXCEL =====
+async function exportParticipantsExcel() {
+    try {
+        if (tempParticipants.length === 0) {
+            showToast('Chưa có người tham gia để xuất!', 'warning');
+            return;
+        }
+
+        // Ensure XLSX is loaded
+        if (!window.XLSX) {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Prepare data for export
+        const exportData = tempParticipants.map((p, i) => ({
+            'STT': i + 1,
+            'Họ và Tên': p.name || '',
+            'MSSV': p.mssv || '',
+            'Email': p.email || '',
+            'Đội hình': p.team || '',
+            'Vai trò': p.role || 'Chiến sĩ'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách tham gia');
+
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 5 },   // STT
+            { wch: 25 },  // Họ và Tên
+            { wch: 15 },  // MSSV
+            { wch: 30 },  // Email
+            { wch: 20 },  // Đội hình
+            { wch: 12 }   // Vai trò
+        ];
+
+        // Generate filename with current date
+        const now = new Date();
+        const dateStr = `${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`;
+        const filename = `DanhSachThamGia_${dateStr}.xlsx`;
+
+        XLSX.writeFile(workbook, filename);
+        console.log('[Activity] Participants exported:', tempParticipants.length);
+        showToast(`Đã xuất ${tempParticipants.length} người ra file Excel!`, 'success');
+    } catch (error) {
+        console.error('[Activity] Export error:', error);
+        showToast('Lỗi xuất Excel: ' + error.message, 'error');
     }
 }
 
@@ -1080,7 +1169,8 @@ function renderStatsTable(data) {
 
         elements.statsTbody.querySelectorAll('.btn-icon.delete').forEach(btn => {
             btn.addEventListener('click', async () => {
-                if (confirm('Xóa hoạt động này?')) {
+                const confirmed = await showConfirmModal('Xóa hoạt động này?', { title: 'Xóa hoạt động', type: 'danger', confirmText: 'Xóa' });
+                if (confirmed) {
                     await deleteActivity(btn.dataset.id);
                 }
             });
@@ -1121,7 +1211,7 @@ function exportToCSV() {
     const filtered = getFilteredActivities();
 
     if (filtered.length === 0) {
-        alert('Không có dữ liệu để xuất!');
+        showToast('Không có dữ liệu để xuất!', 'warning');
         return;
     }
 
@@ -1180,7 +1270,7 @@ function exportReports() {
     }
 
     if (filtered.length === 0) {
-        alert('Không có báo cáo nào trong khoảng thời gian này!');
+        showToast('Không có báo cáo nào trong khoảng thời gian này!', 'warning');
         return;
     }
 
@@ -1216,7 +1306,7 @@ function exportReports() {
     link.download = fileName;
     link.click();
 
-    alert(`Đã xuất ${filtered.length} báo cáo thành công!`);
+    showToast(`Đã xuất ${filtered.length} báo cáo thành công!`, 'success');
 }
 
 // ===== REPORT FUNCTIONS =====
@@ -1322,13 +1412,14 @@ function renderReports() {
     elements.reportsList.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (confirm('Xóa báo cáo này?')) {
+            const confirmed = await showConfirmModal('Xóa báo cáo này?', { title: 'Xóa báo cáo', type: 'danger', confirmText: 'Xóa' });
+            if (confirmed) {
                 try {
                     await deleteDoc(doc(db, 'xtn_reports', btn.dataset.id));
                     await logAction('delete', 'report', btn.dataset.id, {});
                 } catch (error) {
                     console.error('[Report] Delete error:', error);
-                    alert('Có lỗi xảy ra!');
+                    showToast('Có lỗi xảy ra!', 'error');
                 }
             }
         });
@@ -1347,7 +1438,7 @@ function openReportModal(report = null) {
     const selectedTeam = elements.reportTeamSelect?.value || '';
 
     if (!report && !selectedTeam) {
-        alert('Vui lòng chọn đội hình trước!');
+        showToast('Vui lòng chọn đội hình trước!', 'warning');
         return;
     }
 
@@ -1362,7 +1453,7 @@ function openReportModal(report = null) {
 
     // Nếu không có team và không phải admin, báo lỗi
     if (!defaultTeam && !isAdmin) {
-        alert('Tài khoản của bạn chưa được gán đội hình. Vui lòng liên hệ BCH Trường!');
+        showToast('Tài khoản của bạn chưa được gán đội hình. Vui lòng liên hệ BCH Trường!', 'warning');
         return;
     }
 
@@ -1558,7 +1649,7 @@ function openReportModal(report = null) {
         };
 
         if (!data.date || !data.participants) {
-            alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+            showToast('Vui lòng điền đầy đủ thông tin bắt buộc!', 'warning');
             return;
         }
 
@@ -1575,14 +1666,14 @@ function openReportModal(report = null) {
             closeModal();
         } catch (error) {
             console.error('[Report] Save error:', error);
-            alert('Có lỗi xảy ra!');
+            showToast('Có lỗi xảy ra!', 'error');
         }
     });
 }
 
 // Show report history modal
 function showReportHistory(reportId) {
-    alert('Tính năng đang phát triển! Xem lịch sử báo cáo ID: ' + reportId);
+    showToast('Tính năng đang phát triển! Xem lịch sử báo cáo ID: ' + reportId, 'info');
     // TODO: Implement full history view
 }
 

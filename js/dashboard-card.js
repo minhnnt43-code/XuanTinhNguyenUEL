@@ -175,6 +175,11 @@ export async function initCardCanvas() {
             }
         }
 
+        // Auto-generate QR code từ MSSV (nếu có)
+        if (userData.mssv) {
+            await updateQRCode(userData.mssv);
+        }
+
         // Load existing card status
         await loadCardStatus();
 
@@ -559,10 +564,10 @@ function drawTexts() {
 
     cardCtx.textAlign = 'center';
 
-    // Name - MÀU ĐỎ, IN HOA, UTM IMPACT
+    // Name - MÀU ĐỎ, IN HOA, UTM IMPACT (có letter-spacing)
     cardCtx.fillStyle = COLOR_RED;
     cardCtx.font = `bold ${40 * SCALE_FACTOR}px ${FONT_IMPACT}`;
-    cardCtx.fillText(name.toUpperCase(), CANVAS_WIDTH / 2, NAME_Y);
+    drawTextWithSpacing(cardCtx, name.toUpperCase(), CANVAS_WIDTH / 2, NAME_Y, 1 * SCALE_FACTOR);
 
     // Team - MÀU XANH LÁ, IN HOA, UTM IMPACT
     cardCtx.fillStyle = COLOR_GREEN;
@@ -574,6 +579,27 @@ function drawTexts() {
     cardCtx.fillStyle = '#fffcfcff';
     cardCtx.font = `bold ${20 * SCALE_FACTOR}px ${FONT_IMPACT}`;
     cardCtx.fillText(role.toUpperCase(), CANVAS_WIDTH / 2, ROLE_Y);
+}
+
+// Vẽ text với letter-spacing (Canvas không hỗ trợ mặc định)
+function drawTextWithSpacing(ctx, text, x, y, spacing) {
+    const chars = text.split('');
+    let totalWidth = 0;
+
+    // Tính tổng width bao gồm spacing
+    chars.forEach(char => {
+        totalWidth += ctx.measureText(char).width + spacing;
+    });
+    totalWidth -= spacing; // Không thêm spacing sau ký tự cuối
+
+    // Vẽ từ vị trí bắt đầu (căn giữa)
+    let currentX = x - totalWidth / 2;
+    chars.forEach(char => {
+        ctx.textAlign = 'left';
+        ctx.fillText(char, currentX, y);
+        currentX += ctx.measureText(char).width + spacing;
+    });
+    ctx.textAlign = 'center'; // Reset
 }
 
 // ============================================================
@@ -638,7 +664,7 @@ async function loadCardStatus() {
 
 export async function confirmCard() {
     if (!userData?.uid) {
-        alert('Vui lòng đăng nhập lại!');
+        showToast('Vui lòng đăng nhập lại!', 'warning');
         return;
     }
 
@@ -676,12 +702,12 @@ export async function confirmCard() {
         }
 
         console.log('[Card] Confirmed successfully');
-        alert('✅ Đã xác nhận tạo thẻ thành công!');
+        showToast('Đã xác nhận tạo thẻ thành công!', 'success');
     } catch (e) {
         console.error('[Card] Confirm error:', e);
         // Show detailed error
         const errorMsg = e?.code || e?.message || String(e);
-        alert('❌ Có lỗi xảy ra: ' + errorMsg + '\n\nVui lòng thử lại hoặc liên hệ Admin.');
+        showToast('Có lỗi xảy ra: ' + errorMsg + '. Vui lòng thử lại hoặc liên hệ Admin.', 'error');
     }
 }
 
@@ -707,7 +733,7 @@ async function loadCityCardLink() {
 
 export async function saveCityCardLink() {
     if (!userData?.uid) {
-        alert('Vui lòng đăng nhập lại!');
+        showToast('Vui lòng đăng nhập lại!', 'warning');
         return;
     }
 
@@ -715,7 +741,7 @@ export async function saveCityCardLink() {
     const link = linkInput?.value?.trim() || '';
 
     if (link && !link.includes('drive.google.com')) {
-        alert('Vui lòng nhập link Google Drive hợp lệ!');
+        showToast('Vui lòng nhập link Google Drive hợp lệ!', 'warning');
         return;
     }
 
@@ -726,11 +752,11 @@ export async function saveCityCardLink() {
             city_card_updated_at: serverTimestamp()
         }, { merge: true });
 
-        alert('Đã lưu link thẻ thành phố!');
+        showToast('Đã lưu link thẻ thành phố!', 'success');
         console.log('[Card] City card link saved');
     } catch (e) {
         console.error('[Card] Save city link error:', e);
-        alert('Có lỗi xảy ra, vui lòng thử lại!');
+        showToast('Có lỗi xảy ra, vui lòng thử lại!', 'error');
     }
 }
 

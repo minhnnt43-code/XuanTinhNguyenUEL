@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Kết Quả - Xuân Tình Nguyện UEL 2026</title>
+    <link rel="icon" type="image/png" href="images/logoxtn.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/tracuu.css">
+
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Toast Notification System -->
+    <script src="js/toast.js"></script>
+</head>
+
+<body>
+
+    <div class="result-page-wrapper">
+        <!-- Decoration -->
+        <div class="deco-circle deco-1"></div>
+        <div class="deco-circle deco-2"></div>
+
+        <div class="container">
+            <!-- Header -->
+            <header class="page-header">
+                <h1>Tra Cứu Kết Quả</h1>
+                <img src="images/bieutrungxtn.png" alt="Biểu trưng XTN" class="logo">
+                <p class="subtitle">Nhập Mã số sinh viên để tra cứu kết quả phỏng vấn</p>
+            </header>
+
+            <!-- Search Box -->
+            <div class="search-box">
+                <div class="input-group">
+                    <input type="text" id="mssv-input" placeholder="Nhập MSSV (Ví dụ: K234141508)" autocomplete="off">
+                    <button id="btn-search" onclick="traCuu()">
+                        <i class="fa-solid fa-magnifying-glass"></i> Tra cứu
+                    </button>
+                </div>
+                <div id="loading" class="loading hidden">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> Đang tra cứu...
+                </div>
+            </div>
+
+            <!-- Result Area -->
+            <div id="result-area" class="result-area hidden">
+                <!-- Content injected by JS -->
+            </div>
+
+            <!-- Footer -->
+            <footer class="page-footer">
+                <p>&copy; 2026 Chiến dịch Xuân Tình Nguyện - Hội Sinh viên Việt Nam Trường ĐH Kinh tế - Luật</p>
+                <div class="social-links">
+                    <a href="https://www.facebook.com/xuantinhnguyenuel" target="_blank"><i
+                            class="fa-brands fa-facebook"></i> Fanpage</a>
+                    <a href="mailto:xuantinhnguyen@st.uel.edu.vn"><i class="fa-solid fa-envelope"></i> Email</a>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Firebase & Logic -->
+    <script type="module" src="js/tracuu.js"></script>
+</body>
+
+</html>

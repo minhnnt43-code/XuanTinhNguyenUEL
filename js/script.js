@@ -34,8 +34,16 @@ function convertDriveLink(url) {
 // ==================================================
 // B. XỬ LÝ ĐẾM NGƯỢC (COUNTDOWN)
 // ==================================================
+let countdownInterval = null; // Để cleanup tránh memory leak
+
 async function initCountdown() {
     try {
+        // Clear interval cũ nếu có (tránh memory leak)
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+
         // Lấy ngày ra quân từ Firestore (xtn_settings/config)
         const docRef = doc(db, "xtn_settings", "config");
         const docSnap = await getDoc(docRef);
@@ -48,7 +56,7 @@ async function initCountdown() {
         // Chạy đồng hồ
         const countDate = new Date(targetDateStr).getTime();
 
-        setInterval(() => {
+        countdownInterval = setInterval(() => {
             const now = new Date().getTime();
             const gap = countDate - now;
 
@@ -59,6 +67,9 @@ async function initCountdown() {
                 document.getElementById("minutes").innerText = Math.floor((gap % hour) / minute);
                 document.getElementById("seconds").innerText = Math.floor((gap % minute) / second);
             } else {
+                // Dọn dẹp interval khi countdown kết thúc
+                clearInterval(countdownInterval);
+                countdownInterval = null;
                 document.querySelector(".countdown-wrapper").innerHTML =
                     "<h3 style='color:#FFC600; font-size:1.5rem; text-shadow: 1px 1px 2px black;'>🚀 CHIẾN DỊCH ĐÃ BẮT ĐẦU!</h3>";
             }
@@ -76,6 +87,8 @@ async function initCountdown() {
 // 1. Load Ảnh Hồi ức (Gallery)
 async function loadGallery() {
     const container = document.getElementById('gallery-container');
+    if (!container) return;
+
     try {
         // Lấy tất cả ảnh, sắp xếp mới nhất lên đầu (cần tạo Index nếu console báo lỗi)
         const q = query(collection(db, "xtn_gallery"), orderBy("created_at", "desc"));
@@ -86,19 +99,23 @@ async function loadGallery() {
             return;
         }
 
-        container.innerHTML = ''; // Xóa loading spinner
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        // Dùng DocumentFragment để tối ưu DOM (chỉ 1 reflow thay vì N lần)
+        const fragment = document.createDocumentFragment();
+        querySnapshot.forEach((docItem) => {
+            const data = docItem.data();
             const imageUrl = convertDriveLink(data.image_url);
 
-            const html = `
-                <div class="gallery-item">
-                    <img src="${imageUrl}" alt="Hồi ức" loading="lazy">
-                    <div class="gallery-caption">${data.caption || 'Kỷ niệm XTN'} (${data.year})</div>
-                </div>
+            const div = document.createElement('div');
+            div.className = 'gallery-item';
+            div.innerHTML = `
+                <img src="${imageUrl}" alt="Hồi ức XTN ${data.year || ''}" loading="lazy">
+                <div class="gallery-caption">${data.caption || 'Kỷ niệm XTN'} (${data.year})</div>
             `;
-            container.innerHTML += html;
+            fragment.appendChild(div);
         });
+
+        container.innerHTML = ''; // Xóa loading spinner
+        container.appendChild(fragment);
     } catch (error) {
         console.error("Lỗi load Gallery:", error);
         container.innerHTML = '<p>Đang cập nhật...</p>'; // Fallback nếu lỗi index
@@ -108,6 +125,8 @@ async function loadGallery() {
 // 2. Load Ban Chỉ Huy (Leaders)
 async function loadLeaders() {
     const container = document.getElementById('leaders-container');
+    if (!container) return;
+
     try {
         const querySnapshot = await getDocs(collection(db, "xtn_leaders"));
 
@@ -116,21 +135,25 @@ async function loadLeaders() {
             return;
         }
 
-        container.innerHTML = '';
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        // Dùng DocumentFragment để tối ưu DOM
+        const fragment = document.createDocumentFragment();
+        querySnapshot.forEach((docItem) => {
+            const data = docItem.data();
             const avatarUrl = convertDriveLink(data.avatar_url) || 'https://placehold.co/150x150?text=U';
 
-            const html = `
-                <div class="leader-card">
-                    <img src="${avatarUrl}" alt="${data.name}" class="leader-img">
-                    <h3 class="leader-name">${data.name}</h3>
-                    <p class="leader-role">${data.role}</p>
-                    <p class="leader-quote">"${data.quote || 'Xuân Tình Nguyện'}"</p>
-                </div>
+            const div = document.createElement('div');
+            div.className = 'leader-card';
+            div.innerHTML = `
+                <img src="${avatarUrl}" alt="${data.name}" class="leader-img">
+                <h3 class="leader-name">${data.name}</h3>
+                <p class="leader-role">${data.role}</p>
+                <p class="leader-quote">"${data.quote || 'Xuân Tình Nguyện'}"</p>
             `;
-            container.innerHTML += html;
+            fragment.appendChild(div);
         });
+
+        container.innerHTML = '';
+        container.appendChild(fragment);
     } catch (error) {
         console.error("Lỗi load Leaders:", error);
     }
@@ -139,6 +162,8 @@ async function loadLeaders() {
 // 3. Load Confessions (Chỉ lấy status = 'approved')
 async function loadConfessions() {
     const container = document.getElementById('confessions-container');
+    if (!container) return;
+
     try {
         const q = query(collection(db, "xtn_confessions"), where("status", "==", "approved"));
         const querySnapshot = await getDocs(q);
@@ -148,19 +173,23 @@ async function loadConfessions() {
             return;
         }
 
-        container.innerHTML = '';
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        // Dùng DocumentFragment để tối ưu DOM
+        const fragment = document.createDocumentFragment();
+        querySnapshot.forEach((docItem) => {
+            const data = docItem.data();
             const colorClass = data.bg_color || 'yellow'; // yellow, red, green
 
-            const html = `
-                <div class="note ${colorClass}">
-                    <p class="note-content">"${data.content}"</p>
-                    <span class="note-sender">- ${data.sender}</span>
-                </div>
+            const div = document.createElement('div');
+            div.className = `note ${colorClass}`;
+            div.innerHTML = `
+                <p class="note-content">"${data.content}"</p>
+                <span class="note-sender">- ${data.sender}</span>
             `;
-            container.innerHTML += html;
+            fragment.appendChild(div);
         });
+
+        container.innerHTML = '';
+        container.appendChild(fragment);
     } catch (error) {
         console.error("Lỗi load Confession:", error);
     }
@@ -200,11 +229,11 @@ function setupConfessionModal() {
                 timestamp: new Date().toISOString()
             });
 
-            alert("💌 Đã gửi thành công! Lời nhắn sẽ xuất hiện sau khi Ban Chỉ Huy duyệt nhé.");
+            showToast('💌 Đã gửi thành công! Lời nhắn sẽ xuất hiện sau khi Ban Chỉ Huy duyệt nhé.', 'success', 5000);
             modal.style.display = "none";
             form.reset();
         } catch (error) {
-            alert("Lỗi: " + error.message);
+            showToast('Lỗi: ' + error.message, 'error');
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;

@@ -11,7 +11,7 @@
 // ============================================================
 export function exportToExcel(data, filename = 'xtn_data.xlsx', sheetName = 'Data') {
     if (!window.XLSX) {
-        alert('Thư viện Excel chưa được tải. Vui lòng thử lại.');
+        showToast('Thư viện Excel chưa được tải. Vui lòng thử lại.', 'warning');
         return;
     }
 
@@ -42,7 +42,7 @@ export function exportToExcel(data, filename = 'xtn_data.xlsx', sheetName = 'Dat
         return true;
     } catch (error) {
         console.error('[Excel] Export error:', error);
-        alert('Lỗi khi xuất Excel: ' + error.message);
+        showToast('Lỗi khi xuất Excel: ' + error.message, 'error');
         return false;
     }
 }
@@ -94,6 +94,8 @@ export function exportChienSi(members, teams = {}) {
         'MSSV': m.mssv || '',
         'Email': m.email || '',
         'Số điện thoại': m.phone || '',
+        'Khoa/Viện': m.faculty || '',
+        'Chức vụ': m.position || 'Chiến sĩ',
         'Đội hình': teams[m.team_id]?.name || m.team_id || 'Chưa phân đội',
         'Vai trò': getRoleName(m.role),
         'Ngày tham gia': formatDate(m.created_at),
@@ -174,6 +176,8 @@ function normalizeRow(row) {
         mssv: row['MSSV'] || row['mssv'] || '',
         email: row['Email'] || row['email'] || '',
         phone: row['Số điện thoại'] || row['phone'] || row['Phone'] || '',
+        faculty: row['Khoa/Viện'] || row['faculty'] || '',
+        position: row['Chức vụ'] || row['position'] || 'Chiến sĩ',
         team_id: row['Đội hình'] || row['team_id'] || '',
         role: 'member',
         status: 'active'
@@ -187,10 +191,12 @@ export function downloadImportTemplate() {
     const template = [
         {
             'Họ và tên': 'Nguyễn Văn A',
-            'MSSV': 'K21000001',
+            'MSSV': 'K224141000',
             'Email': 'example@st.uel.edu.vn',
             'Số điện thoại': '0901234567',
-            'Đội hình': 'Đội 1'
+            'Khoa/Viện': 'Kinh tế',
+            'Chức vụ': 'Chiến sĩ',
+            'Đội hình': 'Đội hình 1'
         }
     ];
     exportToExcel(template, 'XTN_MauImport.xlsx', 'Mẫu Import');

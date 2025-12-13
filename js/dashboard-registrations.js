@@ -10,8 +10,8 @@ import { doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc } from "htt
 // STATE
 // ============================================================
 let selectedRegs = new Set();
-let showAlertFn = (msg) => alert(msg);
-let showConfirmFn = async (msg) => confirm(msg);
+let showAlertFn = (msg) => showToast(msg, 'info');
+let showConfirmFn = async (msg) => await showConfirmModal(msg);
 let currentUser = null;
 
 export function setHelpers(alertFn, confirmFn) {

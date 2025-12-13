@@ -335,7 +335,7 @@ Yêu cầu:
                     }
                 });
             } else {
-                alert(result.content);
+                showToast(result.content, 'info', 8000);
             }
         } else {
             throw new Error(result.error);
@@ -346,7 +346,7 @@ Yêu cầu:
         if (window.Swal) {
             Swal.fire('Lỗi', 'Không thể tạo báo cáo: ' + error.message, 'error');
         } else {
-            alert('Lỗi: ' + error.message);
+            showToast('Lỗi: ' + error.message, 'error');
         }
     } finally {
         btn.innerHTML = originalText;
@@ -524,7 +524,7 @@ Hãy tạo báo cáo tổng hợp chuyên nghiệp.`;
                     }
                 });
             } else {
-                alert(result.content);
+                showToast(result.content, 'info', 8000);
             }
         } else {
             throw new Error(result.error);
@@ -535,7 +535,7 @@ Hãy tạo báo cáo tổng hợp chuyên nghiệp.`;
         if (window.Swal) {
             Swal.fire('Lỗi', 'Không thể tạo báo cáo: ' + error.message, 'error');
         } else {
-            alert('Lỗi: ' + error.message);
+            showToast('Lỗi: ' + error.message, 'error');
         }
     } finally {
         btn.innerHTML = originalText;
@@ -584,7 +584,7 @@ window.runTeamAnalysis = async function () {
         if (window.Swal) {
             Swal.fire('Thông báo', 'Vui lòng chọn đội hình cần phân tích!', 'warning');
         } else {
-            alert('Vui lòng chọn đội hình cần phân tích!');
+            showToast('Vui lòng chọn đội hình cần phân tích!', 'warning');
         }
         return;
     }

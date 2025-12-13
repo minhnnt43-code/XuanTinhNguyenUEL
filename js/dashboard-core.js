@@ -25,12 +25,33 @@ import {
 import { initAIDashboard } from './ai-dashboard.js';
 // AI features - TẠM TẮT, LÀM SAU
 // import { aiCreateActivity, aiGenerateReport } from './ai-features.js';
+import './admin-teams.js'; // Import to register window functions
+import { renderTeamsTable } from './admin-teams.js';
+// Activity Logging
+import { log as activityLog } from './activity-logger.js';
+import { initActivityLogs, renderActivityLogsSection } from './dashboard-activity-logs.js';
+// Media Management
+import { initMediaManager, renderMediaManagerHTML } from './dashboard-media.js';
 
 // ============================================================
 // STATE
 // ============================================================
 let currentUser = null;
 let userData = null;
+
+// Danh sách Khoa/Viện UEL
+const FACULTIES_LIST = [
+    'Kinh tế',
+    'Kinh tế đối ngoại',
+    'Quản trị kinh doanh',
+    'Hệ thống thông tin',
+    'Tài chính - Ngân hàng',
+    'Kế toán - Kiểm toán',
+    'Luật',
+    'Luật Kinh tế',
+    'Toán Kinh tế',
+    'Viện Quốc tế'
+];
 
 // ============================================================
 // INIT
@@ -161,15 +182,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hiện chức vụ (position)
         const positionEl = document.getElementById('user-position');
         if (positionEl) {
-            // Map role to display name
-            const roleDisplayMap = {
-                'super_admin': 'BCH Trường (Super Admin)',
-                'kysutet_admin': 'BCH Ký Sự Tết',
-                'doihinh_admin': 'BCH Đội hình',
-                'member': 'Chiến sĩ',
-                'pending': 'Chờ duyệt'
+            // Hiển thị chức danh cụ thể (position) thay vì role
+            // Position: Chỉ huy Trưởng, Chỉ huy Phó Thường trực, Chỉ huy Phó, 
+            //           Thành viên Ban Chỉ huy, Đội trưởng, Đội phó, Chiến sĩ
+            const displayPosition = userData.position ||
+                (userData.role === 'pending' ? 'Sinh viên' : 'Chiến sĩ');
+            positionEl.textContent = displayPosition;
+
+            // Map position to CSS class cho màu badge
+            const positionClassMap = {
+                'Chỉ huy Trưởng': 'pos-commander',
+                'Chỉ huy Phó Thường trực': 'pos-vice-standing',
+                'Chỉ huy Phó': 'pos-vice',
+                'Thành viên Thường trực Ban Chỉ huy': 'pos-standing-member',
+                'Thành viên Ban Chỉ huy': 'pos-member-bch',
+                'Đội trưởng': 'pos-team-leader',
+                'Đội phó': 'pos-team-vice',
+                'Chiến sĩ': 'pos-soldier',
+                'Sinh viên': 'pos-student'
             };
-            positionEl.textContent = roleDisplayMap[userData.role] || userData.role || '-';
+            const posClass = positionClassMap[displayPosition] || 'pos-student';
+            positionEl.className = 'user-role-badge ' + posClass;
         }
 
         // Hiện đội hình (team)
@@ -210,10 +243,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userData.role && userData.role !== 'pending') {
             initAIDashboard();
         }
+
+        // Log login activity
+        activityLog.login();
     });
 
     // Logout
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
+        activityLog.logout();
         await signOut(auth);
         window.location.href = 'login.html';
     });
@@ -536,16 +573,31 @@ function setupMenuByRole() {
     document.getElementById('menu-system')?.classList.add('hidden');
     document.getElementById('menu-register')?.classList.add('hidden');
 
+    // Hide super-admin-only items by default
+    document.querySelectorAll('.super-admin-only').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.add('hidden'));
+
+    // Check if user is in Ký sự Tết team
+    const isKySuTetTeam = userData.team_id === 'ky-su-tet' || userData.team_id === 'kysutet';
+
     if (role === 'pending') {
         document.getElementById('menu-register')?.classList.remove('hidden');
     } else if (role === 'member') {
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
+        // Show media manager for Ký sự Tết members
+        if (isKySuTetTeam) {
+            document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.remove('hidden'));
+        }
     } else if (role === 'doihinh_admin') {
         document.body.classList.add('is-doihinh-admin'); // CHỈ thấy activity
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
         document.getElementById('menu-activity')?.classList.remove('hidden');
+        // Show media manager for Ký sự Tết team leaders
+        if (isKySuTetTeam) {
+            document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.remove('hidden'));
+        }
     } else if (role === 'super_admin' || role === 'kysutet_admin') {
         document.body.classList.add('is-super-admin'); // Thấy TẤT CẢ
         // kysutet_admin có quyền ngang super_admin
@@ -553,6 +605,10 @@ function setupMenuByRole() {
         document.getElementById('menu-tools')?.classList.remove('hidden');
         document.getElementById('menu-activity')?.classList.remove('hidden');
         document.getElementById('menu-system')?.classList.remove('hidden');
+        // Show super-admin-only items (e.g., Activity Logs)
+        document.querySelectorAll('.super-admin-only').forEach(el => el.classList.remove('hidden'));
+        // Show kysutet-team-only items (e.g., Media Manager)
+        document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.remove('hidden'));
     }
 }
 
@@ -564,6 +620,16 @@ function setActiveMenuItem(item) {
 function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(sectionId)?.classList.add('active');
+
+    // Save to localStorage for persistence
+    try {
+        localStorage.setItem('xtn_last_section', sectionId);
+    } catch (e) {
+        console.warn('Cannot save section to localStorage');
+    }
+
+    // Log section view
+    activityLog.view(sectionId);
 
     // Load data for specific sections
     if (sectionId === 'section-dashboard') loadDashboardStats();
@@ -577,16 +643,72 @@ function showSection(sectionId) {
     if (sectionId === 'section-questions') loadQuestions();
     if (sectionId === 'section-cards-admin') initCardsAdmin();
     if (sectionId === 'section-settings') initSettings();
+    if (sectionId === 'section-activity-logs') {
+        // Render section HTML and init
+        const section = document.getElementById('section-activity-logs');
+        if (section && !section.hasAttribute('data-initialized')) {
+            section.innerHTML = renderActivityLogsSection();
+            section.setAttribute('data-initialized', 'true');
+        }
+        initActivityLogs();
+    }
+    if (sectionId === 'section-media-manager') {
+        // Render section HTML and init
+        const section = document.getElementById('section-media-manager');
+        if (section && !section.hasAttribute('data-initialized')) {
+            section.innerHTML = renderMediaManagerHTML();
+            section.setAttribute('data-initialized', 'true');
+        }
+        initMediaManager();
+    }
 }
 
 function hideSection(sectionId) {
     document.getElementById(sectionId)?.classList.remove('active');
 }
 
+async function loadTeams() {
+    try {
+        const list = document.getElementById('teams-list');
+        if (list) {
+            list.innerHTML = '<p style="text-align:center;color:#888;">Đang tải dữ liệu đội hình...</p>';
+            list.innerHTML = await renderTeamsTable();
+        }
+    } catch (e) {
+        console.error('Load teams error:', e);
+    }
+}
+
 async function showDefaultSection() {
     const role = userData.role || 'pending';
-    console.log('🔵 showDefaultSection, role:', role);
+    console.log('� showDefaultSection, role:', role);
 
+    // Check localStorage for last section
+    try {
+        const lastSection = localStorage.getItem('xtn_last_section');
+        if (lastSection && document.getElementById(lastSection)) {
+            // Validate user has access to this section based on role
+            const adminSections = ['section-dashboard', 'section-members', 'section-teams', 'section-registrations', 'section-questions', 'section-settings', 'section-cards-admin', 'section-activity-logs', 'section-media-manager'];
+            const isAdminSection = adminSections.includes(lastSection);
+            const isAdmin = role === 'super_admin' || role === 'kysutet_admin';
+            const isDoihinhAdmin = role === 'doihinh_admin';
+
+            // If it's an admin section, check permission
+            if (isAdminSection && !isAdmin) {
+                // Don't allow non-admins to access admin sections
+            } else if (lastSection === 'section-activity' && !isAdmin && !isDoihinhAdmin) {
+                // Activity section needs at least doihinh_admin
+            } else {
+                console.log('🟢 Restoring last section:', lastSection);
+                showSection(lastSection);
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Cannot read localStorage');
+    }
+
+    // Fallback to role-based defaults
     // ĐÃ XÓA section-register và section-pending (đăng ký qua Google Form)
     // Pending users sẽ được redirect về avatar
     if (role === 'pending') {
@@ -728,6 +850,22 @@ function getTeamColor(teamId) {
     return colors[Math.abs(hash) % colors.length];
 }
 
+function getFacultyColor(faculty) {
+    const colors = {
+        'Kinh tế': '#0891b2',              // Cyan
+        'Kinh tế đối ngoại': '#0d9488',   // Teal
+        'Quản trị kinh doanh': '#7c3aed', // Purple
+        'Hệ thống thông tin': '#2563eb',   // Blue
+        'Tài chính - Ngân hàng': '#059669', // Emerald
+        'Kế toán - Kiểm toán': '#ca8a04',  // Yellow
+        'Luật': '#dc2626',                  // Red
+        'Luật Kinh tế': '#e11d48',         // Rose
+        'Toán Kinh tế': '#9333ea',          // Violet
+        'Viện Quốc tế': '#ea580c'          // Orange
+    };
+    return colors[faculty] || '#6b7280'; // Default gray
+}
+
 async function loadMembers() {
     const list = document.getElementById('members-list');
     if (!list) return;
@@ -769,13 +907,13 @@ async function loadMembers() {
             membersDataCache.push({
                 id: d.id,
                 name: u.name || '',
+                mssv: u.mssv || reg.student_id || '',
                 email: u.email || '',
                 phone: u.phone || reg.phone || '',
+                faculty: u.faculty || reg.faculty || '',
                 position: u.position || 'Chiến sĩ',
                 role: u.role || 'member',
-                team_id: u.team_id || reg.preferred_team || '',
-                student_id: reg.student_id || '',
-                faculty: reg.faculty || ''
+                team_id: u.team_id || reg.preferred_team || ''
             });
         });
 
@@ -825,8 +963,9 @@ async function loadMembers() {
                     <tr>
                         <th style="width:40px;"></th>
                         <th>Họ tên</th>
+                        <th>MSSV</th>
                         <th>Chức vụ</th>
-                        <th>Khoa/Ngành</th>
+                        <th>Khoa/Viện</th>
                         <th>Email</th>
                         <th>SĐT</th>
                         <th>Đội hình</th>
@@ -848,12 +987,15 @@ async function loadMembers() {
                 <tr data-id="${m.id}" data-name="${m.name.toLowerCase()}" data-email="${m.email.toLowerCase()}" data-team="${m.team_id || ''}">
                     <td><input type="checkbox" class="member-checkbox" data-id="${m.id}" onchange="toggleMemberSelection('${m.id}')"></td>
                     <td><strong>${m.name}</strong></td>
+                    <td style="font-size:13px; color:#0369a1;">${m.mssv || '-'}</td>
                     <td>
                         <span class="badge" style="background:${posColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">
                             ${m.position}
                         </span>
                     </td>
-                    <td style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.faculty || ''}">${m.faculty || '-'}</td>
+                    <td style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.faculty || ''}">
+                        ${m.faculty ? `<span class="badge" style="background:${getFacultyColor(m.faculty)}; color:white; padding:4px 10px; border-radius:12px; font-size:11px; white-space:nowrap;">${m.faculty}</span>` : '<span style="color:#9ca3af;">-</span>'}
+                    </td>
                     <td style="font-size:13px;">${m.email || '-'}</td>
                     <td>${m.phone || '-'}</td>
                     <td>
@@ -876,7 +1018,7 @@ async function loadMembers() {
         });
 
         html += '</tbody></table></div>';
-        html += `<p style="margin-top:10px; color:#666; font-size:13px;">Tổng: <strong>${membersDataCache.length}</strong> thành viên</p>`;
+        html += `<p id="members-count-display" style="margin-top:10px; color:#666; font-size:13px;">Tổng: <strong id="visible-members-count">${membersDataCache.length}</strong> Chiến sĩ</p>`;
         list.innerHTML = html;
     } catch (e) {
         console.error('Load members error:', e);
@@ -915,6 +1057,7 @@ window.filterMembers = function () {
     const query = document.getElementById('members-search')?.value.toLowerCase() || '';
     const teamFilter = document.getElementById('members-team-filter')?.value || '';
 
+    let visibleCount = 0;
     document.querySelectorAll('#members-tbody tr').forEach(row => {
         const name = row.dataset.name || '';
         const email = row.dataset.email || '';
@@ -923,8 +1066,14 @@ window.filterMembers = function () {
         const matchesSearch = name.includes(query) || email.includes(query);
         const matchesTeam = !teamFilter || team === teamFilter;
 
-        row.style.display = (matchesSearch && matchesTeam) ? '' : 'none';
+        const isVisible = matchesSearch && matchesTeam;
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
     });
+
+    // Update count display
+    const countEl = document.getElementById('visible-members-count');
+    if (countEl) countEl.textContent = visibleCount;
 };
 
 window.filterMembersByTeam = function () {
@@ -972,41 +1121,117 @@ window.editMember = async function (userId) {
     });
 
     const { value: formValues } = await Swal.fire({
-        title: 'Sửa thông tin thành viên',
+        title: '<i class="fa-solid fa-user-pen" style="color:#16a34a;"></i> Sửa thông tin Chiến sĩ',
         html: `
-            <div style="text-align:left; max-height:400px; overflow-y:auto;">
-                <label style="display:block; margin-top:10px; font-weight:600;">Họ tên:</label>
-                <input id="swal-name" class="swal2-input" value="${m.name}" style="margin:5px 0;">
+            <style>
+                .edit-member-form {
+                    text-align: left;
+                    max-height: 500px;
+                    overflow-y: auto;
+                    padding: 10px 0;
+                }
+                .edit-member-form .form-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 15px;
+                    margin-bottom: 15px;
+                }
+                .edit-member-form .form-group {
+                    margin-bottom: 12px;
+                }
+                .edit-member-form label {
+                    display: block;
+                    font-weight: 600;
+                    font-size: 13px;
+                    color: #374151;
+                    margin-bottom: 6px;
+                }
+                .edit-member-form input, .edit-member-form select {
+                    width: 100%;
+                    padding: 10px 12px;
+                    border: 1px solid #d1d5db;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    transition: border-color 0.2s, box-shadow 0.2s;
+                }
+                .edit-member-form input:focus, .edit-member-form select:focus {
+                    outline: none;
+                    border-color: #16a34a;
+                    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+                }
+                .edit-member-form .section-title {
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin: 20px 0 10px 0;
+                    padding-bottom: 5px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+            </style>
+            <div class="edit-member-form">
+                <div class="section-title"><i class="fa-solid fa-id-card"></i> Thông tin cơ bản</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Họ và tên</label>
+                        <input id="swal-name" value="${m.name || ''}" placeholder="Nguyễn Văn A">
+                    </div>
+                    <div class="form-group">
+                        <label>MSSV</label>
+                        <input id="swal-mssv" value="${m.mssv || ''}" placeholder="K224141000">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input id="swal-email" value="${m.email || ''}" placeholder="email@st.uel.edu.vn">
+                    </div>
+                    <div class="form-group">
+                        <label>Số điện thoại</label>
+                        <input id="swal-phone" value="${m.phone || ''}" placeholder="0912345678">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Khoa/Viện</label>
+                    <select id="swal-faculty">
+                        <option value="">-- Chọn Khoa/Viện --</option>
+                        ${FACULTIES_LIST.map(f => `<option value="${f}" ${m.faculty === f ? 'selected' : ''}>${f}</option>`).join('')}
+                    </select>
+                </div>
                 
-                <label style="display:block; margin-top:10px; font-weight:600;">Email:</label>
-                <input id="swal-email" class="swal2-input" value="${m.email}" style="margin:5px 0;">
-                
-                <label style="display:block; margin-top:10px; font-weight:600;">SĐT:</label>
-                <input id="swal-phone" class="swal2-input" value="${m.phone}" style="margin:5px 0;">
-                
-                <label style="display:block; margin-top:10px; font-weight:600;">Chức vụ:</label>
-                <select id="swal-position" class="swal2-select" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; margin:5px 0;">
-                    ${posOptions}
-                </select>
-                
-                <label style="display:block; margin-top:10px; font-weight:600;">Đội hình:</label>
-                <select id="swal-team" class="swal2-select" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; margin:5px 0;">
-                    ${teamOptions}
-                </select>
+                <div class="section-title"><i class="fa-solid fa-sitemap"></i> Phân công</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Chức vụ</label>
+                        <select id="swal-position">
+                            ${posOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Đội hình</label>
+                        <select id="swal-team">
+                            ${teamOptions}
+                        </select>
+                    </div>
+                </div>
             </div>
         `,
-        width: 450,
+        width: 550,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: 'Lưu thay đổi',
+        confirmButtonText: '<i class="fa-solid fa-check"></i> Lưu thay đổi',
         cancelButtonText: 'Hủy',
+        confirmButtonColor: '#16a34a',
         preConfirm: () => {
             const position = document.getElementById('swal-position').value;
             const role = POSITION_TO_ROLE[position] || 'member';
             return {
-                name: document.getElementById('swal-name').value,
-                email: document.getElementById('swal-email').value,
-                phone: document.getElementById('swal-phone').value,
+                name: document.getElementById('swal-name').value.trim(),
+                mssv: document.getElementById('swal-mssv').value.trim(),
+                email: document.getElementById('swal-email').value.trim(),
+                phone: document.getElementById('swal-phone').value.trim(),
+                faculty: document.getElementById('swal-faculty').value.trim(),
                 position: position,
                 role: role,
                 team_id: document.getElementById('swal-team').value
@@ -1117,175 +1342,10 @@ window.deleteSelectedMembers = async function () {
 };
 
 // ============================================================
-// TEAMS CRUD
+// TEAMS CRUD - MOVED TO admin-teams.js
 // ============================================================
-let selectedTeams = new Set();
+// Code has been migrated to admin-teams.js module
 
-async function loadTeams() {
-    const container = document.getElementById('teams-list');
-    if (!container) return;
-
-    container.innerHTML = '<p style="text-align:center;color:#888;">Đang tải...</p>';
-    selectedTeams.clear();
-    updateTeamsSelectedCount();
-
-    try {
-        const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
-        if (teamsSnap.empty) {
-            container.innerHTML = '<p style="text-align:center;color:#888;">Chưa có đội nào. Hãy thêm đội mới!</p>';
-            return;
-        }
-
-        const membersSnap = await getDocs(query(collection(db, 'xtn_users'), where('role', '==', 'member')));
-        const teamCounts = {};
-        membersSnap.forEach(d => {
-            const teamId = d.data().team_id;
-            if (teamId) teamCounts[teamId] = (teamCounts[teamId] || 0) + 1;
-        });
-
-        let html = `<table class="data-table">
-            <thead><tr>
-                <th><input type="checkbox" id="select-all-teams" onchange="toggleAllTeams(this)"></th>
-                <th>Tên đội</th><th>Đội trưởng</th><th>Đội phó</th><th>Chiến sĩ</th><th>Hành động</th>
-            </tr></thead>
-            <tbody>`;
-
-        teamsSnap.forEach(d => {
-            const team = d.data();
-            const count = teamCounts[d.id] || 0;
-            const captainName = team.captain?.name || team.captain_name || '-';
-            const captainEmail = team.captain?.email || team.captain_email || '';
-            const vice1Name = team.vice1?.name || team.vice_name || '-';
-
-            html += `<tr>
-                <td><input type="checkbox" class="team-checkbox" value="${d.id}" onchange="toggleTeamSelection('${d.id}')"></td>
-                <td><strong>${team.team_name || ''}</strong></td>
-                <td>${captainName}<br><small>${captainEmail}</small></td>
-                <td>${vice1Name}</td>
-                <td><span class="badge">${count}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-secondary" onclick="editTeam('${d.id}')"><i class="fa-solid fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteTeam('${d.id}')"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>`;
-        });
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    } catch (e) {
-        console.error('Load teams error:', e);
-        container.innerHTML = '<p style="color:red;">Lỗi tải dữ liệu</p>';
-    }
-}
-
-async function handleTeamForm(e) {
-    e.preventDefault();
-    const editId = document.getElementById('team-edit-id').value;
-    const teamName = document.getElementById('team-name').value.trim();
-    const captainName = document.getElementById('team-captain-name').value.trim();
-    const captainEmail = document.getElementById('team-captain-email').value.trim();
-    const vice1Name = document.getElementById('team-vice1-name').value.trim();
-    const vice1Email = document.getElementById('team-vice1-email').value.trim();
-
-    if (!teamName) return;
-
-    try {
-        const teamId = editId || 'team_' + Date.now();
-        const data = {
-            team_name: teamName,
-            captain: { name: captainName || null, email: captainEmail || null },
-            vice1: { name: vice1Name || null, email: vice1Email || null },
-            updated_at: new Date().toISOString()
-        };
-        if (!editId) data.created_at = new Date().toISOString();
-
-        await setDoc(doc(db, 'xtn_teams', teamId), data, { merge: true });
-        alert('✅ Đã lưu đội!');
-        resetTeamForm();
-        loadTeams();
-        loadTeamsToRegisterForm();
-    } catch (e) {
-        console.error('Save team error:', e);
-        alert('❌ Lỗi lưu đội!');
-    }
-}
-
-window.editTeam = async function (teamId) {
-    try {
-        const teamDoc = await getDoc(doc(db, 'xtn_teams', teamId));
-        if (!teamDoc.exists()) return;
-
-        const team = teamDoc.data();
-        document.getElementById('team-edit-id').value = teamId;
-        document.getElementById('team-name').value = team.team_name || '';
-        document.getElementById('team-captain-name').value = team.captain?.name || '';
-        document.getElementById('team-captain-email').value = team.captain?.email || '';
-        document.getElementById('team-vice1-name').value = team.vice1?.name || '';
-        document.getElementById('team-vice1-email').value = team.vice1?.email || '';
-
-        document.getElementById('team-form-title').innerHTML = '<i class="fa-solid fa-edit"></i> Sửa đội: ' + (team.team_name || teamId);
-    } catch (e) {
-        console.error('Edit team error:', e);
-    }
-};
-
-window.resetTeamForm = function () {
-    document.getElementById('team-form').reset();
-    document.getElementById('team-edit-id').value = '';
-    document.getElementById('team-form-title').innerHTML = '<i class="fa-solid fa-plus"></i> Thêm đội mới';
-};
-
-window.deleteTeam = async function (teamId) {
-    const confirmed = await showConfirm('Xóa đội này?', 'Xác nhận xóa');
-    if (!confirmed) return;
-    try {
-        await deleteDoc(doc(db, 'xtn_teams', teamId));
-        loadTeams();
-        loadTeamsToRegisterForm();
-        await showAlert('Đã xóa đội!', 'success', 'Hoàn thành');
-    } catch (e) {
-        console.error('Delete team error:', e);
-        await showAlert('Lỗi xóa!', 'error', 'Lỗi');
-    }
-};
-
-window.toggleTeamSelection = function (teamId) {
-    if (selectedTeams.has(teamId)) selectedTeams.delete(teamId);
-    else selectedTeams.add(teamId);
-    updateTeamsSelectedCount();
-};
-
-window.toggleAllTeams = function (checkbox) {
-    document.querySelectorAll('.team-checkbox').forEach(cb => {
-        cb.checked = checkbox.checked;
-        if (checkbox.checked) selectedTeams.add(cb.value);
-        else selectedTeams.delete(cb.value);
-    });
-    updateTeamsSelectedCount();
-};
-
-function updateTeamsSelectedCount() {
-    const countEl = document.getElementById('teams-selected-count');
-    const btnEl = document.getElementById('btn-delete-teams');
-    if (countEl) countEl.textContent = selectedTeams.size;
-    if (btnEl) btnEl.disabled = selectedTeams.size === 0;
-}
-
-window.deleteSelectedTeams = async function () {
-    if (selectedTeams.size === 0) return;
-    const confirmed = await showConfirm(`Xóa ${selectedTeams.size} đội?`, 'Xóa hàng loạt');
-    if (!confirmed) return;
-
-    try {
-        for (const teamId of selectedTeams) await deleteDoc(doc(db, 'xtn_teams', teamId));
-        selectedTeams.clear();
-        loadTeams();
-        loadTeamsToRegisterForm();
-        await showAlert('Đã xóa!', 'success', 'Hoàn thành');
-    } catch (e) {
-        console.error('Bulk delete error:', e);
-        await showAlert('Lỗi!', 'error', 'Lỗi');
-    }
-};
 
 // ============================================================
 // QUESTIONS CRUD
@@ -1359,12 +1419,12 @@ async function handleQuestionForm(e) {
             data.created_at = new Date().toISOString();
             await addDoc(collection(db, 'xtn_questions'), data);
         }
-        alert('✅ Đã lưu câu hỏi!');
+        showToast('Đã lưu câu hỏi!', 'success');
         resetQuestionForm();
         loadQuestions();
     } catch (e) {
         console.error('Save question error:', e);
-        alert('❌ Lỗi lưu!');
+        showToast('Lỗi lưu!', 'error');
     }
 }
 
@@ -1391,13 +1451,14 @@ window.resetQuestionForm = function () {
 };
 
 window.deleteQuestion = async function (qId) {
-    if (!confirm('Xóa câu hỏi này?')) return;
+    const confirmed = await showConfirmModal('Xóa câu hỏi này?', { title: 'Xóa câu hỏi', type: 'danger', confirmText: 'Xóa' });
+    if (!confirmed) return;
     try {
         await deleteDoc(doc(db, 'xtn_questions', qId));
         loadQuestions();
     } catch (e) {
         console.error('Delete question error:', e);
-        alert('❌ Lỗi xóa!');
+        showToast('Lỗi xóa!', 'error');
     }
 };
 
@@ -1425,14 +1486,15 @@ function updateQuestionsSelectedCount() {
 
 window.deleteSelectedQuestions = async function () {
     if (selectedQuestions.size === 0) return;
-    if (!confirm(`Xóa ${selectedQuestions.size} câu hỏi?`)) return;
+    const confirmed = await showConfirmModal(`Xóa ${selectedQuestions.size} câu hỏi?`, { title: 'Xóa nhiều câu hỏi', type: 'danger', confirmText: 'Xóa tất cả' });
+    if (!confirmed) return;
     try {
         for (const qId of selectedQuestions) await deleteDoc(doc(db, 'xtn_questions', qId));
         selectedQuestions.clear();
         loadQuestions();
     } catch (e) {
         console.error('Bulk delete questions error:', e);
-        alert('❌ Lỗi xóa hàng loạt!');
+        showToast('Lỗi xóa hàng loạt!', 'error');
     }
 };
 

@@ -391,7 +391,7 @@ function updatePagination() {
 window.deleteCard = async function (cardId, driveFileId) {
     const confirmed = showConfirmFn
         ? await showConfirmFn('Xóa thẻ này?', 'Xác nhận xóa')
-        : confirm('Xóa thẻ này?');
+        : await showConfirmModal('Xóa thẻ này?', { title: 'Xác nhận xóa', type: 'danger', confirmText: 'Xóa' });
 
     if (!confirmed) return;
 
@@ -509,8 +509,8 @@ function getTeamColor(teamId) {
 // ============================================================
 window.clearAllCards = async function () {
     const confirmed = showConfirmFn
-        ? await showConfirmFn('⚠️ XÓA TẤT CẢ THẺ?\n\nThao tác này sẽ xóa toàn bộ dữ liệu trong collection xtn_cards. Không thể khôi phục!', 'Xác nhận xóa tất cả')
-        : confirm('XÓA TẤT CẢ THẺ? Không thể khôi phục!');
+        ? await showConfirmFn('XÓA TẤT CẢ THẺ? Không thể khôi phục!', 'Xác nhận xóa tất cả')
+        : await showConfirmModal('XÓA TẤT CẢ THẺ? Không thể khôi phục!', { title: 'Xác nhận xóa tất cả', type: 'danger', confirmText: 'Xóa tất cả' });
 
     if (!confirmed) return;
 
@@ -519,7 +519,7 @@ window.clearAllCards = async function () {
 
         if (cardsSnap.empty) {
             if (showAlertFn) showAlertFn('Không có thẻ nào để xóa!', 'info', 'Thông báo');
-            else alert('Không có thẻ nào để xóa!');
+            else showToast('Không có thẻ nào để xóa!', 'info');
             return;
         }
 
@@ -533,15 +533,15 @@ window.clearAllCards = async function () {
         await Promise.all(deletePromises);
 
         console.log('[CardsAdmin] Deleted all cards:', count);
-        if (showAlertFn) showAlertFn(`✅ Đã xóa ${count} thẻ thành công!`, 'success', 'Thành công');
-        else alert(`Đã xóa ${count} thẻ thành công!`);
+        if (showAlertFn) showAlertFn(`Đã xóa ${count} thẻ thành công!`, 'success', 'Thành công');
+        else showToast(`Đã xóa ${count} thẻ thành công!`, 'success');
 
         // Reload data
         loadCardsData();
     } catch (error) {
         console.error('[CardsAdmin] Clear all error:', error);
-        if (showAlertFn) showAlertFn('❌ Lỗi: ' + error.message, 'error', 'Lỗi');
-        else alert('Lỗi: ' + error.message);
+        if (showAlertFn) showAlertFn('Lỗi: ' + error.message, 'error', 'Lỗi');
+        else showToast('Lỗi: ' + error.message, 'error');
     }
 };
 

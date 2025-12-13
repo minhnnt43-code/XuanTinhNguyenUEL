@@ -197,7 +197,7 @@ export async function backupAllExcel() {
         'Vai trò': u.role || '',
         'Đội hình ID': u.team_id || '',
         'Chức vụ': u.position || '',
-        'Khoa/Ngành': u.faculty || '',
+        'Khoa/Viện': u.faculty || '',
         'Link Thẻ Cấp Thành': u.city_card_link || '',
         'Ngày tạo': u.created_at || ''
     })));
@@ -293,7 +293,7 @@ export async function backupUsersExcel() {
         'Vai trò': u.role || '',
         'Đội hình ID': u.team_id || '',
         'Chức vụ': u.position || '',
-        'Khoa/Ngành': u.faculty || '',
+        'Khoa/Viện': u.faculty || '',
         'Link Thẻ Cấp Thành': u.city_card_link || '',
         'Ngày tạo': u.created_at || ''
     })));

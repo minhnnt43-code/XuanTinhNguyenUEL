@@ -15,7 +15,7 @@ let avatarStartX, avatarStartY;
 let avatarUploadLabel, avatarZoomSlider, avatarDownloadBtn, avatarResetBtn;
 
 // Import showAlert from core (will be passed as parameter)
-let showAlertFn = (msg) => alert(msg);
+let showAlertFn = (msg) => showToast(msg, 'info');
 
 export function setShowAlert(fn) {
     showAlertFn = fn;
