@@ -194,9 +194,17 @@ async function loginWithGoogle() {
         return { user, success: true };
 
     } catch (error) {
-        // Nếu popup bị đóng hoặc block, thử redirect
-        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
-            console.log('🔐 [Auth] Popup failed, trying redirect...');
+        // Nếu popup bị đóng, block, hoặc network error, thử redirect
+        const fallbackErrors = [
+            'auth/popup-closed-by-user',
+            'auth/popup-blocked',
+            'auth/network-request-failed',
+            'auth/internal-error',
+            'auth/cancelled-popup-request'
+        ];
+
+        if (fallbackErrors.includes(error.code) || error.message?.includes('network')) {
+            console.log('🔐 [Auth] Popup failed, trying redirect...', error.code);
             try {
                 await signInWithRedirect(auth, provider);
                 return { user: null, success: false, redirecting: true };
