@@ -34,6 +34,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/dashboard-mobile.css">
     <link rel="stylesheet" href="css/activity.css">
     <link rel="stylesheet" href="css/animations.css">
 
@@ -116,31 +117,59 @@
 
 <body>
     <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle Menu">
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle Menu" onclick="toggleMobileMenu()">
         <i class="fa-solid fa-bars"></i>
     </button>
 
     <!-- Mobile Dropdown Menu -->
     <nav class="mobile-dropdown-menu" id="mobile-dropdown-menu">
         <div class="menu-section-title">📊 Tổng quan</div>
-        <a class="menu-item" data-section="section-dashboard">🏠 Tổng quan</a>
+        <a class="menu-item" onclick="showSection('section-dashboard')">🏠 Tổng quan</a>
 
         <div class="menu-section-title">🛠️ Công cụ</div>
-        <a class="menu-item" data-section="section-avatar">🖼️ Tạo Avatar</a>
-        <a class="menu-item" data-section="section-card">🪪 Tạo Thẻ Chiến sĩ</a>
+        <a class="menu-item" onclick="showSection('section-avatar')">🖼️ Tạo Avatar</a>
+        <a class="menu-item" onclick="showSection('section-card')">🪪 Tạo Thẻ Chiến sĩ</a>
 
         <div class="menu-section-title">👥 Quản lý</div>
-        <a class="menu-item" data-section="section-activities">📅 Quản lý Hoạt động</a>
-        <a class="menu-item" data-section="section-members">👥 Danh sách Chiến sĩ</a>
-        <a class="menu-item" data-section="section-cards-admin">🪪 Quản trị Thẻ</a>
-        <a class="menu-item" data-section="section-teams">🎯 Đội hình</a>
+        <a class="menu-item" onclick="showSection('section-activities')">📅 Quản lý Hoạt động</a>
+        <a class="menu-item" onclick="showSection('section-members')">👥 Danh sách Chiến sĩ</a>
+        <a class="menu-item" onclick="showSection('section-cards-admin')">🪪 Quản trị Thẻ</a>
+        <a class="menu-item" onclick="showSection('section-teams')">🎯 Đội hình</a>
 
         <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
-        <a class="menu-item" id="mobile-logout" style="color: #dc2626;">🚪 Đăng xuất</a>
+        <a class="menu-item" onclick="if(confirm('Bạn muốn đăng xuất?')) { window.logoutUser && logoutUser(); }"
+            style="color: #dc2626;">🚪 Đăng xuất</a>
     </nav>
 
     <!-- Sidebar Overlay (for mobile) -->
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileMenu()"></div>
+
+    <!-- Mobile Menu Functions -->
+    <script>
+        function toggleMobileMenu() {
+            var menu = document.getElementById('mobile-dropdown-menu');
+            var overlay = document.getElementById('sidebar-overlay');
+            var btn = document.getElementById('mobile-menu-toggle');
+            var icon = btn.querySelector('i');
+
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+            icon.className = menu.classList.contains('active') ? 'fa-solid fa-times' : 'fa-solid fa-bars';
+        }
+
+        function closeMobileMenu() {
+            document.getElementById('mobile-dropdown-menu').classList.remove('active');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+            document.getElementById('mobile-menu-toggle').querySelector('i').className = 'fa-solid fa-bars';
+        }
+
+        function showSection(sectionId) {
+            closeMobileMenu();
+            document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
+            var section = document.getElementById(sectionId);
+            if (section) section.classList.add('active');
+        }
+    </script>
 
     <div class="dashboard-wrapper">
         <!-- ===== SIDEBAR ===== -->
@@ -329,27 +358,41 @@
                     <div class="left-col">
                         <div class="card">
                             <h3><i class="fa-solid fa-upload"></i> 1. Tải ảnh lên</h3>
-                            <div id="avatar-upload-area" style="text-align:center; padding:20px;">
-                                <input type="file" id="avatar-upload" accept="image/*" style="display:none;">
-                                <button type="button" class="btn btn-primary btn-lg" id="btn-avatar-upload"
-                                    style="padding:15px 40px; font-size:1.1rem;">
-                                    <i class="fa-solid fa-image"></i> Tải ảnh lên
-                                </button>
-                                <p id="avatar-upload-status" style="margin-top:10px; color:#666;"></p>
+                            <div id="avatar-upload-area">
+                                <!-- Desktop: Label for drag/drop -->
+                                <label for="avatar-upload" class="upload-label" id="avatar-upload-label">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <p>Nhấn hoặc kéo ảnh vào đây</p>
+                                    <small>Hỗ trợ: JPG, PNG, WEBP</small>
+                                </label>
+                                <!-- Mobile: Native file input -->
+                                <input type="file" id="avatar-upload" accept="image/*">
+                                <p id="avatar-upload-status"></p>
                             </div>
                         </div>
 
                         <div class="card" style="margin-top: 15px;">
                             <h3><i class="fa-solid fa-sliders"></i> 2. Điều chỉnh</h3>
                             <div class="form-group">
-                                <label for="avatar-zoom">Phóng to / Thu nhỏ</label>
-                                <input type="range" id="avatar-zoom" class="zoom-slider" min="0.5" max="3" step="0.01"
-                                    value="1">
+                                <label>Phóng to / Thu nhỏ</label>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="var s=document.getElementById('avatar-zoom'); s.value=Math.max(0.5, parseFloat(s.value)-0.1); s.dispatchEvent(new Event('input'));"
+                                        style="width:50px; height:50px; font-size:1.5rem; touch-action:manipulation;">
+                                        −
+                                    </button>
+                                    <input type="range" id="avatar-zoom" class="zoom-slider" min="0.5" max="3"
+                                        step="0.1" value="1" style="flex:1; touch-action:pan-x; height:40px;">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="var s=document.getElementById('avatar-zoom'); s.value=Math.min(3, parseFloat(s.value)+0.1); s.dispatchEvent(new Event('input'));"
+                                        style="width:50px; height:50px; font-size:1.5rem; touch-action:manipulation;">
+                                        +
+                                    </button>
+                                </div>
                             </div>
                             <div class="tip-box">
                                 <i class="fa-solid fa-lightbulb"></i>
-                                <strong>Mẹo:</strong> Dùng con lăn chuột hoặc kéo ảnh trên khung xem trước để điều
-                                chỉnh.
+                                <strong>Mẹo:</strong> Dùng nút + / − hoặc kéo ảnh trên khung xem trước.
                             </div>
                         </div>
                     </div>
@@ -406,24 +449,37 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Ảnh chân dung</label>
-                                    <div
-                                        style="text-align:center; padding:15px; border:2px dashed #ddd; border-radius:10px;">
-                                        <input type="file" id="card-photo" accept="image/*" style="display:none;">
-                                        <button type="button" class="btn btn-primary" id="btn-card-photo"
-                                            style="padding:12px 30px;">
-                                            <i class="fa-solid fa-image"></i> Tải ảnh lên
-                                        </button>
-                                        <p id="card-photo-label" style="margin-top:8px; color:#666; font-size:0.85rem;">
-                                        </p>
+                                    <div id="card-photo-area">
+                                        <!-- Desktop: Label for click -->
+                                        <label for="card-photo" class="upload-label" id="card-photo-label-desktop">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                                            <p>Nhấn hoặc kéo ảnh vào đây</p>
+                                            <small>Hỗ trợ: JPG, PNG</small>
+                                        </label>
+                                        <!-- Mobile: Native file input -->
+                                        <input type="file" id="card-photo" accept="image/*">
+                                        <p id="card-photo-status"></p>
                                     </div>
                                 </div>
                                 <div class="form-group" id="card-zoom-group" style="display:none;">
                                     <label>Phóng to / Thu nhỏ</label>
-                                    <input type="range" id="card-zoom" class="zoom-slider" min="0.5" max="3" step="0.01"
-                                        value="1">
-                                    <div class="tip-box">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <button type="button" class="btn btn-secondary"
+                                            onclick="var s=document.getElementById('card-zoom'); s.value=Math.max(0.5, parseFloat(s.value)-0.1); s.dispatchEvent(new Event('input'));"
+                                            style="width:45px; height:45px; font-size:1.3rem; touch-action:manipulation;">
+                                            −
+                                        </button>
+                                        <input type="range" id="card-zoom" class="zoom-slider" min="0.5" max="3"
+                                            step="0.1" value="1" style="flex:1; touch-action:pan-x; height:40px;">
+                                        <button type="button" class="btn btn-secondary"
+                                            onclick="var s=document.getElementById('card-zoom'); s.value=Math.min(3, parseFloat(s.value)+0.1); s.dispatchEvent(new Event('input'));"
+                                            style="width:45px; height:45px; font-size:1.3rem; touch-action:manipulation;">
+                                            +
+                                        </button>
+                                    </div>
+                                    <div class="tip-box" style="margin-top:10px;">
                                         <i class="fa-solid fa-lightbulb"></i>
-                                        <strong>Mẹo:</strong> Dùng con lăn chuột hoặc kéo ảnh trên khung xem trước.
+                                        <strong>Mẹo:</strong> Dùng nút + / − hoặc kéo ảnh.
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-block">

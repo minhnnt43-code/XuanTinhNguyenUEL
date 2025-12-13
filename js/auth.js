@@ -6,6 +6,8 @@
 import { auth, provider, db } from './firebase.js';
 import {
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -163,59 +165,39 @@ async function checkSuperAdmin(email) {
 }
 
 // ============================================================
-// MAIN AUTH FUNCTIONS
-// ============================================================
 
 /**
- * Đăng nhập bằng Google (dùng Popup)
+ * Đăng nhập bằng Google (dùng Redirect - ổn định hơn trên mobile)
  */
 async function loginWithGoogle() {
     try {
-        console.log('🔐 [Auth] Starting Google popup login...');
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        console.log('🔐 [Auth] Popup login success:', user.email);
-
-        // Kiểm tra Super Admin
-        const isSuperAdminCheck = await checkSuperAdmin(user.email);
-
-        // Lưu thông tin user
-        const userData = await saveUserData(user, {
-            role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
-        });
-
-        console.log("✅ Đăng nhập thành công:", user.email);
-        return { user, userData };
-
+        console.log('🔐 [Auth] Starting Google redirect login...');
+        // Dùng redirect thay vì popup để tránh lỗi popup-closed
+        await signInWithRedirect(auth, provider);
+        // Page sẽ reload sau khi redirect về
     } catch (error) {
-        // Xử lý lỗi popup bị đóng
-        if (error.code === 'auth/popup-closed-by-user') {
-            console.log('🔐 [Auth] User closed popup');
-            throw new Error('Bạn đã đóng cửa sổ đăng nhập. Vui lòng thử lại!');
-        }
         console.error("❌ Lỗi đăng nhập:", error);
         throw error;
     }
 }
 
 /**
- * [COMMENTED OUT - Production] Xử lý kết quả redirect sau khi đăng nhập Google
- * Không dùng nữa vì đã chuyển sang popup login
+ * Xử lý kết quả redirect sau khi đăng nhập Google
+ * GỌI HÀM NÀY Ở ĐẦU TRANG ĐỂ CHECK REDIRECT RESULT
  */
-/*
 async function handleRedirectResult() {
     try {
         console.log('🔐 [Auth] Checking for redirect result...');
         const result = await getRedirectResult(auth);
 
-        if (result) {
+        if (result && result.user) {
             const user = result.user;
             console.log('🔐 [Auth] Redirect result found:', user.email);
 
-            const isSuperAdmin = await checkSuperAdmin(user.email);
+            const isSuperAdminCheck = await checkSuperAdmin(user.email);
 
             await saveUserData(user, {
-                role: isSuperAdmin ? ROLES.SUPER_ADMIN : undefined
+                role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
             });
 
             console.log("✅ Đăng nhập thành công qua redirect:", user.email);
@@ -229,7 +211,6 @@ async function handleRedirectResult() {
         throw error;
     }
 }
-*/
 
 /**
  * Đăng xuất
@@ -403,7 +384,7 @@ export {
 
     // Auth functions
     loginWithGoogle,
-    // handleRedirectResult, // [COMMENTED OUT - Production]
+    handleRedirectResult,
     logout,
     onAuthChange,
 

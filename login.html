@@ -449,12 +449,28 @@
 
     <!-- Scripts -->
     <script type="module">
-        import { loginWithGoogle, onAuthChange } from './js/auth.js';
+        import { loginWithGoogle, handleRedirectResult, onAuthChange } from './js/auth.js';
 
         const btnLogin = document.getElementById('btn-google-login');
         const errorMessage = document.getElementById('error-message');
 
         console.log('🔐 [Login] Page loaded');
+
+        // QUAN TRỌNG: Check redirect result khi page load (sau khi Google redirect về)
+        (async function () {
+            try {
+                const result = await handleRedirectResult();
+                if (result && result.success) {
+                    console.log('🔐 [Login] Redirect login success, redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('Redirect result error:', error);
+                errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
+                errorMessage.classList.add('show');
+            }
+        })();
 
         // Check if already logged in
         onAuthChange((user, userData) => {
@@ -465,16 +481,16 @@
             }
         });
 
-        // Login button handler
+        // Login button handler - Giờ dùng redirect thay vì popup
         btnLogin.addEventListener('click', async () => {
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
             errorMessage.classList.remove('show');
 
             try {
-                const { user, userData } = await loginWithGoogle();
-                console.log('🔐 [Login] Login success, redirecting...');
-                window.location.href = 'dashboard.html';
+                await loginWithGoogle();
+                // Sau khi gọi signInWithRedirect, trang sẽ tự chuyển đến Google
+                // Khi quay lại, handleRedirectResult() ở trên sẽ xử lý
             } catch (error) {
                 console.error('Login error:', error);
                 errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';

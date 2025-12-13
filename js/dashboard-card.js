@@ -81,8 +81,8 @@ export async function initCardCanvas() {
     cardCanvas.width = CANVAS_WIDTH;
     cardCanvas.height = CANVAS_HEIGHT;
 
-    // Load template
-    templateImg.src = 'images/thechiensi.png';
+    // Load template (with cache buster)
+    templateImg.src = 'images/thechiensi.png?v=' + Date.now();
     templateImg.onload = () => {
         console.log('[Card] Template loaded');
         drawCard();
