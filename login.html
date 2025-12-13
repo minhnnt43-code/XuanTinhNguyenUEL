@@ -481,16 +481,27 @@
             }
         });
 
-        // Login button handler - Giờ dùng redirect thay vì popup
+        // Login button handler - Thử popup trước, fallback qua redirect
         btnLogin.addEventListener('click', async () => {
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
             errorMessage.classList.remove('show');
 
             try {
-                await loginWithGoogle();
-                // Sau khi gọi signInWithRedirect, trang sẽ tự chuyển đến Google
-                // Khi quay lại, handleRedirectResult() ở trên sẽ xử lý
+                const result = await loginWithGoogle();
+
+                // Nếu popup thành công, redirect ngay
+                if (result && result.success) {
+                    console.log('🔐 [Login] Popup success, redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                // Nếu đang redirect thì đợi
+                if (result && result.redirecting) {
+                    btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
+                    return;
+                }
             } catch (error) {
                 console.error('Login error:', error);
                 errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';

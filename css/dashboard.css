@@ -3,6 +3,26 @@
  * XTN 2026 - Xuân Theme (Vàng - Đỏ - Xanh lá)
  */
 
+/* Admin-only elements - hidden by default, shown by JS if user is admin */
+.admin-only {
+    display: none !important;
+}
+
+/* Super admin sees all admin sections */
+body.is-super-admin .admin-only {
+    display: flex !important;
+}
+
+body.is-super-admin .menu-section.admin-only {
+    display: block !important;
+}
+
+/* Doihinh admin ONLY sees activity management, NOT system/member management */
+body.is-doihinh-admin #menu-activity.admin-only {
+    display: flex !important;
+}
+
+
 /* Font UTM Avo - Fallback */
 @font-face {
     font-family: 'UTM Avo';
@@ -62,22 +82,24 @@ h6,
 
 /* User Info - Vàng Gold Gradient */
 .sidebar-user {
-    text-align: center;
-    padding: 30px 20px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 15px;
     background: linear-gradient(135deg, #FFD700, #FFC107);
     color: #1f2937;
-    border-radius: 0 0 30px 30px;
+    border-radius: 0 0 20px 20px;
     box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
 }
 
 .user-avatar {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 15px;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
     border-radius: 50%;
     overflow: hidden;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar img {
@@ -86,17 +108,35 @@ h6,
     object-fit: cover;
 }
 
-.user-greeting {
-    font-size: 0.9rem;
-    opacity: 0.9;
-    margin: 0;
+.user-info-text {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
 }
 
 .user-name {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    margin: 5px 0 0;
+    margin: 0 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+.user-position {
+    font-size: 0.8rem;
+    margin: 0 0 2px;
+    color: #4b5563;
+    opacity: 0.9;
+}
+
+.user-team {
+    font-size: 0.75rem;
+    margin: 0;
+    color: #16a34a;
+    font-weight: 600;
+}
+
 
 /* Clock - Đỏ May Mắn */
 .sidebar-clock {

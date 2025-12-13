@@ -40,7 +40,9 @@ let unsubscribeReports = null;
 let unsubscribeLogs = null;
 let isInitialized = false;
 let currentUserTeam = null; // Team của user hiện tại (team_name)
+let currentUserRole = null; // Role của user hiện tại
 let tempParticipants = []; // Danh sách tham gia tạm thời khi edit activity
+let canEditActivities = false; // Quyền chỉnh sửa hoạt động (super_admin, kysutet_admin)
 
 // ===== DOM ELEMENTS =====
 const elements = {};
@@ -133,8 +135,18 @@ export async function initActivityModule() {
     // Load đội hình từ Firebase
     await loadTeamsFromFirebase();
 
-    // Load team của user hiện tại
+    // Load team và role của user hiện tại
     await loadCurrentUserTeam();
+
+    // Lấy role của user
+    const userData = await getUserData(auth.currentUser?.uid);
+    currentUserRole = userData?.role || 'member';
+
+    // Kiểm tra quyền chỉnh sửa:
+    // - super_admin, kysutet_admin: chỉnh sửa TẤT CẢ
+    // - doihinh_admin: chỉ chỉnh sửa hoạt động của đội mình
+    canEditActivities = isSuperAdmin() || currentUserRole === 'doihinh_admin';
+    console.log('[Activity] canEditActivities:', canEditActivities, '| role:', currentUserRole, '| team:', currentUserTeam);
 
     populateTeamSelects();
     populateWeekSelects();
@@ -147,6 +159,24 @@ export async function initActivityModule() {
 
     isInitialized = true;
     console.log('[Activity] Module initialized successfully');
+}
+
+/**
+ * Kiểm tra user có quyền chỉnh sửa hoạt động của team cụ thể không
+ * @param {string} teamName - Tên đội hình của activity
+ * @returns {boolean}
+ */
+function canEditTeamActivity(teamName) {
+    // Super admin và kysutet_admin: chỉnh sửa tất cả
+    if (isSuperAdmin()) return true;
+
+    // doihinh_admin: chỉ chỉnh sửa hoạt động đội mình
+    if (currentUserRole === 'doihinh_admin') {
+        return currentUserTeam && teamName === currentUserTeam;
+    }
+
+    // Member: không được chỉnh sửa
+    return false;
 }
 
 // Set default date filters to last 1 week
@@ -440,9 +470,11 @@ function renderCalendar() {
                             <span class="content">${a.content || ''}</span>
                         </div>
                     `).join('')}
-                    <button class="cell-add-btn" title="Thêm hoạt động">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
+                    ${canEditTeamActivity(team) ? `
+                        <button class="cell-add-btn" title="Thêm hoạt động">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    ` : ''}
                 </div>
             `;
         });
@@ -484,6 +516,10 @@ function openActivityModal(activity = null, date = null, team = null) {
     document.getElementById('activity-modal')?.remove();
 
     const isEdit = !!activity;
+    // Lấy team của activity để check quyền
+    const activityTeam = activity?.team || team || '';
+    const canEditThisActivity = canEditTeamActivity(activityTeam);
+
     const modalHtml = `
         <div class="activity-modal active" id="activity-modal">
             <div class="activity-modal-content">
@@ -547,9 +583,14 @@ function openActivityModal(activity = null, date = null, team = null) {
                     </div>
                 </div>
                 <div class="activity-modal-footer">
-                    ${isEdit ? `<button class="btn btn-danger" id="modal-delete"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
-                    <button class="btn btn-secondary" id="modal-cancel">Hủy</button>
-                    <button class="btn btn-primary" id="modal-save"><i class="fa-solid fa-save"></i> ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
+                    ${canEditThisActivity ? `
+                        ${isEdit ? `<button class="btn btn-danger" id="modal-delete"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
+                        <button class="btn btn-secondary" id="modal-cancel">Hủy</button>
+                        <button class="btn btn-primary" id="modal-save"><i class="fa-solid fa-save"></i> ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
+                    ` : `
+                        <button class="btn btn-secondary" id="modal-cancel">Đóng</button>
+                        <p style="font-size:0.85rem; color:#888; margin:0;"><i class="fa-solid fa-lock"></i> Bạn không có quyền chỉnh sửa hoạt động này</p>
+                    `}
                 </div>
             </div>
         </div>
@@ -569,18 +610,22 @@ function openActivityModal(activity = null, date = null, team = null) {
         if (e.target === modal) closeModal();
     });
 
-    // Button danh sách tham gia
-    document.getElementById('btn-participants-list')?.addEventListener('click', () => {
-        openParticipantsModal();
-    });
+    // Button danh sách tham gia (chỉ hiện cho user có quyền)
+    if (canEditThisActivity) {
+        document.getElementById('btn-participants-list')?.addEventListener('click', () => {
+            openParticipantsModal();
+        });
+    }
 
-    document.getElementById('modal-save').addEventListener('click', async () => {
+    // Chỉ user có quyền mới có nút Save
+    document.getElementById('modal-save')?.addEventListener('click', async () => {
         await saveActivity(activity?.id);
         closeModal();
     });
 
-    if (isEdit) {
-        document.getElementById('modal-delete').addEventListener('click', async () => {
+    // Chỉ user có quyền với activity đang edit mới có nút Delete
+    if (isEdit && canEditThisActivity) {
+        document.getElementById('modal-delete')?.addEventListener('click', async () => {
             if (confirm('Bạn có chắc chắn muốn xóa hoạt động này?')) {
                 await deleteActivity(activity.id);
                 closeModal();
@@ -609,6 +654,12 @@ async function saveActivity(id = null) {
         return;
     }
 
+    // KIỂM TRA QUYỀN THEO TEAM
+    if (!canEditTeamActivity(data.team)) {
+        alert(`⛔ Bạn không có quyền tạo/sửa hoạt động cho đội "${data.team}"!\n\nBạn chỉ được phép quản lý hoạt động của đội: ${currentUserTeam || 'Chưa được phân đội'}`);
+        return;
+    }
+
     try {
         if (id) {
             // Update
@@ -630,6 +681,13 @@ async function saveActivity(id = null) {
 async function deleteActivity(id) {
     try {
         const activity = activities.find(a => a.id === id);
+
+        // KIỂM TRA QUYỀN THEO TEAM
+        if (activity && !canEditTeamActivity(activity.team)) {
+            alert(`⛔ Bạn không có quyền xóa hoạt động của đội "${activity.team}"!`);
+            return;
+        }
+
         await deleteDoc(doc(db, 'xtn_activities', id));
         await logAction('delete', 'activity', id, activity);
     } catch (error) {

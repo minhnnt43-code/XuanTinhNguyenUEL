@@ -135,6 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "xtn_users", user.uid), { role: 'super_admin' }, { merge: true });
                 userData.role = 'super_admin';
                 console.log('✅ Auto-upgraded to super_admin:', user.email);
+            } else if (!shouldBeSuperAdmin && userData.role === 'super_admin') {
+                // HẠ CẤP: User có role super_admin nhưng không nằm trong danh sách
+                console.log('🔐 [Auth] Downgrading from super_admin to member...');
+                await setDoc(doc(db, "xtn_users", user.uid), { role: 'member' }, { merge: true });
+                userData.role = 'member';
+                console.log('⚠️ Auto-downgraded to member:', user.email);
             }
         } catch (e) {
             console.error('Error loading user data:', e);
@@ -151,6 +157,40 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hiện tên user
         const displayName = userData.name || user.displayName || user.email.split('@')[0];
         document.getElementById('user-name').textContent = displayName;
+
+        // Hiện chức vụ (position)
+        const positionEl = document.getElementById('user-position');
+        if (positionEl) {
+            // Map role to display name
+            const roleDisplayMap = {
+                'super_admin': 'BCH Trường (Super Admin)',
+                'kysutet_admin': 'BCH Ký Sự Tết',
+                'doihinh_admin': 'BCH Đội hình',
+                'member': 'Chiến sĩ',
+                'pending': 'Chờ duyệt'
+            };
+            positionEl.textContent = roleDisplayMap[userData.role] || userData.role || '-';
+        }
+
+        // Hiện đội hình (team)
+        const teamEl = document.getElementById('user-team');
+        if (teamEl && userData.team_id) {
+            // Lấy team_name từ xtn_teams nếu có
+            try {
+                const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
+                let teamName = '';
+                teamsSnap.forEach(docSnap => {
+                    if (docSnap.id === userData.team_id || docSnap.data().team_id === userData.team_id) {
+                        teamName = docSnap.data().team_name || userData.team_id;
+                    }
+                });
+                teamEl.textContent = teamName || userData.team_id || '';
+            } catch (e) {
+                teamEl.textContent = userData.team_id || '';
+            }
+        } else if (teamEl) {
+            teamEl.textContent = '';
+        }
 
         // Hiện avatar
         const avatarImg = document.getElementById('user-avatar-img');
@@ -486,6 +526,9 @@ function updateClock() {
 function setupMenuByRole() {
     const role = userData.role || 'pending';
 
+    // Xóa các admin class
+    document.body.classList.remove('is-super-admin', 'is-doihinh-admin');
+
     // Hide all role-specific menus first
     document.getElementById('menu-dashboard')?.classList.add('hidden');
     document.getElementById('menu-tools')?.classList.add('hidden');
@@ -496,12 +539,15 @@ function setupMenuByRole() {
     if (role === 'pending') {
         document.getElementById('menu-register')?.classList.remove('hidden');
     } else if (role === 'member') {
+        document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
     } else if (role === 'doihinh_admin') {
+        document.body.classList.add('is-doihinh-admin'); // CHỈ thấy activity
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
         document.getElementById('menu-activity')?.classList.remove('hidden');
     } else if (role === 'super_admin' || role === 'kysutet_admin') {
+        document.body.classList.add('is-super-admin'); // Thấy TẤT CẢ
         // kysutet_admin có quyền ngang super_admin
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');

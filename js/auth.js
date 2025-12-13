@@ -167,15 +167,44 @@ async function checkSuperAdmin(email) {
 // ============================================================
 
 /**
- * Đăng nhập bằng Google (dùng Redirect - ổn định hơn trên mobile)
+ * Đăng nhập bằng Google
+ * Thử popup trước, nếu lỗi thì fallback qua redirect
  */
 async function loginWithGoogle() {
     try {
-        console.log('🔐 [Auth] Starting Google redirect login...');
-        // Dùng redirect thay vì popup để tránh lỗi popup-closed
-        await signInWithRedirect(auth, provider);
-        // Page sẽ reload sau khi redirect về
+        console.log('🔐 [Auth] Starting Google popup login...');
+
+        // Thử popup trước
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        console.log('🔐 [Auth] Popup login success:', user.email);
+
+        // Xóa cache cũ
+        clearUserCache();
+
+        // Kiểm tra Super Admin
+        const isSuperAdminCheck = await checkSuperAdmin(user.email);
+
+        // Lưu thông tin user
+        await saveUserData(user, {
+            role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
+        });
+
+        console.log("✅ Đăng nhập thành công:", user.email);
+        return { user, success: true };
+
     } catch (error) {
+        // Nếu popup bị đóng hoặc block, thử redirect
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
+            console.log('🔐 [Auth] Popup failed, trying redirect...');
+            try {
+                await signInWithRedirect(auth, provider);
+                return { user: null, success: false, redirecting: true };
+            } catch (redirectError) {
+                console.error("❌ Redirect failed:", redirectError);
+                throw redirectError;
+            }
+        }
         console.error("❌ Lỗi đăng nhập:", error);
         throw error;
     }
@@ -194,6 +223,9 @@ async function handleRedirectResult() {
             const user = result.user;
             console.log('🔐 [Auth] Redirect result found:', user.email);
 
+            // XÓA CACHE CŨ TRƯỚC KHI LƯU USER MỚI
+            clearUserCache();
+
             const isSuperAdminCheck = await checkSuperAdmin(user.email);
 
             await saveUserData(user, {
@@ -209,6 +241,48 @@ async function handleRedirectResult() {
     } catch (error) {
         console.error("❌ Lỗi xử lý redirect:", error);
         throw error;
+    }
+}
+
+/**
+ * Xóa cache user cũ khi đăng nhập mới
+ */
+function clearUserCache() {
+    try {
+        console.log('🧹 [Auth] Clearing user cache...');
+
+        // Xóa localStorage (trừ Firebase auth)
+        const keysToKeep = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('firebase:')) {
+                keysToKeep.push(key);
+            }
+        }
+        const firebaseData = {};
+        keysToKeep.forEach(key => {
+            firebaseData[key] = localStorage.getItem(key);
+        });
+        localStorage.clear();
+        Object.keys(firebaseData).forEach(key => {
+            localStorage.setItem(key, firebaseData[key]);
+        });
+
+        // Xóa sessionStorage
+        sessionStorage.clear();
+
+        // Xóa cache API nếu có
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => {
+                    caches.delete(name);
+                });
+            });
+        }
+
+        console.log('✅ [Auth] Cache cleared successfully');
+    } catch (error) {
+        console.warn('⚠️ [Auth] Error clearing cache:', error);
     }
 }
 
@@ -261,6 +335,12 @@ function onAuthChange(callback) {
                 };
                 await setDoc(doc(db, "xtn_users", user.uid), userData);
                 console.log("✅ Created new super_admin:", user.email);
+            } else if (!shouldBeSuperAdmin && userData && userData.role === ROLES.SUPER_ADMIN) {
+                // HẠ CẤP: User có role super_admin nhưng không nên có
+                console.log("🔐 [Auth] Downgrading from super_admin to member...");
+                await setDoc(doc(db, "xtn_users", user.uid), { role: ROLES.MEMBER }, { merge: true });
+                userData.role = ROLES.MEMBER;
+                console.log("⚠️ Auto-downgraded to member:", user.email);
             }
 
             if (userData) {

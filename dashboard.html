@@ -179,8 +179,11 @@
                 <div class="user-avatar">
                     <img id="user-avatar-img" src="images/default-avatar.png" alt="Avatar">
                 </div>
-                <p class="user-greeting">Xin chào,</p>
-                <h3 class="user-name" id="user-name">Đang tải...</h3>
+                <div class="user-info-text">
+                    <h3 class="user-name" id="user-name">Đang tải...</h3>
+                    <p class="user-position" id="user-position">-</p>
+                    <p class="user-team" id="user-team">-</p>
+                </div>
             </div>
 
             <!-- Clock -->
@@ -213,13 +216,13 @@
                     </div>
                 </div>
 
-                <!-- BCH Đội+ -->
-                <div class="menu-item" id="menu-activity" data-section="section-activity">
+                <!-- BCH Đội+ (Admin only) -->
+                <div class="menu-item admin-only" id="menu-activity" data-section="section-activity">
                     <i class="fa-solid fa-calendar-check"></i> Quản lý Hoạt động
                 </div>
 
                 <!-- Super Admin -->
-                <div class="menu-section" id="menu-system">
+                <div class="menu-section admin-only" id="menu-system">
                     <div class="menu-section-title">
                         <i class="fa-solid fa-users-gear"></i> Quản lý Chiến sĩ
                         <i class="fa-solid fa-chevron-down"></i>
