@@ -217,6 +217,9 @@
                         <div class="menu-item" data-section="section-card">
                             <i class="fa-solid fa-id-card"></i> Tạo Thẻ Chiến sĩ
                         </div>
+                        <div class="menu-item" data-section="section-profile">
+                            <i class="fa-solid fa-user-pen"></i> Thông tin cá nhân
+                        </div>
                     </div>
                 </div>
 
@@ -235,6 +238,9 @@
 
                         <div class="menu-item" data-section="section-members">
                             <i class="fa-solid fa-users"></i> Danh sách Chiến sĩ
+                        </div>
+                        <div class="menu-item super-admin-only" data-section="section-accounts">
+                            <i class="fa-solid fa-user-shield"></i> Quản lý Tài khoản
                         </div>
                         <div class="menu-item" data-section="section-cards-admin">
                             <i class="fa-solid fa-id-card"></i> Quản trị Thẻ
@@ -537,6 +543,87 @@
                 </div>
             </section>
 
+            <!-- Section: Thông tin cá nhân -->
+            <section id="section-profile" class="section">
+                <div class="section-header">
+                    <h1><i class="fa-solid fa-user-pen"></i> Thông tin cá nhân</h1>
+                    <p>Cập nhật thông tin cá nhân của bạn. Tên sẽ được hiển thị trên thẻ chiến sĩ.</p>
+                </div>
+
+                <div class="card" style="max-width:600px;">
+                    <form id="form-profile">
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-envelope"></i> Email (không thể đổi)</label>
+                            <input type="email" id="profile-email" readonly
+                                style="background:#f3f4f6; cursor:not-allowed;">
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-user"></i> Họ và tên <span class="required">*</span></label>
+                            <input type="text" id="profile-name" required placeholder="Nguyễn Văn A">
+                            <small style="color:#666; display:block; margin-top:5px;">
+                                <i class="fa-solid fa-info-circle"></i> Tên theo format: <strong>Họ + Tên đệm +
+                                    Tên</strong> (VD: Nguyễn Nhật My)
+                            </small>
+                        </div>
+
+                        <div id="profile-name-suggestion"
+                            style="display:none; background:#fef3c7; padding:12px; border-radius:8px; margin:-10px 0 15px;">
+                            <i class="fa-solid fa-lightbulb" style="color:#f59e0b;"></i>
+                            <span id="profile-suggestion-text">Gợi ý: Tên của bạn có thể là...</span>
+                            <button type="button" class="btn btn-sm btn-success" id="btn-accept-suggestion"
+                                style="margin-left:10px;">
+                                <i class="fa-solid fa-check"></i> Đúng rồi
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="btn-reject-suggestion"
+                                style="margin-left:5px;">
+                                Không phải
+                            </button>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-id-badge"></i> MSSV</label>
+                                <input type="text" id="profile-mssv" placeholder="K21000001">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-phone"></i> Số điện thoại</label>
+                                <input type="tel" id="profile-phone" placeholder="0901234567">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-building-columns"></i> Khoa / Viện</label>
+                            <select id="profile-faculty">
+                                <option value="">-- Chọn Khoa/Viện --</option>
+                                <option value="Kinh tế">Kinh tế</option>
+                                <option value="Kinh tế đối ngoại">Kinh tế đối ngoại</option>
+                                <option value="Quản trị kinh doanh">Quản trị kinh doanh</option>
+                                <option value="Hệ thống thông tin">Hệ thống thông tin</option>
+                                <option value="Tài chính - Ngân hàng">Tài chính - Ngân hàng</option>
+                                <option value="Kế toán - Kiểm toán">Kế toán - Kiểm toán</option>
+                                <option value="Luật">Luật</option>
+                                <option value="Luật Kinh tế">Luật Kinh tế</option>
+                                <option value="Kinh doanh quốc tế">Kinh doanh quốc tế</option>
+                                <option value="Marketing - Truyền thông">Marketing - Truyền thông</option>
+                                <option value="Khác">Khác</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group"
+                            style="background:#f0fdf4; padding:15px; border-radius:8px; border:1px solid #86efac;">
+                            <label><i class="fa-solid fa-users" style="color:#16a34a;"></i> Đội hình</label>
+                            <input type="text" id="profile-team" readonly style="background:white; cursor:not-allowed;">
+                            <small style="color:#666;">Đội hình do Admin phân công, không thể tự đổi.</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top:20px;">
+                            <i class="fa-solid fa-save"></i> Lưu thay đổi
+                        </button>
+                    </form>
+                </div>
+            </section>
+
             <!-- Section: Quản lý Hoạt động -->
             <section id="section-activities" class="section">
                 <div class="section-header">
@@ -756,6 +843,134 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Section: Quản lý Tài khoản Đăng nhập (Super Admin) -->
+            <section id="section-accounts" class="section">
+                <div class="section-header">
+                    <h1><i class="fa-solid fa-user-shield"></i> Quản lý Tài khoản Đăng nhập</h1>
+                    <p>Quản lý tất cả user đã đăng nhập, đổi role và chuyển thành Chiến sĩ.</p>
+                </div>
+
+                <!-- Filter và Stats -->
+                <div class="card" style="margin-bottom:15px;">
+                    <div class="btn-row" style="gap:15px; flex-wrap:wrap; align-items:center;">
+                        <div class="form-group" style="margin:0; min-width:150px;">
+                            <select id="accounts-filter-role" onchange="loadAccounts()">
+                                <option value="">-- Tất cả vai trò --</option>
+                                <option value="pending">🟡 Chờ duyệt (Pending)</option>
+                                <option value="member">🟢 Chiến sĩ (Member)</option>
+                                <option value="doihinh_admin">🔵 BCH Đội</option>
+                                <option value="kysutet_admin">🟣 Ký sự Tết</option>
+                                <option value="super_admin">🔴 Super Admin</option>
+                            </select>
+                        </div>
+                        <input type="text" id="accounts-search" placeholder="🔍 Tìm theo tên, email..."
+                            style="flex:1; min-width:200px;" oninput="filterAccountsTable()">
+                        <div class="badge-info"
+                            style="background:#fef3c7; color:#92400e; padding:8px 15px; border-radius:8px;">
+                            <i class="fa-solid fa-users"></i> Tổng: <strong id="accounts-total-count">0</strong> |
+                            <span style="color:#f59e0b;">Pending: <strong id="accounts-pending-count">0</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="data-table" id="accounts-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px;">
+                                        <input type="checkbox" id="accounts-select-all"
+                                            onchange="toggleSelectAllAccounts()">
+                                    </th>
+                                    <th>Họ tên</th>
+                                    <th>Email</th>
+                                    <th>Vai trò</th>
+                                    <th>Đội hình</th>
+                                    <th>Ngày tạo</th>
+                                    <th style="width:180px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accounts-list">
+                                <tr>
+                                    <td colspan="7" style="text-align:center;color:#888;">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Bulk Actions -->
+                    <div class="btn-row" style="margin-top:15px; gap:10px; flex-wrap:wrap;">
+                        <button id="btn-delete-accounts" class="btn btn-danger btn-sm"
+                            onclick="deleteSelectedAccounts()" disabled>
+                            <i class="fa-solid fa-trash"></i> Xóa đã chọn (<span id="accounts-selected-count">0</span>)
+                        </button>
+                        <select id="bulk-role-change"
+                            style="padding:8px 12px; border-radius:6px; border:1px solid #ddd;">
+                            <option value="">-- Đổi vai trò hàng loạt --</option>
+                            <option value="pending">Chờ duyệt</option>
+                            <option value="member">Chiến sĩ</option>
+                            <option value="doihinh_admin">BCH Đội</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="bulkChangeRole()">
+                            <i class="fa-solid fa-sync"></i> Áp dụng
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="bulkConvertAllNames()"
+                            title="Chuyển tên từ format Google sang format Việt Nam">
+                            <i class="fa-solid fa-language"></i> Convert tên tất cả
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal Chuyển thành Chiến sĩ -->
+            <div id="modal-promote-member" class="modal-overlay" style="display:none;">
+                <div class="modal-content" style="max-width:500px;">
+                    <button class="modal-close" onclick="closePromoteModal()">&times;</button>
+                    <h2><i class="fa-solid fa-user-plus" style="color:#10b981;"></i> Chuyển thành Chiến sĩ</h2>
+                    <p style="color:#666; margin-bottom:20px;">Điền thông tin bổ sung để chuyển user thành Chiến sĩ
+                        chính thức.</p>
+
+                    <form id="form-promote-member">
+                        <input type="hidden" id="promote-user-id">
+
+                        <div class="form-group">
+                            <label>Họ và tên</label>
+                            <input type="text" id="promote-name" readonly style="background:#f3f4f6;">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="promote-email" readonly style="background:#f3f4f6;">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>MSSV</label>
+                                <input type="text" id="promote-mssv" placeholder="K21000001">
+                            </div>
+                            <div class="form-group">
+                                <label>Số điện thoại</label>
+                                <input type="tel" id="promote-phone" placeholder="0901234567">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Đội hình <span class="required">*</span></label>
+                            <select id="promote-team" required>
+                                <option value="">-- Chọn đội hình --</option>
+                            </select>
+                        </div>
+
+                        <div class="modal-actions" style="margin-top:20px;">
+                            <button type="button" class="btn btn-secondary" onclick="closePromoteModal()">Hủy</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-check"></i> Xác nhận chuyển
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
 
             <!-- Modal Import Preview -->
             <div id="modal-import-preview" class="modal-overlay" style="display:none;">

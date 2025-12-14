@@ -637,11 +637,13 @@ function showSection(sectionId) {
     if (sectionId === 'section-card') initCardCanvas();
     if (sectionId === 'section-registrations') loadRegistrations();
     if (sectionId === 'section-members') loadMembers();
+    if (sectionId === 'section-accounts') loadAccounts();
     if (sectionId === 'section-activities') loadActivities();
     if (sectionId === 'section-activity') initActivityModule();
     if (sectionId === 'section-teams') loadTeams();
     if (sectionId === 'section-questions') loadQuestions();
     if (sectionId === 'section-cards-admin') initCardsAdmin();
+    if (sectionId === 'section-profile') loadProfileSection();
     if (sectionId === 'section-settings') initSettings();
     if (sectionId === 'section-activity-logs') {
         // Render section HTML and init
@@ -688,7 +690,7 @@ async function showDefaultSection() {
         const lastSection = localStorage.getItem('xtn_last_section');
         if (lastSection && document.getElementById(lastSection)) {
             // Validate user has access to this section based on role
-            const adminSections = ['section-dashboard', 'section-members', 'section-teams', 'section-registrations', 'section-questions', 'section-settings', 'section-cards-admin', 'section-activity-logs', 'section-media-manager'];
+            const adminSections = ['section-dashboard', 'section-members', 'section-accounts', 'section-teams', 'section-registrations', 'section-questions', 'section-settings', 'section-cards-admin', 'section-activity-logs', 'section-media-manager'];
             const isAdminSection = adminSections.includes(lastSection);
             const isAdmin = role === 'super_admin' || role === 'kysutet_admin';
             const isDoihinhAdmin = role === 'doihinh_admin';
@@ -2456,6 +2458,633 @@ window.removeAllowedDomain = async function (domain) {
         showAlert(`Đã xóa domain "${domain}"!`, 'success', 'Thành công');
     } catch (error) {
         console.error('[Settings] Remove domain error:', error);
+        showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
+    }
+};
+// ============================================================
+// PROFILE MANAGEMENT - THÔNG TIN CÁ NHÂN
+// ============================================================
+
+// Danh sách họ Việt Nam (duplicate từ auth.js để dùng client-side)
+const VN_FAMILY_NAMES = [
+    'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ',
+    'Đặng', 'Bùi', 'Đỗ', 'Hồ', 'Ngô', 'Dương', 'Lý', 'Đoàn', 'Đinh',
+    'Lương', 'Trương', 'Chu', 'Mai', 'Tô', 'Cao', 'Lưu', 'Hà', 'Tạ',
+    'Từ', 'La', 'Thái', 'Tăng', 'Đào', 'Quách', 'Triệu', 'Lâm', 'Phùng'
+];
+
+function removeVNTones(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+
+function isVNFamilyName(word) {
+    if (!word) return false;
+    return VN_FAMILY_NAMES.some(name =>
+        name.toLowerCase() === word.toLowerCase() ||
+        removeVNTones(name).toLowerCase() === removeVNTones(word).toLowerCase()
+    );
+}
+
+function convertNameToVN(name) {
+    if (!name) return name;
+    const parts = name.trim().split(/\s+/);
+    if (parts.length <= 1) return name;
+
+    // Already correct format
+    if (isVNFamilyName(parts[0])) return name;
+
+    // Need conversion
+    if (isVNFamilyName(parts[parts.length - 1])) {
+        const familyName = parts.pop();
+        return familyName + ' ' + parts.join(' ');
+    }
+    return name;
+}
+
+async function loadProfileSection() {
+    if (!userData) return;
+
+    // Fill form with current data
+    document.getElementById('profile-email').value = userData.email || '';
+    document.getElementById('profile-name').value = userData.name || '';
+    document.getElementById('profile-mssv').value = userData.mssv || '';
+    document.getElementById('profile-phone').value = userData.phone || '';
+    document.getElementById('profile-faculty').value = userData.faculty || '';
+
+    // Load team name
+    if (userData.team_id) {
+        try {
+            const teamDoc = await getDoc(doc(db, 'xtn_teams', userData.team_id));
+            document.getElementById('profile-team').value = teamDoc.exists()
+                ? teamDoc.data().team_name
+                : 'Chưa xác định';
+        } catch (e) {
+            document.getElementById('profile-team').value = 'Chưa xác định';
+        }
+    } else {
+        document.getElementById('profile-team').value = 'Chưa được phân đội';
+    }
+
+    // Check if name needs suggestion
+    checkNameSuggestion();
+}
+
+function checkNameSuggestion() {
+    const currentName = document.getElementById('profile-name').value;
+    const originalGoogleName = userData.original_google_name;
+
+    const suggestionBox = document.getElementById('profile-name-suggestion');
+    const suggestionText = document.getElementById('profile-suggestion-text');
+
+    // If name is still Google format (not converted)
+    if (originalGoogleName && currentName === originalGoogleName) {
+        const convertedName = convertNameToVN(originalGoogleName);
+        if (convertedName !== originalGoogleName) {
+            suggestionText.textContent = `Gợi ý: Tên của bạn có thể là "${convertedName}"`;
+            suggestionBox.style.display = 'block';
+
+            // Store for accept button
+            suggestionBox.dataset.suggestedName = convertedName;
+        } else {
+            suggestionBox.style.display = 'none';
+        }
+    } else {
+        suggestionBox.style.display = 'none';
+    }
+}
+
+// Handle suggestion buttons
+document.getElementById('btn-accept-suggestion')?.addEventListener('click', function () {
+    const suggestionBox = document.getElementById('profile-name-suggestion');
+    const suggestedName = suggestionBox.dataset.suggestedName;
+    if (suggestedName) {
+        document.getElementById('profile-name').value = suggestedName;
+        suggestionBox.style.display = 'none';
+        showAlert('Đã cập nhật tên!', 'success', 'Thành công');
+    }
+});
+
+document.getElementById('btn-reject-suggestion')?.addEventListener('click', function () {
+    document.getElementById('profile-name-suggestion').style.display = 'none';
+});
+
+// Handle profile form submit
+document.getElementById('form-profile')?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const name = document.getElementById('profile-name').value.trim();
+    const mssv = document.getElementById('profile-mssv').value.trim();
+    const phone = document.getElementById('profile-phone').value.trim();
+    const faculty = document.getElementById('profile-faculty').value;
+
+    if (!name) {
+        showAlert('Vui lòng nhập họ tên!', 'warning', 'Thiếu thông tin');
+        return;
+    }
+
+    // Auto-convert name if needed
+    const convertedName = convertNameToVN(name);
+
+    try {
+        await setDoc(doc(db, 'xtn_users', currentUser.uid), {
+            name: convertedName,
+            mssv,
+            phone,
+            faculty,
+            updated_at: serverTimestamp()
+        }, { merge: true });
+
+        // Update local data
+        userData.name = convertedName;
+        userData.mssv = mssv;
+        userData.phone = phone;
+        userData.faculty = faculty;
+
+        // Update sidebar
+        document.getElementById('user-name').textContent = convertedName;
+
+        showAlert('Đã lưu thông tin thành công!', 'success', 'Thành công');
+        activityLog.update('user', currentUser.uid);
+
+        // If name was converted, show message
+        if (convertedName !== name) {
+            showAlert(`Tên đã được chuyển thành "${convertedName}"`, 'info', 'Chuyển đổi tên');
+            document.getElementById('profile-name').value = convertedName;
+        }
+
+        // Hide suggestion if visible
+        document.getElementById('profile-name-suggestion').style.display = 'none';
+
+    } catch (error) {
+        console.error('[Profile] Save error:', error);
+        showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
+    }
+});
+
+// ============================================================
+// ACCOUNT MANAGEMENT - QUẢN LÝ TÀI KHOẢN ĐĂNG NHẬP
+// ============================================================
+let accountsDataCache = [];
+let selectedAccounts = new Set();
+
+// Role display config
+const ROLE_CONFIG = {
+    'pending': { label: 'Chờ duyệt', color: '#f59e0b', icon: '🟡' },
+    'member': { label: 'Chiến sĩ', color: '#10b981', icon: '🟢' },
+    'doihinh_admin': { label: 'BCH Đội', color: '#3b82f6', icon: '🔵' },
+    'kysutet_admin': { label: 'Ký sự Tết', color: '#8b5cf6', icon: '🟣' },
+    'super_admin': { label: 'Super Admin', color: '#ef4444', icon: '🔴' }
+};
+
+async function loadAccounts() {
+    const tbody = document.getElementById('accounts-list');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+    selectedAccounts.clear();
+    accountsDataCache = [];
+
+    try {
+        // Load teams map
+        const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
+        const teamsMap = {};
+        teamsSnap.forEach(d => {
+            teamsMap[d.id] = d.data().team_name || d.id;
+        });
+
+        // Load promote team dropdown
+        const promoteTeamSelect = document.getElementById('promote-team');
+        if (promoteTeamSelect) {
+            promoteTeamSelect.innerHTML = '<option value="">-- Chọn đội hình --</option>';
+            teamsSnap.forEach(d => {
+                promoteTeamSelect.innerHTML += `<option value="${d.id}">${d.data().team_name || d.id}</option>`;
+            });
+        }
+
+        // Load all users (filter later on client-side to handle undefined roles)
+        const filterRole = document.getElementById('accounts-filter-role')?.value || '';
+        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        let pendingCount = 0;
+
+        usersSnap.forEach(d => {
+            const data = d.data();
+            const userRole = data.role && data.role !== '' ? data.role : 'pending';
+
+            // Client-side filter
+            if (filterRole && userRole !== filterRole) {
+                // Skip users that don't match filter
+                // Special case: "pending" filter should include undefined/empty roles
+                if (filterRole === 'pending' && (data.role === undefined || data.role === '' || data.role === null)) {
+                    // Include this user
+                } else {
+                    return;
+                }
+            }
+
+            accountsDataCache.push({
+                id: d.id,
+                name: data.name || 'Chưa có tên',
+                email: data.email || '',
+                role: userRole,
+                team_id: data.team_id || '',
+                team_name: teamsMap[data.team_id] || '',
+                mssv: data.mssv || '',
+                phone: data.phone || '',
+                created_at: data.created_at
+            });
+            if (userRole === 'pending') pendingCount++;
+        });
+
+        // Update stats
+        document.getElementById('accounts-total-count').textContent = accountsDataCache.length;
+        document.getElementById('accounts-pending-count').textContent = pendingCount;
+
+        // Render table
+        renderAccountsTable();
+
+    } catch (error) {
+        console.error('[Accounts] Load error:', error);
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:red;">Lỗi tải dữ liệu</td></tr>';
+    }
+}
+
+function renderAccountsTable() {
+    const tbody = document.getElementById('accounts-list');
+    if (!tbody) return;
+
+    if (accountsDataCache.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;">Không có tài khoản nào</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = accountsDataCache.map(acc => {
+        // Normalize role (treat undefined, null, empty as 'pending')
+        const normalizedRole = acc.role && acc.role !== '' ? acc.role : 'pending';
+        const roleConfig = ROLE_CONFIG[normalizedRole] || ROLE_CONFIG['pending'];
+
+        // Determine if user needs promotion (no role, pending, or no team)
+        const needsPromotion = normalizedRole === 'pending' || !acc.team_id;
+        const isActive = normalizedRole !== 'pending' && acc.team_id;
+
+        const teamBadge = acc.team_name
+            ? `<span style="background:#10b981; color:white; padding:4px 10px; border-radius:12px; font-size:12px;">${acc.team_name}</span>`
+            : '<span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:12px; font-size:12px;">⚠️ Chưa phân đội</span>';
+
+        const createdAt = acc.created_at?.toDate?.()
+            ? acc.created_at.toDate().toLocaleDateString('vi-VN')
+            : '-';
+
+        // Role dropdown
+        const roleOptions = Object.keys(ROLE_CONFIG).map(r =>
+            `<option value="${r}" ${normalizedRole === r ? 'selected' : ''}>${ROLE_CONFIG[r].label}</option>`
+        ).join('');
+
+        // Row background color based on status
+        const rowBg = needsPromotion ? 'background:#fff7ed;' : '';
+
+        // Action buttons
+        let actionBtns = '';
+
+        // Promote button - show for pending OR users without team
+        if (needsPromotion) {
+            actionBtns += `<button class="btn btn-success btn-sm" onclick="openPromoteModal('${acc.id}')" title="Chuyển thành Chiến sĩ" style="margin-right:5px;">
+                <i class="fa-solid fa-user-plus"></i> Duyệt
+            </button>`;
+        }
+
+        // Edit button - show for all
+        actionBtns += `<button class="btn btn-secondary btn-sm" onclick="openEditAccountModal('${acc.id}')" title="Sửa thông tin" style="margin-right:5px;">
+            <i class="fa-solid fa-edit"></i>
+        </button>`;
+
+        // Delete button
+        actionBtns += `<button class="btn btn-danger btn-sm" onclick="deleteAccount('${acc.id}')" title="Xóa">
+            <i class="fa-solid fa-trash"></i>
+        </button>`;
+
+        return `
+            <tr data-id="${acc.id}" data-name="${acc.name.toLowerCase()}" data-email="${acc.email.toLowerCase()}" style="${rowBg}">
+                <td><input type="checkbox" class="account-checkbox" data-id="${acc.id}" onchange="toggleAccountSelection('${acc.id}')"></td>
+                <td>
+                    <strong>${acc.name}</strong>
+                    ${needsPromotion ? '<span style="display:block;font-size:11px;color:#f59e0b;">⏳ Chờ duyệt</span>' : ''}
+                </td>
+                <td style="font-size:13px;">${acc.email}</td>
+                <td>
+                    <select class="role-select" onchange="changeUserRole('${acc.id}', this.value)" 
+                            style="padding:6px 10px; border-radius:8px; border:1px solid ${needsPromotion ? '#f59e0b' : '#ddd'}; 
+                                   font-size:12px; background:${needsPromotion ? '#fef3c7' : 'white'};">
+                        ${roleOptions}
+                    </select>
+                </td>
+                <td>${teamBadge}</td>
+                <td style="font-size:12px; color:#6b7280;">${createdAt}</td>
+                <td style="white-space:nowrap;">${actionBtns}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.filterAccountsTable = function () {
+    const searchTerm = document.getElementById('accounts-search')?.value.toLowerCase() || '';
+    document.querySelectorAll('#accounts-list tr').forEach(row => {
+        const name = row.dataset.name || '';
+        const email = row.dataset.email || '';
+        const matches = name.includes(searchTerm) || email.includes(searchTerm);
+        row.style.display = matches ? '' : 'none';
+    });
+};
+
+window.toggleSelectAllAccounts = function () {
+    const checked = document.getElementById('accounts-select-all').checked;
+    selectedAccounts.clear();
+    document.querySelectorAll('.account-checkbox').forEach(cb => {
+        cb.checked = checked;
+        if (checked) selectedAccounts.add(cb.dataset.id);
+    });
+    updateAccountsBulkUI();
+};
+
+window.toggleAccountSelection = function (id) {
+    if (selectedAccounts.has(id)) {
+        selectedAccounts.delete(id);
+    } else {
+        selectedAccounts.add(id);
+    }
+    updateAccountsBulkUI();
+};
+
+function updateAccountsBulkUI() {
+    const count = selectedAccounts.size;
+    document.getElementById('accounts-selected-count').textContent = count;
+    document.getElementById('btn-delete-accounts').disabled = count === 0;
+}
+
+window.changeUserRole = async function (userId, newRole) {
+    try {
+        await setDoc(doc(db, 'xtn_users', userId), { role: newRole }, { merge: true });
+        showAlert(`Đã đổi vai trò thành "${ROLE_CONFIG[newRole]?.label}"`, 'success', 'Thành công');
+
+        // Log activity
+        activityLog.update('user', userId);
+
+        // Reload to update stats
+        loadAccounts();
+    } catch (error) {
+        console.error('[Accounts] Change role error:', error);
+        showAlert('Lỗi đổi vai trò: ' + error.message, 'error', 'Lỗi');
+    }
+};
+
+window.openPromoteModal = function (userId) {
+    const acc = accountsDataCache.find(a => a.id === userId);
+    if (!acc) return;
+
+    document.getElementById('promote-user-id').value = userId;
+    document.getElementById('promote-name').value = acc.name;
+    document.getElementById('promote-email').value = acc.email;
+    document.getElementById('promote-mssv').value = acc.mssv || '';
+    document.getElementById('promote-phone').value = acc.phone || '';
+    document.getElementById('promote-team').value = acc.team_id || '';
+
+    document.getElementById('modal-promote-member').style.display = 'flex';
+};
+
+window.closePromoteModal = function () {
+    document.getElementById('modal-promote-member').style.display = 'none';
+};
+
+// Edit account modal using SweetAlert2
+window.openEditAccountModal = async function (userId) {
+    const acc = accountsDataCache.find(a => a.id === userId);
+    if (!acc) return;
+
+    // Load teams for dropdown
+    const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
+    let teamOptions = '<option value="">-- Chưa phân đội --</option>';
+    teamsSnap.forEach(d => {
+        const isSelected = d.id === acc.team_id ? 'selected' : '';
+        teamOptions += `<option value="${d.id}" ${isSelected}>${d.data().team_name || d.id}</option>`;
+    });
+
+    // Role options
+    const roleOptions = Object.keys(ROLE_CONFIG).map(r =>
+        `<option value="${r}" ${acc.role === r ? 'selected' : ''}>${ROLE_CONFIG[r].label}</option>`
+    ).join('');
+
+    const { value: formValues } = await Swal.fire({
+        title: '<i class="fa-solid fa-user-edit"></i> Sửa thông tin tài khoản',
+        html: `
+            <div style="text-align:left;">
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:600;">Họ và tên</label>
+                    <input type="text" id="swal-name" class="swal2-input" value="${acc.name}" style="width:100%;margin:0;">
+                </div>
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:600;">Email</label>
+                    <input type="email" id="swal-email" class="swal2-input" value="${acc.email}" style="width:100%;margin:0;" readonly>
+                </div>
+                <div style="display:flex;gap:15px;margin-bottom:15px;">
+                    <div style="flex:1;">
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">MSSV</label>
+                        <input type="text" id="swal-mssv" class="swal2-input" value="${acc.mssv || ''}" placeholder="K21000001" style="width:100%;margin:0;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">SĐT</label>
+                        <input type="tel" id="swal-phone" class="swal2-input" value="${acc.phone || ''}" placeholder="0901234567" style="width:100%;margin:0;">
+                    </div>
+                </div>
+                <div style="display:flex;gap:15px;margin-bottom:15px;">
+                    <div style="flex:1;">
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">Vai trò</label>
+                        <select id="swal-role" class="swal2-input" style="width:100%;margin:0;">${roleOptions}</select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">Đội hình</label>
+                        <select id="swal-team" class="swal2-input" style="width:100%;margin:0;">${teamOptions}</select>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: 550,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-save"></i> Lưu',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#10b981',
+        focusConfirm: false,
+        preConfirm: () => {
+            return {
+                name: document.getElementById('swal-name').value.trim(),
+                mssv: document.getElementById('swal-mssv').value.trim(),
+                phone: document.getElementById('swal-phone').value.trim(),
+                role: document.getElementById('swal-role').value,
+                team_id: document.getElementById('swal-team').value
+            };
+        }
+    });
+
+    if (formValues) {
+        try {
+            await setDoc(doc(db, 'xtn_users', userId), formValues, { merge: true });
+            showAlert('Đã cập nhật thông tin!', 'success', 'Thành công');
+            activityLog.update('user', userId);
+            loadAccounts();
+        } catch (error) {
+            showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
+        }
+    }
+};
+
+// Handle promote form submit
+document.getElementById('form-promote-member')?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const userId = document.getElementById('promote-user-id').value;
+    const teamId = document.getElementById('promote-team').value;
+    const mssv = document.getElementById('promote-mssv').value.trim();
+    const phone = document.getElementById('promote-phone').value.trim();
+
+    if (!teamId) {
+        showAlert('Vui lòng chọn đội hình!', 'warning', 'Thiếu thông tin');
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, 'xtn_users', userId), {
+            role: 'member',
+            team_id: teamId,
+            mssv: mssv,
+            phone: phone,
+            promoted_at: serverTimestamp()
+        }, { merge: true });
+
+        closePromoteModal();
+        showAlert('Đã chuyển thành Chiến sĩ thành công!', 'success', 'Hoàn thành');
+
+        // Sync team stats
+        await syncTeamStats(teamId);
+
+        // Log activity
+        activityLog.update('user', userId);
+
+        loadAccounts();
+    } catch (error) {
+        console.error('[Accounts] Promote error:', error);
+        showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
+    }
+});
+
+window.deleteAccount = async function (userId) {
+    const acc = accountsDataCache.find(a => a.id === userId);
+    const result = await Swal.fire({
+        title: 'Xóa tài khoản?',
+        text: `Bạn có chắc muốn xóa "${acc?.name || userId}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await deleteDoc(doc(db, 'xtn_users', userId));
+            showAlert('Đã xóa tài khoản!', 'success', 'Hoàn thành');
+            activityLog.delete('user', userId);
+            loadAccounts();
+        } catch (error) {
+            showAlert('Lỗi xóa: ' + error.message, 'error', 'Lỗi');
+        }
+    }
+};
+
+window.deleteSelectedAccounts = async function () {
+    if (selectedAccounts.size === 0) return;
+
+    const result = await Swal.fire({
+        title: `Xóa ${selectedAccounts.size} tài khoản?`,
+        text: 'Hành động này không thể hoàn tác!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa tất cả',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            for (const id of selectedAccounts) {
+                await deleteDoc(doc(db, 'xtn_users', id));
+            }
+            showAlert(`Đã xóa ${selectedAccounts.size} tài khoản!`, 'success', 'Hoàn thành');
+            activityLog.delete('user', 'bulk_' + selectedAccounts.size);
+            loadAccounts();
+        } catch (error) {
+            showAlert('Lỗi xóa: ' + error.message, 'error', 'Lỗi');
+        }
+    }
+};
+
+window.bulkChangeRole = async function () {
+    const newRole = document.getElementById('bulk-role-change')?.value;
+    if (!newRole || selectedAccounts.size === 0) {
+        showAlert('Vui lòng chọn vai trò và ít nhất 1 tài khoản!', 'warning', 'Thiếu thông tin');
+        return;
+    }
+
+    const confirmed = await showConfirm(`Đổi vai trò ${selectedAccounts.size} tài khoản thành "${ROLE_CONFIG[newRole]?.label}"?`, 'Xác nhận');
+    if (!confirmed) return;
+
+    try {
+        for (const id of selectedAccounts) {
+            await setDoc(doc(db, 'xtn_users', id), { role: newRole }, { merge: true });
+        }
+        showAlert(`Đã đổi vai trò ${selectedAccounts.size} tài khoản!`, 'success', 'Hoàn thành');
+        activityLog.update('user', 'bulk_' + selectedAccounts.size);
+        document.getElementById('bulk-role-change').value = '';
+        loadAccounts();
+    } catch (error) {
+        showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
+    }
+};
+
+// Bulk convert names for all users (Admin function)
+window.bulkConvertAllNames = async function () {
+    const confirmed = await showConfirm('Bạn có chắc muốn chuyển đổi tên TẤT CẢ users sang format Việt Nam?\n\nVí dụ: "My Nhật Nguyễn" → "Nguyễn Nhật My"', 'Xác nhận');
+    if (!confirmed) return;
+
+    try {
+        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        let converted = 0;
+        let skipped = 0;
+
+        for (const userDoc of usersSnap.docs) {
+            const data = userDoc.data();
+            const currentName = data.name;
+
+            if (!currentName) {
+                skipped++;
+                continue;
+            }
+
+            const convertedName = convertNameToVN(currentName);
+
+            if (convertedName !== currentName) {
+                await setDoc(doc(db, 'xtn_users', userDoc.id), {
+                    name: convertedName,
+                    original_google_name: data.original_google_name || currentName
+                }, { merge: true });
+                converted++;
+                console.log(`[BulkConvert] ${currentName} → ${convertedName}`);
+            } else {
+                skipped++;
+            }
+        }
+
+        showAlert(`Đã chuyển đổi ${converted} tên! (${skipped} bỏ qua vì đã chuẩn)`, 'success', 'Hoàn thành');
+        loadAccounts();
+    } catch (error) {
+        console.error('[BulkConvert] Error:', error);
         showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
     }
 };

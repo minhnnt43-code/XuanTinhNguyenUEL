@@ -71,6 +71,77 @@ function isAllowedDomain(email) {
     return ALLOWED_DOMAINS.includes(domain);
 }
 
+// ============================================================
+// NAME CONVERSION - Google format → Vietnamese format
+// ============================================================
+
+// Danh sách họ Việt Nam phổ biến (để detect tên đã chuẩn chưa)
+const VIETNAMESE_FAMILY_NAMES = [
+    'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ',
+    'Đặng', 'Bùi', 'Đỗ', 'Hồ', 'Ngô', 'Dương', 'Lý', 'Đoàn', 'Đinh',
+    'Lương', 'Trương', 'Chu', 'Mai', 'Tô', 'Cao', 'Lưu', 'Hà', 'Tạ',
+    'Từ', 'La', 'Thái', 'Tăng', 'Đào', 'Quách', 'Triệu', 'Lâm', 'Phùng',
+    'Văn', 'Diệp', 'Kiều', 'Thiều', 'Tống', 'Ông', 'Trịnh', 'Nghiêm',
+    'Mạc', 'Khổng', 'Quang', 'Vương', 'Chung', 'Trang', 'Bạch', 'Hứa',
+    'Sơn', 'Đàm', 'Giang', 'An', 'Âu', 'Biện', 'Cù', 'Đậu', 'Gia',
+    'Giáp', 'Hàn', 'Khuất', 'Liêu', 'Lục', 'Mã', 'Ngọc', 'Nhâm', 'Ninh',
+    'Nông', 'Ôn', 'Phi', 'Phó', 'Quản', 'Sử', 'Tần', 'Thạch', 'Thân',
+    'Tiêu', 'Tôn', 'Trầm', 'Vi', 'Viên', 'Vưu', 'Doãn', 'Đường', 'Kha'
+];
+
+/**
+ * Kiểm tra xem từ có phải họ Việt Nam không
+ */
+function isVietnameseFamilyName(word) {
+    if (!word) return false;
+    // Normalize và so sánh không dấu + có dấu
+    const normalized = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    return VIETNAMESE_FAMILY_NAMES.some(name =>
+        name.toLowerCase() === word.toLowerCase() ||
+        removeVietnameseTones(name).toLowerCase() === removeVietnameseTones(word).toLowerCase()
+    );
+}
+
+/**
+ * Xóa dấu tiếng Việt để so sánh
+ */
+function removeVietnameseTones(str) {
+    return str.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+}
+
+/**
+ * Chuyển tên từ format Google (First Middle Last) sang format Việt Nam (Last Middle First)
+ * Ví dụ: "My Nhật Nguyễn" → "Nguyễn Nhật My"
+ */
+function convertToVietnameseName(googleName) {
+    if (!googleName || typeof googleName !== 'string') return googleName;
+
+    const parts = googleName.trim().split(/\s+/);
+    if (parts.length <= 1) return googleName;
+
+    // Check if already Vietnamese format (first word is common family name)
+    if (isVietnameseFamilyName(parts[0])) {
+        console.log('[NameConvert] Name already in Vietnamese format:', googleName);
+        return googleName;
+    }
+
+    // Check if last word is family name (needs conversion)
+    if (isVietnameseFamilyName(parts[parts.length - 1])) {
+        // Move last word (family name) to front
+        const familyName = parts.pop();
+        const convertedName = familyName + ' ' + parts.join(' ');
+        console.log('[NameConvert] Converted:', googleName, '→', convertedName);
+        return convertedName;
+    }
+
+    // Can't detect - return original
+    console.log('[NameConvert] Could not detect family name, keeping original:', googleName);
+    return googleName;
+}
+
 /**
  * Lấy thông tin user từ Firestore
  */
@@ -92,9 +163,14 @@ async function getUserData(uid) {
  */
 async function saveUserData(user, additionalData = {}) {
     try {
+        // Convert tên từ Google format sang Vietnamese format
+        const originalName = user.displayName || user.email.split('@')[0];
+        const convertedName = convertToVietnameseName(originalName);
+
         const userData = {
             email: user.email,
-            name: user.displayName || user.email.split('@')[0],
+            name: convertedName,
+            original_google_name: originalName, // Giữ lại tên gốc để tham khảo
             avatar_url: null,  // Không lấy ảnh từ Google
             last_login: new Date().toISOString(),
         };
@@ -104,6 +180,13 @@ async function saveUserData(user, additionalData = {}) {
         if (existingData) {
             // Giữ lại team nếu đã có
             userData.team_id = existingData.team_id || null;
+
+            // Nếu user đã có tên (đã được convert hoặc tự sửa), không ghi đè
+            // Chỉ convert nếu tên hiện tại giống tên gốc Google (chưa được sửa)
+            if (existingData.name && existingData.name !== existingData.original_google_name) {
+                // User đã tự sửa tên - giữ nguyên
+                userData.name = existingData.name;
+            }
 
             // Ưu tiên role từ additionalData (super_admin check) > existingData > MEMBER
             if (additionalData.role) {
