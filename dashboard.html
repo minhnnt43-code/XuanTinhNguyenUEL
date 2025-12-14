@@ -239,7 +239,7 @@
                         <div class="menu-item" data-section="section-members">
                             <i class="fa-solid fa-users"></i> Danh sách Chiến sĩ
                         </div>
-                        <div class="menu-item super-admin-only" data-section="section-accounts">
+                        <div class="menu-item owner-only" data-section="section-accounts">
                             <i class="fa-solid fa-user-shield"></i> Quản lý Tài khoản
                         </div>
                         <div class="menu-item" data-section="section-cards-admin">
@@ -255,7 +255,7 @@
                         <div class="menu-item kysutet-team-only" data-section="section-media-manager">
                             <i class="fa-solid fa-images"></i> Quản lý Hình ảnh Giao diện
                         </div>
-                        <div class="menu-item super-admin-only" data-section="section-activity-logs">
+                        <div class="menu-item owner-only" data-section="section-activity-logs">
                             <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử hoạt động
                         </div>
                     </div>
@@ -1428,6 +1428,27 @@
                     </div>
                 </div>
 
+
+                <!-- AI Toggle - OWNER ONLY -->
+                <div class="card owner-only" style="margin-top:20px;">
+                    <h3><i class="fa-solid fa-robot" style="color:#8b5cf6;"></i> Quản lý AI</h3>
+                    <p style="color:#666; margin-bottom:15px;">Bật/tắt tính năng AI trên toàn hệ thống để tránh lạm
+                        dụng.</p>
+
+                    <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+                        <div id="ai-status-badge"
+                            style="padding:8px 16px; border-radius:20px; background:#dcfce7; color:#16a34a; font-weight:600;">
+                            <i class="fa-solid fa-check-circle"></i> AI đang BẬT
+                        </div>
+                        <button id="btn-toggle-ai" class="btn btn-warning">
+                            <i class="fa-solid fa-power-off"></i> Tắt AI
+                        </button>
+                    </div>
+                    <small style="margin-top:10px; display:block; color:#888;">
+                        <i class="fa-solid fa-info-circle"></i> Khi tắt, tất cả users sẽ không thể sử dụng AI (tạo báo
+                        cáo, insights, phân tích).
+                    </small>
+                </div>
 
                 <div class="card" style="margin-top:20px;">
                     <h3><i class="fa-solid fa-exclamation-triangle" style="color:#dc2626;"></i> Vùng nguy hiểm</h3>

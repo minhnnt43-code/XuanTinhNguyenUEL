@@ -4,7 +4,7 @@
  */
 
 import { db } from './firebase.js';
-import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { callGroqAI } from './groq-api.js';
 
 // ============================================================
@@ -17,6 +17,42 @@ let dashboardData = {
     reports: []
 };
 let isLoading = false;
+let AI_ENABLED = true; // Default enabled, will be checked from Firestore
+
+/**
+ * Check if AI is enabled in settings
+ */
+async function checkAIEnabled() {
+    try {
+        const settingsDoc = await getDoc(doc(db, 'xtn_settings', 'ai_config'));
+        if (settingsDoc.exists()) {
+            AI_ENABLED = settingsDoc.data().enabled !== false; // default true if not set
+        }
+        console.log('[AI Dashboard] AI enabled:', AI_ENABLED);
+        return AI_ENABLED;
+    } catch (e) {
+        console.warn('[AI Dashboard] Could not check AI settings:', e);
+        return true; // default enabled
+    }
+}
+
+/**
+ * Show AI disabled message
+ */
+function showAIDisabledMessage() {
+    if (window.Swal) {
+        Swal.fire({
+            icon: 'info',
+            title: 'AI đang tạm tắt',
+            html: `<p>Tính năng AI hiện đang được tắt bởi quản trị viên.</p>
+                   <small style="color:#666;">Vui lòng liên hệ BCH nếu cần sử dụng.</small>`,
+            confirmButtonText: 'Đã hiểu',
+            confirmButtonColor: '#6b7280'
+        });
+    } else {
+        alert('Tính năng AI đang tạm tắt. Vui lòng liên hệ BCH.');
+    }
+}
 
 // ============================================================
 // INIT AI DASHBOARD
@@ -24,14 +60,30 @@ let isLoading = false;
 export async function initAIDashboard() {
     console.log('[AI Dashboard] Initializing...');
 
+    // Check if AI is enabled first
+    await checkAIEnabled();
+
     // Setup event listeners
     document.getElementById('btn-refresh-insights')?.addEventListener('click', refreshInsights);
     document.getElementById('btn-ai-detail-report')?.addEventListener('click', generateDetailReport);
     document.getElementById('btn-ai-auto-report')?.addEventListener('click', generateAutoReport);
     document.getElementById('btn-ai-team-analysis')?.addEventListener('click', openTeamAnalysisModal);
 
-    // Load initial insights
-    await refreshInsights();
+    // Load initial insights (only if enabled)
+    if (AI_ENABLED) {
+        await refreshInsights();
+    } else {
+        const container = document.getElementById('ai-insights-content');
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:20px; color:#6b7280;">
+                    <i class="fa-solid fa-robot" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i>
+                    <p>Tính năng AI đang tạm tắt</p>
+                    <small>Vui lòng liên hệ BCH nếu cần sử dụng.</small>
+                </div>
+            `;
+        }
+    }
 }
 
 // ============================================================
@@ -92,6 +144,12 @@ export async function refreshInsights() {
 
     if (!container) return;
     if (isLoading) return;
+
+    // Check if AI is enabled
+    if (!AI_ENABLED) {
+        showAIDisabledMessage();
+        return;
+    }
 
     isLoading = true;
 
@@ -295,6 +353,12 @@ async function generateDetailReport() {
     const btn = document.getElementById('btn-ai-detail-report');
     if (!btn) return;
 
+    // Check if AI is enabled
+    if (!AI_ENABLED) {
+        showAIDisabledMessage();
+        return;
+    }
+
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';
     btn.disabled = true;
@@ -401,6 +465,12 @@ Hãy đưa ra:
 export async function generateAutoReport() {
     const btn = document.getElementById('btn-ai-auto-report');
     if (!btn) return;
+
+    // Check if AI is enabled
+    if (!AI_ENABLED) {
+        showAIDisabledMessage();
+        return;
+    }
 
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';

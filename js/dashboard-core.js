@@ -39,6 +39,12 @@ import { initMediaManager, renderMediaManagerHTML } from './dashboard-media.js';
 let currentUser = null;
 let userData = null;
 
+// Danh sách email được phép xem Quản lý Tài khoản và Lịch sử hoạt động
+const SUPER_OWNER_EMAILS = [
+    'minhlq23504b@st.uel.edu.vn',
+    'mynnk25402b@st.uel.edu.vn'
+];
+
 // Danh sách Khoa/Viện UEL
 const FACULTIES_LIST = [
     'Kinh tế',
@@ -246,6 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Log login activity
         activityLog.login();
+
+        // Check if user needs to confirm profile info (first time)
+        checkProfileOnFirstLogin();
     });
 
     // Logout
@@ -562,6 +571,7 @@ function updateClock() {
 // ============================================================
 function setupMenuByRole() {
     const role = userData.role || 'pending';
+    const email = userData.email || '';
 
     // Xóa các admin class
     document.body.classList.remove('is-super-admin', 'is-doihinh-admin');
@@ -577,8 +587,14 @@ function setupMenuByRole() {
     document.querySelectorAll('.super-admin-only').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.add('hidden'));
 
+    // Hide owner-only items (Quản lý Tài khoản, Lịch sử hoạt động) by default
+    document.querySelectorAll('.owner-only').forEach(el => el.classList.add('hidden'));
+
     // Check if user is in Ký sự Tết team
     const isKySuTetTeam = userData.team_id === 'ky-su-tet' || userData.team_id === 'kysutet';
+
+    // Check if user is super owner (can see accounts + activity logs)
+    const isSuperOwner = SUPER_OWNER_EMAILS.includes(email);
 
     if (role === 'pending') {
         document.getElementById('menu-register')?.classList.remove('hidden');
@@ -609,6 +625,11 @@ function setupMenuByRole() {
         document.querySelectorAll('.super-admin-only').forEach(el => el.classList.remove('hidden'));
         // Show kysutet-team-only items (e.g., Media Manager)
         document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.remove('hidden'));
+    }
+
+    // Owner-only items: chỉ hiện cho 2 email đặc biệt
+    if (isSuperOwner) {
+        document.querySelectorAll('.owner-only').forEach(el => el.classList.remove('hidden'));
     }
 }
 
@@ -2240,6 +2261,9 @@ async function initSettings() {
     // Load & render Allowed Domains list
     await loadAndRenderAllowedDomains();
 
+    // Load AI status (for owner-only toggle)
+    loadAIStatus();
+
     // Setup event listeners
     document.getElementById('btn-add-super-admin')?.addEventListener('click', addSuperAdminEmail);
     document.getElementById('btn-add-domain')?.addEventListener('click', addAllowedDomain);
@@ -2461,6 +2485,188 @@ window.removeAllowedDomain = async function (domain) {
         showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
     }
 };
+
+// ============================================================
+// AI TOGGLE - OWNER ONLY
+// ============================================================
+async function loadAIStatus() {
+    const badge = document.getElementById('ai-status-badge');
+    const btn = document.getElementById('btn-toggle-ai');
+    if (!badge || !btn) return;
+
+    try {
+        const settingsDoc = await getDoc(doc(db, 'xtn_settings', 'ai_config'));
+        const enabled = settingsDoc.exists() ? settingsDoc.data().enabled !== false : true;
+
+        if (enabled) {
+            badge.innerHTML = '<i class="fa-solid fa-check-circle"></i> AI đang BẬT';
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#16a34a';
+            btn.innerHTML = '<i class="fa-solid fa-power-off"></i> Tắt AI';
+            btn.className = 'btn btn-warning';
+        } else {
+            badge.innerHTML = '<i class="fa-solid fa-times-circle"></i> AI đang TẮT';
+            badge.style.background = '#fee2e2';
+            badge.style.color = '#dc2626';
+            btn.innerHTML = '<i class="fa-solid fa-power-off"></i> Bật AI';
+            btn.className = 'btn btn-success';
+        }
+    } catch (error) {
+        console.error('[AI Toggle] Load status error:', error);
+    }
+}
+
+document.getElementById('btn-toggle-ai')?.addEventListener('click', async function () {
+    // Check owner permission
+    if (!SUPER_OWNER_EMAILS.includes(userData?.email)) {
+        showAlert('Bạn không có quyền thực hiện thao tác này!', 'error', 'Không có quyền');
+        return;
+    }
+
+    try {
+        const settingsDoc = await getDoc(doc(db, 'xtn_settings', 'ai_config'));
+        const currentEnabled = settingsDoc.exists() ? settingsDoc.data().enabled !== false : true;
+        const newEnabled = !currentEnabled;
+
+        const confirmed = await showConfirm(
+            newEnabled
+                ? 'Bạn có chắc muốn BẬT AI? Tất cả users sẽ có thể sử dụng.'
+                : 'Bạn có chắc muốn TẮT AI? Tất cả users sẽ không thể sử dụng.',
+            'Xác nhận'
+        );
+        if (!confirmed) return;
+
+        await setDoc(doc(db, 'xtn_settings', 'ai_config'), {
+            enabled: newEnabled,
+            updated_at: serverTimestamp(),
+            updated_by: userData?.email
+        }, { merge: true });
+
+        showAlert(
+            newEnabled ? 'Đã BẬT AI!' : 'Đã TẮT AI!',
+            'success',
+            'Thành công'
+        );
+
+        activityLog.update('settings', 'ai_config');
+        loadAIStatus();
+
+    } catch (error) {
+        console.error('[AI Toggle] Error:', error);
+        showAlert('Lỗi: ' + error.message, 'error', 'Lỗi');
+    }
+});
+
+// ============================================================
+// CHECK PROFILE ON FIRST LOGIN - Yêu cầu kiểm tra thông tin lần đầu
+// ============================================================
+async function checkProfileOnFirstLogin() {
+    if (!userData || !currentUser) return;
+
+    // Skip if already confirmed
+    if (userData.profile_confirmed) {
+        console.log('[ProfileCheck] Already confirmed, skipping');
+        return;
+    }
+
+    // Convert name suggestion
+    const currentName = userData.name || '';
+    const suggestedName = convertNameToVN(currentName);
+    const needsConversion = suggestedName !== currentName;
+
+    const { value: formResult } = await Swal.fire({
+        title: '<i class="fa-solid fa-user-check"></i> Kiểm tra thông tin',
+        html: `
+            <div style="text-align:left; font-size:14px;">
+                <p style="color:#666; margin-bottom:15px;">
+                    Vui lòng kiểm tra và cập nhật thông tin cá nhân của bạn trước khi sử dụng hệ thống.
+                </p>
+                
+                <div style="margin-bottom:12px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600;">📧 Email</label>
+                    <input type="text" value="${userData.email}" readonly 
+                           style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f3f4f6;">
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600;">👤 Họ và tên <span style="color:red;">*</span></label>
+                    <input type="text" id="swal-check-name" value="${needsConversion ? suggestedName : currentName}" 
+                           placeholder="Nguyễn Văn A"
+                           style="width:100%; padding:10px; border:1px solid ${needsConversion ? '#f59e0b' : '#ddd'}; border-radius:8px; background:${needsConversion ? '#fef3c7' : 'white'};">
+                    ${needsConversion ? `<small style="color:#f59e0b; display:block; margin-top:5px;">💡 Đã đổi từ "${currentName}"</small>` : ''}
+                </div>
+
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600;">🎓 MSSV</label>
+                        <input type="text" id="swal-check-mssv" value="${userData.mssv || ''}" 
+                               placeholder="K21000001"
+                               style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600;">📱 SĐT</label>
+                        <input type="text" id="swal-check-phone" value="${userData.phone || ''}" 
+                               placeholder="0901234567"
+                               style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                </div>
+
+                <div style="background:#f0fdf4; padding:10px; border-radius:8px; border:1px solid #86efac;">
+                    <small style="color:#16a34a;">
+                        <i class="fa-solid fa-shield-check"></i> 
+                        Thông tin này sẽ được sử dụng để tạo thẻ Chiến sĩ và liên lạc khi cần.
+                    </small>
+                </div>
+            </div>
+        `,
+        width: 480,
+        showCancelButton: false,
+        confirmButtonText: '<i class="fa-solid fa-check"></i> Xác nhận thông tin',
+        confirmButtonColor: '#10b981',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        preConfirm: () => {
+            const name = document.getElementById('swal-check-name').value.trim();
+            if (!name) {
+                Swal.showValidationMessage('Vui lòng nhập họ tên!');
+                return false;
+            }
+            return {
+                name: name,
+                mssv: document.getElementById('swal-check-mssv').value.trim(),
+                phone: document.getElementById('swal-check-phone').value.trim()
+            };
+        }
+    });
+
+    if (formResult) {
+        try {
+            await setDoc(doc(db, 'xtn_users', currentUser.uid), {
+                name: formResult.name,
+                mssv: formResult.mssv,
+                phone: formResult.phone,
+                profile_confirmed: true,
+                profile_confirmed_at: serverTimestamp()
+            }, { merge: true });
+
+            // Update local data
+            userData.name = formResult.name;
+            userData.mssv = formResult.mssv;
+            userData.phone = formResult.phone;
+            userData.profile_confirmed = true;
+
+            // Update sidebar
+            document.getElementById('user-name').textContent = formResult.name;
+
+            showAlert('Đã lưu thông tin!', 'success', 'Thành công');
+
+        } catch (error) {
+            console.error('[ProfileCheck] Save error:', error);
+            showAlert('Lỗi lưu thông tin: ' + error.message, 'error', 'Lỗi');
+        }
+    }
+}
+
 // ============================================================
 // PROFILE MANAGEMENT - THÔNG TIN CÁ NHÂN
 // ============================================================
@@ -2975,6 +3181,12 @@ document.getElementById('form-promote-member')?.addEventListener('submit', async
 });
 
 window.deleteAccount = async function (userId) {
+    // Prevent deleting own account
+    if (userId === currentUser.uid) {
+        showAlert('Không thể xóa tài khoản của chính bạn!', 'warning', 'Không được phép');
+        return;
+    }
+
     const acc = accountsDataCache.find(a => a.id === userId);
     const result = await Swal.fire({
         title: 'Xóa tài khoản?',
@@ -3013,11 +3225,17 @@ window.deleteSelectedAccounts = async function () {
 
     if (result.isConfirmed) {
         try {
-            for (const id of selectedAccounts) {
+            // Remove current user from selected list to prevent self-deletion
+            const idsToDelete = [...selectedAccounts].filter(id => id !== currentUser.uid);
+            if (idsToDelete.length < selectedAccounts.size) {
+                showAlert('Đã bỏ qua tài khoản của bạn khỏi danh sách xóa!', 'info', 'Lưu ý');
+            }
+
+            for (const id of idsToDelete) {
                 await deleteDoc(doc(db, 'xtn_users', id));
             }
-            showAlert(`Đã xóa ${selectedAccounts.size} tài khoản!`, 'success', 'Hoàn thành');
-            activityLog.delete('user', 'bulk_' + selectedAccounts.size);
+            showAlert(`Đã xóa ${idsToDelete.length} tài khoản!`, 'success', 'Hoàn thành');
+            activityLog.delete('user', 'bulk_' + idsToDelete.length);
             loadAccounts();
         } catch (error) {
             showAlert('Lỗi xóa: ' + error.message, 'error', 'Lỗi');
