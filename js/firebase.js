@@ -6,7 +6,7 @@ import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/
 // 2. Cấu hình của bạn (Đã cập nhật chuẩn xác)
 const firebaseConfig = {
   apiKey: "AIzaSyALk7G3YFjHgGXlxI06oKEwHCDtzGklsQw",
-  authDomain: "xuantinhnguyenuel-7ec2c.firebaseapp.com",
+  authDomain: "xuantinhnguyenuel.id.vn",  // Đổi sang domain riêng để tránh firebaseapp.com bị chặn
   projectId: "xuantinhnguyenuel-7ec2c",
   storageBucket: "xuantinhnguyenuel-7ec2c.firebasestorage.app",
   messagingSenderId: "426220182406",
