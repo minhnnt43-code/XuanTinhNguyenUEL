@@ -5,7 +5,6 @@
 
 import { auth, provider, db } from './firebase.js';
 import {
-    signInWithPopup,
     signInWithRedirect,
     getRedirectResult,
     signOut,
@@ -164,55 +163,24 @@ async function checkSuperAdmin(email) {
     }
 }
 
-// ============================================================
-
 /**
  * Đăng nhập bằng Google
- * Thử popup trước, nếu lỗi thì fallback qua redirect
+ * Sử dụng redirect để tránh lỗi popup bị block hoặc connection reset
  */
 async function loginWithGoogle() {
     try {
-        console.log('🔐 [Auth] Starting Google popup login...');
+        console.log('🔐 [Auth] Starting Google redirect login...');
 
-        // Thử popup trước
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        console.log('🔐 [Auth] Popup login success:', user.email);
-
-        // Xóa cache cũ
+        // Xóa cache cũ trước khi redirect
         clearUserCache();
 
-        // Kiểm tra Super Admin
-        const isSuperAdminCheck = await checkSuperAdmin(user.email);
+        // Dùng redirect thay vì popup để tránh lỗi connection/popup blocked
+        await signInWithRedirect(auth, provider);
 
-        // Lưu thông tin user
-        await saveUserData(user, {
-            role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
-        });
-
-        console.log("✅ Đăng nhập thành công:", user.email);
-        return { user, success: true };
+        // Sẽ không chạy đến đây vì trang sẽ redirect đi
+        return { user: null, success: false, redirecting: true };
 
     } catch (error) {
-        // Nếu popup bị đóng, block, hoặc network error, thử redirect
-        const fallbackErrors = [
-            'auth/popup-closed-by-user',
-            'auth/popup-blocked',
-            'auth/network-request-failed',
-            'auth/internal-error',
-            'auth/cancelled-popup-request'
-        ];
-
-        if (fallbackErrors.includes(error.code) || error.message?.includes('network')) {
-            console.log('🔐 [Auth] Popup failed, trying redirect...', error.code);
-            try {
-                await signInWithRedirect(auth, provider);
-                return { user: null, success: false, redirecting: true };
-            } catch (redirectError) {
-                console.error("❌ Redirect failed:", redirectError);
-                throw redirectError;
-            }
-        }
         console.error("❌ Lỗi đăng nhập:", error);
         throw error;
     }
