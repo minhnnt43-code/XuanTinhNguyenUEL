@@ -48,7 +48,7 @@ async function initCountdown() {
         const docRef = doc(db, "xtn_settings", "config");
         const docSnap = await getDoc(docRef);
 
-        let targetDateStr = "Jan 9, 2026 07:00:00"; // Ngày ra quân XTN 2026
+        let targetDateStr = "Jan 5, 2026 07:00:00"; // Lễ Ra quân Chiến dịch XTN 2026
         if (docSnap.exists() && docSnap.data().target_date) {
             targetDateStr = docSnap.data().target_date;
         }

@@ -1301,7 +1301,27 @@ window.deleteMember = async function (userId) {
     if (result.isConfirmed) {
         try {
             const teamId = m?.team_id;
+            const memberEmail = m?.email;
+
+            // Xóa document chính
             await deleteDoc(doc(db, 'xtn_users', userId));
+
+            // Xóa tất cả documents có cùng email (đề phòng trùng lặp giữa UID và emailDocId)
+            if (memberEmail) {
+                try {
+                    const emailQuery = await getDocs(
+                        query(collection(db, 'xtn_users'), where('email', '==', memberEmail))
+                    );
+                    for (const docSnap of emailQuery.docs) {
+                        if (docSnap.id !== userId) {
+                            console.log(`[DeleteMember] Xóa document trùng email: ${docSnap.id}`);
+                            await deleteDoc(doc(db, 'xtn_users', docSnap.id));
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[DeleteMember] Error cleaning duplicate emails:', e);
+                }
+            }
 
             // Sync stats đội hình sau khi xóa
             if (teamId) {
@@ -1331,8 +1351,32 @@ window.deleteSelectedMembers = async function () {
 
     if (result.isConfirmed) {
         try {
+            // Thu thập email của các member được chọn
+            const emailsToClean = new Set();
+            [...selectedMembers].forEach(id => {
+                const m = membersDataCache.find(x => x.id === id);
+                if (m?.email) emailsToClean.add(m.email);
+            });
+
+            // Xóa các document chính
             const promises = [...selectedMembers].map(id => deleteDoc(doc(db, 'xtn_users', id)));
             await Promise.all(promises);
+
+            // Xóa sạch các documents trùng email (đề phòng UID và emailDocId)
+            for (const email of emailsToClean) {
+                try {
+                    const emailQuery = await getDocs(
+                        query(collection(db, 'xtn_users'), where('email', '==', email))
+                    );
+                    for (const docSnap of emailQuery.docs) {
+                        console.log(`[BulkDelete] Xóa document trùng email: ${docSnap.id}`);
+                        await deleteDoc(doc(db, 'xtn_users', docSnap.id));
+                    }
+                } catch (e) {
+                    console.warn(`[BulkDelete] Error cleaning email ${email}:`, e);
+                }
+            }
+
             await showAlert(`Đã xóa ${selectedMembers.size} thành viên!`, 'success', 'Hoàn thành');
             loadMembers();
         } catch (e) {
@@ -2110,8 +2154,45 @@ async function handleAddMember(e) {
         );
 
         if (!existingSnap.empty) {
-            showAlert('Email này đã tồn tại trong hệ thống!', 'warning', 'Trùng email');
-            return;
+            // Hỏi admin có muốn ghi đè không
+            const confirmOverwrite = await Swal.fire({
+                title: '<i class="fa-solid fa-circle-exclamation" style="color:#f59e0b;margin-right:8px;"></i> Email đã tồn tại',
+                html: `
+                    <div style="text-align:left; padding:15px 0;">
+                        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding:15px; border-radius:12px; margin-bottom:15px; border-left:4px solid #f59e0b;">
+                            <p style="margin:0; color:#92400e; font-size:14px;">
+                                <i class="fa-solid fa-envelope" style="margin-right:8px;"></i>
+                                <strong>${email}</strong>
+                            </p>
+                        </div>
+                        <p style="color:#4b5563; margin:0; font-size:14px; line-height:1.6;">
+                            Email này đã có trong hệ thống. Bạn có muốn <strong style="color:#dc2626;">xóa record cũ</strong> và thêm chiến sĩ mới không?
+                        </p>
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-rotate"></i> Thay thế',
+                cancelButtonText: '<i class="fa-solid fa-xmark"></i> Hủy',
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#6b7280',
+                customClass: {
+                    popup: 'swal-email-exists',
+                    title: 'swal-title-left',
+                    htmlContainer: 'swal-html-container'
+                }
+            });
+
+            if (!confirmOverwrite.isConfirmed) {
+                return;
+            }
+
+            // Xóa tất cả documents có email này
+            console.log('[AddMember] Đang xóa documents cũ với email:', email);
+            for (const docSnap of existingSnap.docs) {
+                await deleteDoc(doc(db, 'xtn_users', docSnap.id));
+                console.log('[AddMember] Đã xóa document:', docSnap.id);
+            }
         }
 
         // Add new member với email làm document ID (khi user login, UID doc sẽ merge từ đây)

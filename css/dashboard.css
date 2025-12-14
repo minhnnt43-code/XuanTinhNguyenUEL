@@ -1168,8 +1168,13 @@ textarea:focus {
     backdrop-filter: blur(5px);
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 10000;
     padding: 20px;
+}
+
+/* SweetAlert2 phải hiển thị TRÊN modal */
+.swal2-container {
+    z-index: 20000 !important;
 }
 
 .modal-overlay.active {
@@ -2645,4 +2650,99 @@ select:disabled {
     .data-table thead th {
         font-size: 11px;
     }
+}
+
+/* ===== FORM ROW - 2 Column Layout ===== */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 500px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+/* ===== MODAL ADD MEMBER - Enhanced ===== */
+#modal-add-member .modal-content {
+    max-width: 520px;
+}
+
+#modal-add-member h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    color: #16a34a;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #fde68a;
+}
+
+#modal-add-member .form-group {
+    margin-bottom: 15px;
+}
+
+#modal-add-member .form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+#modal-add-member .form-group label .required {
+    color: #dc2626;
+}
+
+#modal-add-member input,
+#modal-add-member select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+}
+
+#modal-add-member input:focus,
+#modal-add-member select:focus {
+    outline: none;
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+#modal-add-member input::placeholder {
+    color: #9ca3af;
+}
+
+#modal-add-member .modal-actions {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+#modal-add-member .modal-actions .btn {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    border-radius: 10px;
+}
+
+#modal-add-member .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+#modal-add-member .btn-secondary:hover {
+    background: #e5e7eb;
 }
