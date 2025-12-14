@@ -164,91 +164,46 @@ async function checkSuperAdmin(email) {
 }
 
 // Firebase config - cần lấy client ID từ Google Cloud Console
-const GOOGLE_CLIENT_ID = '426220182406-5rq0kkpj67thhn8dh30m50iccmemv1ep.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '426220182406-9j5292b0n77r6q4lm9jfbvag01sfpb4s.apps.googleusercontent.com';
 
 /**
- * Đăng nhập bằng Google Identity Services (GIS)
- * Sử dụng One Tap hoặc redirect trực tiếp đến accounts.google.com
+ * Đăng nhập bằng Google OAuth 2.0 Redirect
+ * Redirect thẳng đến accounts.google.com, không dùng One Tap (bị lỗi FedCM)
  * Không cần kết nối đến firebaseapp.com
  */
 async function loginWithGoogle() {
-    return new Promise((resolve, reject) => {
-        try {
-            console.log('🔐 [Auth] Starting Google Identity Services login...');
+    try {
+        console.log('🔐 [Auth] Starting Google OAuth redirect...');
 
-            // Xóa cache cũ
-            clearUserCache();
+        // Xóa cache cũ
+        clearUserCache();
 
-            // Kiểm tra google object có sẵn không
-            if (typeof google === 'undefined' || !google.accounts) {
-                throw new Error('Google Identity Services chưa được tải. Vui lòng refresh trang và thử lại.');
-            }
+        // Tạo nonce để bảo mật
+        const nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-            // Khởi tạo Google Identity Services
-            google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: async (response) => {
-                    try {
-                        console.log('🔐 [Auth] GIS callback received');
+        // Lưu nonce vào sessionStorage để verify sau
+        sessionStorage.setItem('oauth_nonce', nonce);
 
-                        // Lấy ID token từ Google
-                        const idToken = response.credential;
+        // Redirect trực tiếp đến Google OAuth (không dùng One Tap)
+        const oauth2Url = `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${GOOGLE_CLIENT_ID}&` +
+            `redirect_uri=${encodeURIComponent(window.location.origin + '/login.html')}&` +
+            `response_type=id_token&` +
+            `scope=openid email profile&` +
+            `nonce=${nonce}&` +
+            `prompt=select_account`;
 
-                        // Tạo Firebase credential từ ID token
-                        const credential = GoogleAuthProvider.credential(idToken);
+        console.log('🔐 [Auth] Redirecting to:', oauth2Url);
+        window.location.href = oauth2Url;
 
-                        // Đăng nhập vào Firebase với credential
-                        const result = await signInWithCredential(auth, credential);
-                        const user = result.user;
+        return { user: null, success: false, redirecting: true };
 
-                        console.log('🔐 [Auth] Firebase login success:', user.email);
-
-                        // Kiểm tra Super Admin
-                        const isSuperAdminCheck = await checkSuperAdmin(user.email);
-
-                        // Lưu thông tin user
-                        await saveUserData(user, {
-                            role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
-                        });
-
-                        console.log("✅ Đăng nhập thành công:", user.email);
-                        resolve({ user, success: true });
-
-                    } catch (error) {
-                        console.error("❌ Lỗi xử lý GIS callback:", error);
-                        reject(error);
-                    }
-                },
-                auto_select: false,
-                cancel_on_tap_outside: false
-            });
-
-            // Hiển thị popup đăng nhập Google
-            google.accounts.id.prompt((notification) => {
-                console.log('🔐 [Auth] GIS prompt notification:', notification);
-
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    // One Tap không hiển thị được, dùng redirect thay thế
-                    console.log('🔐 [Auth] One Tap not available, using OAuth redirect...');
-
-                    // Sử dụng OAuth 2.0 redirect
-                    const oauth2Url = `https://accounts.google.com/o/oauth2/v2/auth?` +
-                        `client_id=${GOOGLE_CLIENT_ID}&` +
-                        `redirect_uri=${encodeURIComponent(window.location.origin + '/login.html')}&` +
-                        `response_type=token id_token&` +
-                        `scope=openid email profile&` +
-                        `nonce=${Math.random().toString(36).substring(2)}`;
-
-                    window.location.href = oauth2Url;
-                }
-            });
-
-        } catch (error) {
-            console.error("❌ Lỗi khởi tạo GIS:", error);
-            reject(error);
-        }
-    });
+    } catch (error) {
+        console.error("❌ Lỗi redirect OAuth:", error);
+        throw error;
+    }
 }
+
 
 /**
  * Xử lý kết quả OAuth redirect (nếu One Tap không hoạt động)
