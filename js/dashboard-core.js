@@ -162,13 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "xtn_users", user.uid), { role: 'super_admin' }, { merge: true });
                 userData.role = 'super_admin';
                 console.log('✅ Auto-upgraded to super_admin:', user.email);
-            } else if (!shouldBeSuperAdmin && userData.role === 'super_admin') {
-                // HẠ CẤP: User có role super_admin nhưng không nằm trong danh sách
-                console.log('🔐 [Auth] Downgrading from super_admin to member...');
-                await setDoc(doc(db, "xtn_users", user.uid), { role: 'member' }, { merge: true });
-                userData.role = 'member';
-                console.log('⚠️ Auto-downgraded to member:', user.email);
             }
+            // ĐÃ XÓA logic auto-downgrade: Giữ nguyên role từ Firestore
+            // Role do super_admin phân sẽ được tôn trọng
         } catch (e) {
             console.error('Error loading user data:', e);
             userData = { role: 'pending', name: user.displayName || user.email.split('@')[0] };
