@@ -3,10 +3,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// 2. Cấu hình của bạn (Đã cập nhật chuẩn xác)
+// 2. Cấu hình của bạn
 const firebaseConfig = {
   apiKey: "AIzaSyALk7G3YFjHgGXlxI06oKEwHCDtzGklsQw",
-  authDomain: "xuantinhnguyenuel.id.vn",  // Đổi sang domain riêng để tránh firebaseapp.com bị chặn
+  authDomain: "xuantinhnguyenuel-7ec2c.firebaseapp.com",
   projectId: "xuantinhnguyenuel-7ec2c",
   storageBucket: "xuantinhnguyenuel-7ec2c.firebasestorage.app",
   messagingSenderId: "426220182406",

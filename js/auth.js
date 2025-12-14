@@ -5,8 +5,8 @@
 
 import { auth, provider, db } from './firebase.js';
 import {
-    signInWithRedirect,
-    getRedirectResult,
+    signInWithCredential,
+    GoogleAuthProvider,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -163,62 +163,141 @@ async function checkSuperAdmin(email) {
     }
 }
 
+// Firebase config - cần lấy client ID từ Google Cloud Console
+const GOOGLE_CLIENT_ID = '426220182406-5rq0kkpj67thhn8dh30m50iccmemv1ep.apps.googleusercontent.com';
+
 /**
- * Đăng nhập bằng Google
- * Sử dụng redirect để tránh lỗi popup bị block hoặc connection reset
+ * Đăng nhập bằng Google Identity Services (GIS)
+ * Sử dụng One Tap hoặc redirect trực tiếp đến accounts.google.com
+ * Không cần kết nối đến firebaseapp.com
  */
 async function loginWithGoogle() {
-    try {
-        console.log('🔐 [Auth] Starting Google redirect login...');
+    return new Promise((resolve, reject) => {
+        try {
+            console.log('🔐 [Auth] Starting Google Identity Services login...');
 
-        // Xóa cache cũ trước khi redirect
-        clearUserCache();
+            // Xóa cache cũ
+            clearUserCache();
 
-        // Dùng redirect thay vì popup để tránh lỗi connection/popup blocked
-        await signInWithRedirect(auth, provider);
+            // Kiểm tra google object có sẵn không
+            if (typeof google === 'undefined' || !google.accounts) {
+                throw new Error('Google Identity Services chưa được tải. Vui lòng refresh trang và thử lại.');
+            }
 
-        // Sẽ không chạy đến đây vì trang sẽ redirect đi
-        return { user: null, success: false, redirecting: true };
+            // Khởi tạo Google Identity Services
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: async (response) => {
+                    try {
+                        console.log('🔐 [Auth] GIS callback received');
 
-    } catch (error) {
-        console.error("❌ Lỗi đăng nhập:", error);
-        throw error;
-    }
+                        // Lấy ID token từ Google
+                        const idToken = response.credential;
+
+                        // Tạo Firebase credential từ ID token
+                        const credential = GoogleAuthProvider.credential(idToken);
+
+                        // Đăng nhập vào Firebase với credential
+                        const result = await signInWithCredential(auth, credential);
+                        const user = result.user;
+
+                        console.log('🔐 [Auth] Firebase login success:', user.email);
+
+                        // Kiểm tra Super Admin
+                        const isSuperAdminCheck = await checkSuperAdmin(user.email);
+
+                        // Lưu thông tin user
+                        await saveUserData(user, {
+                            role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
+                        });
+
+                        console.log("✅ Đăng nhập thành công:", user.email);
+                        resolve({ user, success: true });
+
+                    } catch (error) {
+                        console.error("❌ Lỗi xử lý GIS callback:", error);
+                        reject(error);
+                    }
+                },
+                auto_select: false,
+                cancel_on_tap_outside: false
+            });
+
+            // Hiển thị popup đăng nhập Google
+            google.accounts.id.prompt((notification) => {
+                console.log('🔐 [Auth] GIS prompt notification:', notification);
+
+                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    // One Tap không hiển thị được, dùng redirect thay thế
+                    console.log('🔐 [Auth] One Tap not available, using OAuth redirect...');
+
+                    // Sử dụng OAuth 2.0 redirect
+                    const oauth2Url = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                        `client_id=${GOOGLE_CLIENT_ID}&` +
+                        `redirect_uri=${encodeURIComponent(window.location.origin + '/login.html')}&` +
+                        `response_type=token id_token&` +
+                        `scope=openid email profile&` +
+                        `nonce=${Math.random().toString(36).substring(2)}`;
+
+                    window.location.href = oauth2Url;
+                }
+            });
+
+        } catch (error) {
+            console.error("❌ Lỗi khởi tạo GIS:", error);
+            reject(error);
+        }
+    });
 }
 
 /**
- * Xử lý kết quả redirect sau khi đăng nhập Google
- * GỌI HÀM NÀY Ở ĐẦU TRANG ĐỂ CHECK REDIRECT RESULT
+ * Xử lý kết quả OAuth redirect (nếu One Tap không hoạt động)
  */
 async function handleRedirectResult() {
     try {
-        console.log('🔐 [Auth] Checking for redirect result...');
-        const result = await getRedirectResult(auth);
+        console.log('🔐 [Auth] Checking for OAuth redirect result...');
 
-        if (result && result.user) {
-            const user = result.user;
-            console.log('🔐 [Auth] Redirect result found:', user.email);
+        // Kiểm tra URL có chứa access_token không (implicit flow)
+        const hash = window.location.hash;
+        if (hash && hash.includes('id_token')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const idToken = params.get('id_token');
 
-            // XÓA CACHE CŨ TRƯỚC KHI LƯU USER MỚI
-            clearUserCache();
+            if (idToken) {
+                console.log('🔐 [Auth] Found id_token in URL');
 
-            const isSuperAdminCheck = await checkSuperAdmin(user.email);
+                // Tạo credential và đăng nhập Firebase
+                const credential = GoogleAuthProvider.credential(idToken);
+                const result = await signInWithCredential(auth, credential);
+                const user = result.user;
 
-            await saveUserData(user, {
-                role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
-            });
+                console.log('🔐 [Auth] OAuth redirect login success:', user.email);
 
-            console.log("✅ Đăng nhập thành công qua redirect:", user.email);
-            return { user, success: true };
-        } else {
-            console.log('🔐 [Auth] No redirect result');
-            return { user: null, success: false };
+                // Xóa token khỏi URL
+                history.replaceState(null, '', window.location.pathname);
+
+                // Xóa cache và lưu user data
+                clearUserCache();
+
+                const isSuperAdminCheck = await checkSuperAdmin(user.email);
+                await saveUserData(user, {
+                    role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
+                });
+
+                return { user, success: true };
+            }
         }
+
+        console.log('🔐 [Auth] No OAuth redirect result found');
+        return { user: null, success: false };
+
     } catch (error) {
-        console.error("❌ Lỗi xử lý redirect:", error);
+        console.error("❌ Lỗi xử lý OAuth redirect:", error);
         throw error;
     }
 }
+
+
 
 /**
  * Xóa cache user cũ khi đăng nhập mới
