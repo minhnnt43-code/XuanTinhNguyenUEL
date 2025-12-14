@@ -198,6 +198,55 @@ function setDefaultDateFilters() {
     }
 }
 
+// Navigate stats week: direction = -1 (tuần trước), 0 (tuần này), 1 (tuần sau)
+function navigateStatsWeek(direction) {
+    let fromDate, toDate;
+    const today = new Date();
+
+    // Lấy ngày đầu tuần (Thứ 2) và cuối tuần (Chủ nhật)
+    const getWeekDays = (baseDate) => {
+        const day = baseDate.getDay();
+        const mondayOffset = day === 0 ? -6 : 1 - day; // Nếu CN thì lùi 6 ngày, còn lại tính từ T2
+        const monday = new Date(baseDate);
+        monday.setDate(baseDate.getDate() + mondayOffset);
+        monday.setHours(0, 0, 0, 0);
+
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        return { monday, sunday };
+    };
+
+    if (direction === 0) {
+        // Tuần này
+        const thisWeek = getWeekDays(today);
+        fromDate = thisWeek.monday;
+        toDate = thisWeek.sunday;
+    } else {
+        // Lấy ngày hiện tại từ date picker
+        const currentFrom = elements.statsDateFrom?.value ? new Date(elements.statsDateFrom.value) : today;
+        const shiftedDate = new Date(currentFrom);
+        shiftedDate.setDate(currentFrom.getDate() + (direction * 7));
+
+        const targetWeek = getWeekDays(shiftedDate);
+        fromDate = targetWeek.monday;
+        toDate = targetWeek.sunday;
+    }
+
+    // Cập nhật date pickers
+    if (elements.statsDateFrom) {
+        elements.statsDateFrom.value = formatDate(fromDate, 'yyyy-mm-dd');
+    }
+    if (elements.statsDateTo) {
+        elements.statsDateTo.value = formatDate(toDate, 'yyyy-mm-dd');
+    }
+
+    // Refresh stats
+    renderStats();
+
+    console.log('[Activity] Navigate stats week:', direction, '| From:', formatDate(fromDate, 'full'), '| To:', formatDate(toDate, 'full'));
+}
+
 // Lấy team_name của user hiện tại từ xtn_teams
 async function loadCurrentUserTeam() {
     try {
@@ -243,6 +292,11 @@ function cacheElements() {
     elements.statsTeams = document.getElementById('stats-teams');
     elements.statsTbody = document.getElementById('stats-tbody');
     elements.statsPagination = document.getElementById('stats-pagination');
+
+    // Stats Week Navigation
+    elements.btnStatsPrevWeek = document.getElementById('btn-stats-prev-week');
+    elements.btnStatsThisWeek = document.getElementById('btn-stats-this-week');
+    elements.btnStatsNextWeek = document.getElementById('btn-stats-next-week');
 
     // Report
     elements.reportTeamSelect = document.getElementById('report-team-select');
@@ -296,6 +350,11 @@ function setupEventListeners() {
     elements.statsDateFrom?.addEventListener('change', () => renderStats());
     elements.statsDateTo?.addEventListener('change', () => renderStats());
     elements.btnExportCsv?.addEventListener('click', exportToCSV);
+
+    // Stats Week Navigation
+    elements.btnStatsPrevWeek?.addEventListener('click', () => navigateStatsWeek(-1));
+    elements.btnStatsThisWeek?.addEventListener('click', () => navigateStatsWeek(0));
+    elements.btnStatsNextWeek?.addEventListener('click', () => navigateStatsWeek(1));
 
     // Report
     elements.btnNewReport?.addEventListener('click', () => openReportModal());

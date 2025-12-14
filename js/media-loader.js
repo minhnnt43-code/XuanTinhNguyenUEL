@@ -166,6 +166,7 @@ export async function loadGalleryCarousel(containerId = 'galleryTrack') {
 
 // ============================================================
 // LOAD TEAM GALLERY (for job-description.html modals)
+// Returns { images: [], description: '' }
 // ============================================================
 export async function loadTeamGallery(teamId) {
     try {
@@ -174,20 +175,24 @@ export async function loadTeamGallery(teamId) {
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            return data.images || [];
+            return {
+                images: data.images || [],
+                description: data.description || ''
+            };
         }
 
         console.log(`[MediaLoader] No gallery for team ${teamId}`);
-        return [];
+        return { images: [], description: '' };
 
     } catch (error) {
         console.error('[MediaLoader] Error loading team gallery:', error);
-        return [];
+        return { images: [], description: '' };
     }
 }
 
 // ============================================================
 // LOAD ALL TEAM GALLERIES (for job-description.html)
+// Returns { teamId: { images: [], description: '' }, ... }
 // ============================================================
 export async function loadAllTeamGalleries() {
     try {
@@ -195,7 +200,11 @@ export async function loadAllTeamGalleries() {
         const galleries = {};
 
         snapshot.docs.forEach(doc => {
-            galleries[doc.id] = doc.data().images || [];
+            const data = doc.data();
+            galleries[doc.id] = {
+                images: data.images || [],
+                description: data.description || ''
+            };
         });
 
         console.log(`[MediaLoader] Loaded galleries for ${Object.keys(galleries).length} teams`);

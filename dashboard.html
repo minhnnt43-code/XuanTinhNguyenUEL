@@ -252,13 +252,15 @@
                         <div class="menu-item" data-section="section-settings">
                             <i class="fa-solid fa-gear"></i> Cài đặt
                         </div>
-                        <div class="menu-item kysutet-team-only" data-section="section-media-manager">
-                            <i class="fa-solid fa-images"></i> Quản lý Hình ảnh Giao diện
-                        </div>
                         <div class="menu-item owner-only" data-section="section-activity-logs">
                             <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử hoạt động
                         </div>
                     </div>
+                </div>
+
+                <!-- Quản lý Hình ảnh - Hiển thị cho super_admin hoặc Ký sự Tết -->
+                <div class="menu-item kysutet-team-only" data-section="section-media-manager" style="margin-top:10px;">
+                    <i class="fa-solid fa-images"></i> Quản lý Hình ảnh Giao diện
                 </div>
             </nav>
 
@@ -614,7 +616,7 @@
                             style="background:#f0fdf4; padding:15px; border-radius:8px; border:1px solid #86efac;">
                             <label><i class="fa-solid fa-users" style="color:#16a34a;"></i> Đội hình</label>
                             <input type="text" id="profile-team" readonly style="background:white; cursor:not-allowed;">
-                            <small style="color:#666;">Đội hình do Admin phân công, không thể tự đổi.</small>
+                            <small style="color:#666;">Không thể tự đổi đội hình.</small>
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-block" style="margin-top:20px;">
@@ -1257,7 +1259,7 @@
 
                 <!-- Tab Content: Stats -->
                 <div class="activity-tab-content" id="tab-stats">
-                    <div class="stats-toolbar">
+                    <div class="stats-toolbar stats-toolbar-enhanced">
                         <div class="stats-filters">
                             <select id="stats-team-filter">
                                 <option value="">Tất cả đội hình</option>
@@ -1266,6 +1268,17 @@
                             <input type="date" id="stats-date-to" placeholder="Đến ngày">
                             <button id="btn-stats-filter" class="btn btn-sm">
                                 <i class="fa-solid fa-filter"></i> Lọc
+                            </button>
+                        </div>
+                        <div class="stats-week-nav">
+                            <button id="btn-stats-prev-week" class="btn btn-sm btn-outline" title="Tuần trước">
+                                <i class="fa-solid fa-chevron-left"></i> Tuần trước
+                            </button>
+                            <button id="btn-stats-this-week" class="btn btn-sm btn-primary" title="Về tuần hiện tại">
+                                <i class="fa-solid fa-calendar-day"></i> Tuần này
+                            </button>
+                            <button id="btn-stats-next-week" class="btn btn-sm btn-outline" title="Tuần sau">
+                                Tuần sau <i class="fa-solid fa-chevron-right"></i>
                             </button>
                         </div>
                         <button id="btn-export-csv" class="btn btn-success btn-sm">

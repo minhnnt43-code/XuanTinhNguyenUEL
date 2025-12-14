@@ -178,6 +178,21 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(22, 163, 74, 0.4);
         }
+
+        /* Button JD (Mô tả hoạt động) - Style đỏ */
+        .btn-cta.btn-jd {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: #fff;
+            border: 2px solid #fff;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+            text-decoration: none;
+        }
+
+        .btn-cta.btn-jd:hover {
+            background: linear-gradient(135deg, #b91c1c, #991b1b);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(220, 38, 38, 0.4);
+        }
     </style>
 </head>
 
@@ -298,11 +313,14 @@
                 </div>
             </div>
 
-            <!-- CTA Buttons (No JD link) -->
+            <!-- CTA Buttons -->
             <div class="cta-buttons">
                 <button onclick="showComingSoonModal()" class="btn-cta btn-register">
                     <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
                 </button>
+                <a href="jd-preview.html" class="btn-cta btn-jd">
+                    <i class="fa-solid fa-briefcase"></i> Mô tả hoạt động
+                </a>
             </div>
         </div>
 
@@ -404,25 +422,9 @@
         </div>
     </footer>
 
-    <!-- FLOATING SUPPORT BUTTON -->
-    <a href="https://zalo.me/0899012608" target="_blank" class="support-pin" aria-label="Liên hệ hỗ trợ">
-        <i class="fa-solid fa-headset"></i>
-        <div class="support-tooltip">
-            <strong>Cần hỗ trợ? Liên hệ:</strong>
-            <div class="contact-line">
-                <i class="fa-solid fa-user"></i> Lâm Quốc Minh
-            </div>
-            <div class="contact-line">
-                <i class="fa-solid fa-phone"></i> 0899.012.608 (Zalo)
-            </div>
-            <div class="contact-line">
-                <i class="fa-brands fa-facebook"></i> fb.com/lamquocminh18
-            </div>
-        </div>
-    </a>
+    <!-- FLOATING SUPPORT BUTTON đã xóa vì trùng với floating-contact -->
 
-    <!-- SCRIPT -->
-    <script type="module" src="js/script.js"></script>
+    <!-- script.js bị xóa để tránh trùng countdown -->
 
     <!-- Dynamic Image Loader from Firebase -->
     <script type="module">

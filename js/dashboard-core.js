@@ -896,6 +896,7 @@ async function loadMembers() {
     list.innerHTML = '<p style="text-align:center;color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</p>';
     selectedMembers.clear();
     membersDataCache = [];
+    membersDataCache.length = 0; // Đảm bảo clear hoàn toàn
 
     try {
         // Load teams
@@ -923,8 +924,11 @@ async function loadMembers() {
             return;
         }
 
-        // Cache data
+        // Cache data - kiểm tra duplicate trước khi push
         snap.forEach(d => {
+            // Skip nếu đã có trong cache (tránh trùng lặp)
+            if (membersDataCache.some(m => m.id === d.id)) return;
+
             const u = d.data();
             const reg = regsMap[d.id] || {};
             membersDataCache.push({
@@ -973,6 +977,9 @@ async function loadMembers() {
                 </label>
                 <button class="btn btn-danger btn-sm" onclick="deleteSelectedMembers()" style="display:none;" id="btn-delete-selected">
                     <i class="fa-solid fa-trash"></i> Xóa đã chọn (<span id="selected-count">0</span>)
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="filterDuplicateMembers()" title="Tìm và xóa các bản ghi trùng lặp (cùng email hoặc MSSV)">
+                    <i class="fa-solid fa-filter-circle-xmark"></i> Lọc trùng
                 </button>
                 <div style="flex:1;"></div>
                 <select id="members-team-filter" onchange="filterMembersByTeam()" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
@@ -1101,6 +1108,80 @@ window.filterMembers = function () {
 
 window.filterMembersByTeam = function () {
     filterMembers(); // Reuse existing filter logic
+};
+
+// Lọc và xóa các bản ghi trùng lặp (cùng email hoặc MSSV)
+window.filterDuplicateMembers = async function () {
+    const emailMap = {};
+    const mssvMap = {};
+    const duplicates = [];
+
+    // Tìm duplicates
+    membersDataCache.forEach(m => {
+        // Check email duplicate
+        if (m.email && m.email.trim()) {
+            const emailKey = m.email.toLowerCase().trim();
+            if (emailMap[emailKey]) {
+                duplicates.push({ id: m.id, reason: 'email', value: m.email, name: m.name });
+            } else {
+                emailMap[emailKey] = m.id;
+            }
+        }
+
+        // Check MSSV duplicate
+        if (m.mssv && m.mssv.trim()) {
+            const mssvKey = m.mssv.toUpperCase().trim();
+            if (mssvMap[mssvKey]) {
+                duplicates.push({ id: m.id, reason: 'mssv', value: m.mssv, name: m.name });
+            } else {
+                mssvMap[mssvKey] = m.id;
+            }
+        }
+    });
+
+    if (duplicates.length === 0) {
+        await showAlert('Không tìm thấy bản ghi trùng lặp!', 'success', 'Hoàn thành');
+        return;
+    }
+
+    // Hiển thị danh sách trùng
+    const listHtml = duplicates.map(d =>
+        `• <strong>${d.name}</strong> (${d.reason}: ${d.value})`
+    ).join('<br>');
+
+    const confirmed = await Swal.fire({
+        title: `<i class="fa-solid fa-exclamation-triangle" style="color:#f59e0b;"></i> Tìm thấy ${duplicates.length} bản ghi trùng`,
+        html: `
+            <p style="margin-bottom:15px; color:#6b7280;">Các bản ghi sau bị trùng email/MSSV sẽ bị xóa:</p>
+            <div style="text-align:left; max-height:200px; overflow-y:auto; background:#fef3c7; padding:15px; border-radius:8px; font-size:13px;">
+                ${listHtml}
+            </div>
+            <p style="margin-top:15px; color:#dc2626; font-weight:600;">⚠️ Thao tác này không thể hoàn tác!</p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-trash"></i> Xóa tất cả trùng',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626',
+        width: 500
+    });
+
+    if (!confirmed.isConfirmed) return;
+
+    // Xóa từng bản ghi trùng
+    let deletedCount = 0;
+    for (const dup of duplicates) {
+        try {
+            await deleteDoc(doc(db, 'xtn_users', dup.id));
+            deletedCount++;
+        } catch (e) {
+            console.error('Delete duplicate error:', e);
+        }
+    }
+
+    await showAlert(`Đã xóa ${deletedCount}/${duplicates.length} bản ghi trùng!`, 'success', 'Hoàn thành');
+
+    // Reload danh sách
+    loadMembers();
 };
 
 // Update position → auto update role

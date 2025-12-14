@@ -403,18 +403,19 @@ function renderImageGrid(images, type, title) {
 // RENDER TEAM GALLERY
 // ============================================================
 function renderTeamGallery() {
+    // Danh sách đội hình từ xtn_teams (trừ Ban Chỉ huy)
     const teamList = [
-        { id: 'xuan-tu-hao', name: 'Xuân Tự hào' },
-        { id: 'xuan-ban-sac', name: 'Xuân Bản sắc' },
-        { id: 'xuan-se-chia', name: 'Xuân Sẻ chia' },
-        { id: 'xuan-gan-ket', name: 'Xuân Gắn kết' },
-        { id: 'xuan-chien-si', name: 'Xuân Chiến sĩ' },
-        { id: 'tet-van-minh', name: 'Tết Văn minh' },
-        { id: 'tu-van-phap-luat', name: 'Tư vấn Pháp luật' },
-        { id: 'giai-dieu-mua-xuan', name: 'Giai điệu Mùa Xuân' },
-        { id: 'vien-chuc-tre', name: 'Viên chức trẻ' },
-        { id: 'ky-su-tet', name: 'Ký sự Tết' },
-        { id: 'hau-can', name: 'Hậu cần' }
+        { id: 'xuan-tu-hao', name: 'Đội hình Xuân tự hào' },
+        { id: 'xuan-ban-sac', name: 'Đội hình Xuân bản sắc' },
+        { id: 'xuan-se-chia', name: 'Đội hình Xuân sẻ chia' },
+        { id: 'xuan-gan-ket', name: 'Đội hình Xuân gắn kết' },
+        { id: 'xuan-chien-si', name: 'Đội hình Xuân chiến sĩ' },
+        { id: 'tet-van-minh', name: 'Đội hình Tết văn minh' },
+        { id: 'giai-dieu-mua-xuan', name: 'Đội hình Giai điệu mùa xuân' },
+        { id: 'vien-chuc-tre', name: 'Đội hình Viên chức trẻ' },
+        { id: 'ky-su-tet', name: 'Đội hình Ký sự Tết' },
+        { id: 'hau-can', name: 'Đội hình Hậu cần' },
+        { id: 'tu-van-phap-luat', name: 'Đội hình Tư vấn và Giảng dạy pháp luật cộng đồng' }
     ];
 
     return `
@@ -435,8 +436,9 @@ function renderTeamGallery() {
 }
 
 function renderTeamImages(teamId) {
-    const team = teamImages[teamId] || { images: [] };
+    const team = teamImages[teamId] || { images: [], description: '' };
     const images = team.images || [];
+    const description = team.description || '';
 
     const gridHtml = images.length > 0
         ? images.map((url, idx) => `
@@ -460,13 +462,49 @@ function renderTeamImages(teamId) {
     return `
         <div class="media-grid">${gridHtml}</div>
         
+        <!-- Mô tả công việc với Rich Text Editor -->
+        <div class="add-media-form" style="margin-bottom: 20px; background: #fffbeb; border-color: #f59e0b;">
+            <h4 style="color: #b45309;"><i class="fa-solid fa-file-alt"></i> Mô tả công việc của đội</h4>
+            
+            <!-- Rich Text Toolbar -->
+            <div class="rich-editor-toolbar" style="display:flex; gap:5px; margin-bottom:8px; padding:8px; background:#fff; border:1px solid #fcd34d; border-radius:8px 8px 0 0; flex-wrap:wrap;">
+                <button type="button" class="editor-btn" data-cmd="bold" title="In đậm (Ctrl+B)" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer; font-weight:bold;">B</button>
+                <button type="button" class="editor-btn" data-cmd="italic" title="In nghiêng (Ctrl+I)" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer; font-style:italic;">I</button>
+                <button type="button" class="editor-btn" data-cmd="underline" title="Gạch chân (Ctrl+U)" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer; text-decoration:underline;">U</button>
+                <span style="width:1px; background:#ddd; margin:0 5px;"></span>
+                <label style="display:flex; align-items:center; gap:5px; padding:4px 8px; border:1px solid #ddd; border-radius:4px; cursor:pointer;">
+                    <i class="fa-solid fa-palette" style="color:#666;"></i>
+                    <input type="color" id="text-color-picker" value="#000000" style="width:24px; height:24px; border:none; cursor:pointer;">
+                </label>
+                <button type="button" class="editor-btn" data-cmd="removeFormat" title="Xóa định dạng" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer;">
+                    <i class="fa-solid fa-eraser"></i>
+                </button>
+            </div>
+            
+            <!-- Contenteditable Editor -->
+            <div id="team-description-editor" contenteditable="true" style="width:100%; min-height:120px; padding:12px; border:2px solid #fcd34d; border-top:none; border-radius:0 0 8px 8px; font-size:1rem; background:#fff; outline:none; line-height:1.6;" placeholder="Nhập mô tả công việc, nhiệm vụ của đội hình này...">${description}</div>
+            
+            <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+                <button id="btn-save-description" data-team="${teamId}" style="padding:10px 20px; background: linear-gradient(135deg, #f59e0b, #d97706); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">
+                    <i class="fa-solid fa-save"></i> Lưu mô tả
+                </button>
+                <span style="color:#666; font-size:0.85rem;"><i class="fa-solid fa-info-circle"></i> Hỗ trợ: <b>B</b>old, <i>I</i>talic, <u>U</u>nderline, Màu chữ</span>
+            </div>
+        </div>
+        
+        <!-- Thêm hình ảnh -->
         <div class="add-media-form">
             <h4><i class="fa-solid fa-plus-circle"></i> Thêm hình ảnh cho đội hình</h4>
-            <div class="add-media-row">
-                <input type="text" id="new-team-image-url" placeholder="Dán link Google Drive hoặc URL hình ảnh...">
-                <button id="btn-add-team-image" data-team="${teamId}">
-                    <i class="fa-solid fa-plus"></i> Thêm
+            <textarea id="new-team-image-url" rows="4" style="width:100%; padding:12px; border:2px solid #e5e7eb; border-radius:8px; font-size:1rem; resize:vertical;" placeholder="Dán nhiều link Google Drive, mỗi link 1 dòng..."></textarea>
+            <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+                <button id="btn-add-team-image" data-team="${teamId}" style="padding:12px 25px; background:linear-gradient(135deg, #16a34a, #15803d); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">
+                    <i class="fa-solid fa-plus"></i> Thêm tất cả
                 </button>
+                <span style="color:#666; font-size:0.9rem;">Hỗ trợ nhiều link cùng lúc!</span>
+            </div>
+            <div class="media-hint">
+                <i class="fa-solid fa-lightbulb"></i>
+                <strong>Hướng dẫn:</strong> Paste nhiều link Google Drive (mỗi link 1 dòng) - hệ thống sẽ tự động chuyển đổi! ✨
             </div>
         </div>
     `;
@@ -510,6 +548,32 @@ function attachEventListeners() {
     const addTeamBtn = document.getElementById('btn-add-team-image');
     if (addTeamBtn) {
         addTeamBtn.addEventListener('click', handleAddTeamImage);
+    }
+
+    // Save description button
+    const saveDescBtn = document.getElementById('btn-save-description');
+    if (saveDescBtn) {
+        saveDescBtn.addEventListener('click', handleSaveDescription);
+    }
+
+    // Rich Text Editor toolbar buttons
+    document.querySelectorAll('.editor-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const cmd = btn.dataset.cmd;
+            document.execCommand(cmd, false, null);
+            // Re-focus editor
+            document.getElementById('team-description-editor')?.focus();
+        });
+    });
+
+    // Color picker for text
+    const colorPicker = document.getElementById('text-color-picker');
+    if (colorPicker) {
+        colorPicker.addEventListener('input', (e) => {
+            document.execCommand('foreColor', false, e.target.value);
+            document.getElementById('team-description-editor')?.focus();
+        });
     }
 }
 
@@ -675,17 +739,25 @@ async function handleEditMedia(e) {
 }
 
 async function handleAddTeamImage(e) {
-    const teamId = e.target.dataset.team;
+    const teamId = e.target.closest('button')?.dataset?.team || e.target.dataset.team;
     const input = document.getElementById('new-team-image-url');
-    let url = input?.value?.trim();
+    const rawValue = input?.value?.trim();
 
-    if (!url) {
+    if (!rawValue) {
         if (window.showToast) showToast('Vui lòng nhập URL hình ảnh', 'warning');
         return;
     }
 
-    // Auto-convert Google Drive links
-    url = convertGoogleDriveUrl(url);
+    // Split by newlines to get multiple URLs
+    const urls = rawValue.split('\n')
+        .map(u => u.trim())
+        .filter(u => u.length > 0)
+        .map(u => convertGoogleDriveUrl(u));
+
+    if (urls.length === 0) {
+        if (window.showToast) showToast('Không tìm thấy URL hợp lệ', 'warning');
+        return;
+    }
 
     try {
         const teamRef = doc(db, COLLECTIONS.TEAM_GALLERY, teamId);
@@ -693,22 +765,50 @@ async function handleAddTeamImage(e) {
 
         // Use setDoc with merge to create or update
         await setDoc(teamRef, {
-            images: [...currentImages, url]
+            images: [...currentImages, ...urls]
         }, { merge: true });
 
         // Log activity
         activityLog.create('media_team_add', {
             teamId,
-            imageUrl: url.substring(0, 50) + '...'
+            count: urls.length
         });
 
         input.value = '';
         await loadAllMedia();
         document.getElementById('team-gallery-content').innerHTML = renderTeamImages(teamId);
         attachEventListeners();
-        if (window.showToast) showToast('Đã thêm hình ảnh!', 'success');
+        if (window.showToast) showToast(`Đã thêm ${urls.length} hình ảnh!`, 'success');
     } catch (error) {
         console.error('Add team image error:', error);
+        if (window.showToast) showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+// Handle save team description (with rich text HTML)
+async function handleSaveDescription(e) {
+    const teamId = e.target.closest('button')?.dataset?.team || e.target.dataset.team;
+    const editor = document.getElementById('team-description-editor');
+    const description = editor?.innerHTML?.trim() || '';
+
+    try {
+        const teamRef = doc(db, COLLECTIONS.TEAM_GALLERY, teamId);
+
+        // Use setDoc with merge to create or update
+        await setDoc(teamRef, {
+            description: description
+        }, { merge: true });
+
+        // Log activity
+        activityLog.update('media_team_description', {
+            teamId,
+            descriptionLength: description.length
+        });
+
+        await loadAllMedia();
+        if (window.showToast) showToast('Đã lưu mô tả công việc!', 'success');
+    } catch (error) {
+        console.error('Save description error:', error);
         if (window.showToast) showToast('Lỗi: ' + error.message, 'error');
     }
 }
