@@ -590,8 +590,10 @@ function setupMenuByRole() {
     // Hide owner-only items (Quản lý Tài khoản, Lịch sử hoạt động) by default
     document.querySelectorAll('.owner-only').forEach(el => el.classList.add('hidden'));
 
-    // Check if user is in Ký sự Tết team
-    const isKySuTetTeam = userData.team_id === 'ky-su-tet' || userData.team_id === 'kysutet';
+    // Check if user is in Ký sự Tết team (check multiple possible values)
+    const teamId = (userData.team_id || '').toLowerCase();
+    const isKySuTetTeam = teamId.includes('ky-su-tet') || teamId.includes('kysutet') || teamId.includes('ky_su_tet') || teamId === 'kst';
+    console.log('[Menu] team_id:', userData.team_id, '| isKySuTetTeam:', isKySuTetTeam);
 
     // Check if user is super owner (can see accounts + activity logs)
     const isSuperOwner = SUPER_OWNER_EMAILS.includes(email);
@@ -3154,7 +3156,12 @@ window.openEditAccountModal = async function (userId) {
         teamOptions += `<option value="${d.id}" ${isSelected}>${d.data().team_name || d.id}</option>`;
     });
 
-    // Role options
+    // Position options (chức vụ) - tự động tính role
+    const posOptions = POSITIONS_LIST.map(p =>
+        `<option value="${p}" ${acc.position === p ? 'selected' : ''}>${p}</option>`
+    ).join('');
+
+    // Role options (chỉ hiển thị, được tính từ position)
     const roleOptions = Object.keys(ROLE_CONFIG).map(r =>
         `<option value="${r}" ${acc.role === r ? 'selected' : ''}>${ROLE_CONFIG[r].label}</option>`
     ).join('');
@@ -3183,13 +3190,17 @@ window.openEditAccountModal = async function (userId) {
                 </div>
                 <div style="display:flex;gap:15px;margin-bottom:15px;">
                     <div style="flex:1;">
-                        <label style="display:block;margin-bottom:5px;font-weight:600;">Vai trò</label>
-                        <select id="swal-role" class="swal2-input" style="width:100%;margin:0;">${roleOptions}</select>
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">Chức vụ <span style="color:#10b981;font-size:11px;">(quyết định vai trò)</span></label>
+                        <select id="swal-position" class="swal2-input" style="width:100%;margin:0;" onchange="updateRoleFromPosition()">${posOptions}</select>
                     </div>
                     <div style="flex:1;">
-                        <label style="display:block;margin-bottom:5px;font-weight:600;">Đội hình</label>
-                        <select id="swal-team" class="swal2-input" style="width:100%;margin:0;">${teamOptions}</select>
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">Vai trò <span style="color:#6b7280;font-size:11px;">(tự động)</span></label>
+                        <select id="swal-role" class="swal2-input" style="width:100%;margin:0;background:#f3f4f6;" disabled>${roleOptions}</select>
                     </div>
+                </div>
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:600;">Đội hình</label>
+                    <select id="swal-team" class="swal2-input" style="width:100%;margin:0;">${teamOptions}</select>
                 </div>
             </div>
         `,
@@ -3199,12 +3210,24 @@ window.openEditAccountModal = async function (userId) {
         cancelButtonText: 'Hủy',
         confirmButtonColor: '#10b981',
         focusConfirm: false,
+        didOpen: () => {
+            // Initial role calculation
+            window.updateRoleFromPosition = function () {
+                const pos = document.getElementById('swal-position').value;
+                const role = POSITION_TO_ROLE[pos] || 'member';
+                document.getElementById('swal-role').value = role;
+            };
+            updateRoleFromPosition();
+        },
         preConfirm: () => {
+            const position = document.getElementById('swal-position').value;
+            const role = POSITION_TO_ROLE[position] || 'member';
             return {
                 name: document.getElementById('swal-name').value.trim(),
                 mssv: document.getElementById('swal-mssv').value.trim(),
                 phone: document.getElementById('swal-phone').value.trim(),
-                role: document.getElementById('swal-role').value,
+                position: position,
+                role: role,
                 team_id: document.getElementById('swal-team').value
             };
         }

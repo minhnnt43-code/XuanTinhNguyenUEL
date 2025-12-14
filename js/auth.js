@@ -428,13 +428,9 @@ function onAuthChange(callback) {
                 };
                 await setDoc(doc(db, "xtn_users", user.uid), userData);
                 console.log("✅ Created new super_admin:", user.email);
-            } else if (!shouldBeSuperAdmin && userData && userData.role === ROLES.SUPER_ADMIN) {
-                // HẠ CẤP: User có role super_admin nhưng không nên có
-                console.log("🔐 [Auth] Downgrading from super_admin to member...");
-                await setDoc(doc(db, "xtn_users", user.uid), { role: ROLES.MEMBER }, { merge: true });
-                userData.role = ROLES.MEMBER;
-                console.log("⚠️ Auto-downgraded to member:", user.email);
             }
+            // ĐÃ XÓA logic auto-downgrade: Giữ nguyên role từ Firestore
+            // Role do super_admin phân sẽ được tôn trọng
 
             if (userData) {
                 userRole = userData.role;
