@@ -983,6 +983,9 @@ async function loadMembers() {
                 <button class="btn btn-warning btn-sm" onclick="filterDuplicateMembers()" title="Tìm và xóa các bản ghi trùng lặp (cùng email hoặc MSSV)">
                     <i class="fa-solid fa-filter-circle-xmark"></i> Lọc trùng
                 </button>
+                <button class="btn btn-info btn-sm" onclick="syncAllRolesFromPosition()" title="Đồng bộ role từ chức vụ (position) cho tất cả chiến sĩ" style="background:#3b82f6;border-color:#3b82f6;color:white;">
+                    <i class="fa-solid fa-sync"></i> Đồng bộ Role
+                </button>
                 <div style="flex:1;"></div>
                 <select id="members-team-filter" onchange="filterMembersByTeam()" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                     ${teamFilterOptions}
@@ -1183,6 +1186,67 @@ window.filterDuplicateMembers = async function () {
     await showAlert(`Đã xóa ${deletedCount}/${duplicates.length} bản ghi trùng!`, 'success', 'Hoàn thành');
 
     // Reload danh sách
+    loadMembers();
+};
+
+// Đồng bộ TẤT CẢ role từ position (sửa dữ liệu cũ bị sai)
+window.syncAllRolesFromPosition = async function () {
+    const confirmed = await Swal.fire({
+        title: '<i class="fa-solid fa-sync" style="color:#3b82f6;"></i> Đồng bộ Role theo Position',
+        html: `
+            <p style="margin-bottom:15px; color:#6b7280;">Hệ thống sẽ cập nhật <strong>role</strong> của TẤT CẢ chiến sĩ dựa trên <strong>chức vụ (position)</strong>.</p>
+            <div style="text-align:left; background:#f0f9ff; padding:15px; border-radius:8px; font-size:13px;">
+                <strong>Mapping:</strong><br>
+                ${Object.entries(POSITION_TO_ROLE).map(([pos, role]) =>
+            `• ${pos} → <code>${role}</code>`
+        ).join('<br>')}
+            </div>
+            <p style="margin-top:15px; color:#f59e0b;">⚠️ Thao tác này sẽ ghi đè role hiện tại!</p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-sync"></i> Đồng bộ tất cả',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#3b82f6',
+        width: 500
+    });
+
+    if (!confirmed.isConfirmed) return;
+
+    // Show loading
+    Swal.fire({
+        title: 'Đang đồng bộ...',
+        html: '<i class="fa-solid fa-spinner fa-spin"></i> Vui lòng chờ',
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+
+    let updatedCount = 0;
+    let errorCount = 0;
+
+    for (const member of membersDataCache) {
+        const position = member.position || 'Chiến sĩ';
+        const newRole = POSITION_TO_ROLE[position] || 'member';
+
+        // Chỉ update nếu role khác
+        if (member.role !== newRole) {
+            try {
+                await setDoc(doc(db, 'xtn_users', member.id), {
+                    position: position,
+                    role: newRole
+                }, { merge: true });
+                member.role = newRole;
+                updatedCount++;
+            } catch (e) {
+                console.error('Sync role error:', member.id, e);
+                errorCount++;
+            }
+        }
+    }
+
+    Swal.close();
+    await showAlert(`Đã đồng bộ ${updatedCount} tài khoản!${errorCount > 0 ? ` (${errorCount} lỗi)` : ''}`, 'success', 'Hoàn thành');
+
+    // Reload
     loadMembers();
 };
 

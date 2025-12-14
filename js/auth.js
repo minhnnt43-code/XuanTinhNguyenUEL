@@ -160,6 +160,7 @@ async function getUserData(uid) {
 
 /**
  * Tạo/cập nhật thông tin user trong Firestore
+ * Ưu tiên tìm record theo EMAIL để giữ role/position admin đã set
  */
 async function saveUserData(user, additionalData = {}) {
     try {
@@ -175,16 +176,43 @@ async function saveUserData(user, additionalData = {}) {
             last_login: new Date().toISOString(),
         };
 
-        // Kiểm tra xem user đã tồn tại chưa
-        const existingData = await getUserData(user.uid);
+        // Kiểm tra xem user đã tồn tại theo UID chưa
+        const existingDataByUid = await getUserData(user.uid);
+
+        // QUAN TRỌNG: Tìm record theo EMAIL (trường hợp admin đã tạo trước)
+        let existingDataByEmail = null;
+        let existingDocIdByEmail = null;
+        try {
+            const { query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            const emailQuery = query(collection(db, 'xtn_users'), where('email', '==', user.email));
+            const emailSnap = await getDocs(emailQuery);
+
+            emailSnap.forEach(docSnap => {
+                // Tìm record có email trùng nhưng UID khác
+                if (docSnap.id !== user.uid) {
+                    existingDataByEmail = docSnap.data();
+                    existingDocIdByEmail = docSnap.id;
+                    console.log('🔍 [Auth] Found existing record by email:', user.email, '| Old UID:', docSnap.id);
+                }
+            });
+        } catch (e) {
+            console.warn('[Auth] Could not search by email:', e);
+        }
+
+        // Quyết định nguồn dữ liệu: ưu tiên record admin đã tạo (by email)
+        const existingData = existingDataByEmail || existingDataByUid;
+
         if (existingData) {
             // Giữ lại team nếu đã có
             userData.team_id = existingData.team_id || null;
 
+            // Giữ lại position nếu admin đã set
+            if (existingData.position) {
+                userData.position = existingData.position;
+            }
+
             // Nếu user đã có tên (đã được convert hoặc tự sửa), không ghi đè
-            // Chỉ convert nếu tên hiện tại giống tên gốc Google (chưa được sửa)
             if (existingData.name && existingData.name !== existingData.original_google_name) {
-                // User đã tự sửa tên - giữ nguyên
                 userData.name = existingData.name;
             }
 
@@ -193,9 +221,15 @@ async function saveUserData(user, additionalData = {}) {
                 userData.role = additionalData.role;
             } else {
                 userData.role = existingData.role || ROLES.MEMBER;
+                console.log('✅ [Auth] Using existing role from admin:', userData.role);
             }
+
+            // Giữ các field khác từ record cũ
+            if (existingData.mssv) userData.mssv = existingData.mssv;
+            if (existingData.phone) userData.phone = existingData.phone;
+            if (existingData.faculty) userData.faculty = existingData.faculty;
         } else {
-            // User mới
+            // User mới hoàn toàn
             userData.team_id = null;
             userData.created_at = new Date().toISOString();
 
@@ -211,7 +245,20 @@ async function saveUserData(user, additionalData = {}) {
         const { role, ...otherData } = additionalData;
         Object.assign(userData, otherData);
 
+        // Lưu vào record với UID thật
         await setDoc(doc(db, "xtn_users", user.uid), userData, { merge: true });
+
+        // XÓA record cũ (theo email) nếu tồn tại và UID khác
+        if (existingDocIdByEmail && existingDocIdByEmail !== user.uid) {
+            try {
+                const { deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                await deleteDoc(doc(db, 'xtn_users', existingDocIdByEmail));
+                console.log('🗑️ [Auth] Deleted duplicate record:', existingDocIdByEmail);
+            } catch (e) {
+                console.warn('[Auth] Could not delete old record:', e);
+            }
+        }
+
         return userData;
     } catch (error) {
         console.error("Lỗi lưu thông tin user:", error);
