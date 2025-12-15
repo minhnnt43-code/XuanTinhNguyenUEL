@@ -894,7 +894,7 @@ async function loadMembers() {
     list.innerHTML = '<p style="text-align:center;color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</p>';
     selectedMembers.clear();
     membersDataCache = [];
-    membersDataCache.length = 0; // Đảm bảo clear hoàn toàn
+    membersDataCache.length = 0;
 
     try {
         // Load teams
@@ -906,39 +906,33 @@ async function loadMembers() {
             teamsListCache.push({ id: d.id, name: d.data().team_name || d.id });
         });
 
-        // Load registrations
-        const regsSnap = await getDocs(collection(db, 'xtn_registrations'));
-        const regsMap = {};
-        regsSnap.forEach(d => {
-            const r = d.data();
-            regsMap[r.user_id] = r;
-        });
+        // ========== QUERY TỪ XTN_USERS (Danh sách chiến sĩ) ==========
+        const usersSnap = await getDocs(collection(db, 'xtn_users'));
 
-        // Load all users (not just members)
-        const snap = await getDocs(collection(db, 'xtn_users'));
-
-        if (snap.empty) {
-            list.innerHTML = '<p style="text-align:center;color:#888;">Chưa có chiến sĩ</p>';
+        if (usersSnap.empty) {
+            list.innerHTML = '<p style="text-align:center;color:#888;">Chưa có chiến sĩ. Hãy import hoặc thêm mới.</p>';
             return;
         }
 
-        // Cache data - kiểm tra duplicate trước khi push
-        snap.forEach(d => {
-            // Skip nếu đã có trong cache (tránh trùng lặp)
-            if (membersDataCache.some(m => m.id === d.id)) return;
+        console.log('[Members] Loading from xtn_users:', usersSnap.size, 'documents');
 
+        usersSnap.forEach(d => {
+            if (membersDataCache.some(m => m.id === d.id)) return;
             const u = d.data();
-            const reg = regsMap[d.id] || {};
+            // Chỉ lấy những người có role không phải pending
+            if (u.role === 'pending') return;
+
             membersDataCache.push({
                 id: d.id,
                 name: u.name || '',
-                mssv: u.mssv || reg.student_id || '',
+                mssv: u.mssv || '',
                 email: u.email || '',
-                phone: u.phone || reg.phone || '',
-                faculty: u.faculty || reg.faculty || '',
+                phone: u.phone || '',
+                faculty: u.faculty || '',
                 position: u.position || 'Chiến sĩ',
                 role: u.role || 'member',
-                team_id: u.team_id || reg.preferred_team || ''
+                team_id: u.team_id || '',
+                uid: u.uid || d.id
             });
         });
 
@@ -981,6 +975,9 @@ async function loadMembers() {
                 </button>
                 <button class="btn btn-info btn-sm" onclick="syncAllRolesFromPosition()" title="Đồng bộ role từ chức vụ (position) cho tất cả chiến sĩ" style="background:#3b82f6;border-color:#3b82f6;color:white;">
                     <i class="fa-solid fa-sync"></i> Đồng bộ Role
+                </button>
+                <button class="btn btn-sm" onclick="migrateToMembersCollection()" title="MIGRATE: Copy dữ liệu từ xtn_users sang xtn_members (chỉ chạy 1 lần)" style="background:#8b5cf6;border-color:#8b5cf6;color:white;">
+                    <i class="fa-solid fa-database"></i> Migrate Data
                 </button>
                 <div style="flex:1;"></div>
                 <select id="members-team-filter" onchange="filterMembersByTeam()" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
@@ -1246,11 +1243,123 @@ window.syncAllRolesFromPosition = async function () {
     loadMembers();
 };
 
+// ========== MIGRATION SCRIPT: xtn_users → xtn_members ==========
+window.migrateToMembersCollection = async function () {
+    // Xác nhận trước
+    const confirmed = await showConfirm(
+        `Bạn có chắc muốn MIGRATE dữ liệu từ xtn_users sang xtn_members?\n\nĐiều này sẽ:\n• Copy tất cả user có role KHÔNG phải "pending" sang xtn_members\n• Giữ nguyên xtn_users (không xóa)\n• KHÔNG copy user mới đăng ký chưa được duyệt`,
+        'Migration Data'
+    );
+
+    if (!confirmed) return;
+
+    // Hiển thị loading
+    Swal.fire({
+        title: 'Đang migrate dữ liệu...',
+        html: '<div id="migrate-progress">0%</div>',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // Load từ xtn_users
+        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        const total = usersSnap.size;
+        let migratedCount = 0;
+        let skippedCount = 0;
+        let errorCount = 0;
+        let current = 0;
+
+        console.log('[Migration] Starting migration of', total, 'users');
+
+        for (const docSnap of usersSnap.docs) {
+            current++;
+            const userData = docSnap.data();
+            const email = userData.email;
+
+            // Update progress
+            document.getElementById('migrate-progress').innerHTML =
+                `${Math.round(current / total * 100)}% (${current}/${total})`;
+
+            // Skip nếu không có email
+            if (!email) {
+                console.log('[Migration] Skipped (no email):', docSnap.id);
+                skippedCount++;
+                continue;
+            }
+
+            // Skip nếu role là pending (user mới đăng ký)
+            if (!userData.role || userData.role === 'pending') {
+                console.log('[Migration] Skipped (pending):', email);
+                skippedCount++;
+                continue;
+            }
+
+            try {
+                // Tạo document ID từ email
+                const emailDocId = email.replace(/[.#$[\]]/g, '_');
+
+                // Check xem đã có trong xtn_members chưa
+                const existingMember = await getDoc(doc(db, 'xtn_members', emailDocId));
+
+                if (existingMember.exists()) {
+                    console.log('[Migration] Already exists in members:', email);
+                    skippedCount++;
+                    continue;
+                }
+
+                // Copy sang xtn_members
+                await setDoc(doc(db, 'xtn_members', emailDocId), {
+                    email: email,
+                    name: userData.name || '',
+                    mssv: userData.mssv || '',
+                    phone: userData.phone || '',
+                    faculty: userData.faculty || '',
+                    position: userData.position || 'Chiến sĩ',
+                    role: userData.role || 'member',
+                    team_id: userData.team_id || '',
+                    status: 'active',
+                    migrated_from: docSnap.id,  // Lưu lại ID cũ
+                    migrated_at: new Date().toISOString()
+                });
+
+                console.log('[Migration] Migrated:', email, '→', emailDocId);
+                migratedCount++;
+
+            } catch (e) {
+                console.error('[Migration] Error migrating:', email, e);
+                errorCount++;
+            }
+        }
+
+        Swal.close();
+
+        await showAlert(
+            `Migration hoàn tất!\n\n✅ Đã migrate: ${migratedCount}\n⏭️ Đã bỏ qua: ${skippedCount}\n❌ Lỗi: ${errorCount}`,
+            migratedCount > 0 ? 'success' : 'info',
+            'Kết quả Migration'
+        );
+
+        // Reload members
+        loadMembers();
+
+    } catch (error) {
+        Swal.close();
+        console.error('[Migration] Fatal error:', error);
+        await showAlert('Lỗi migration: ' + error.message, 'error', 'Lỗi');
+    }
+};
+
 // Update position → auto update role
 window.updateMemberPosition = async function (userId, position) {
     const role = POSITION_TO_ROLE[position] || 'member';
     try {
-        await setDoc(doc(db, 'xtn_users', userId), { position, role }, { merge: true });
+        // Update trong XTN_MEMBERS
+        await setDoc(doc(db, 'xtn_members', userId), {
+            position,
+            role
+        }, { merge: true });
         // Update cache
         const m = membersDataCache.find(x => x.id === userId);
         if (m) { m.position = position; m.role = role; }
@@ -1410,7 +1519,8 @@ window.editMember = async function (userId) {
             const oldTeamId = m.team_id;
             const newTeamId = formValues.team_id;
 
-            await setDoc(doc(db, 'xtn_users', userId), formValues, { merge: true });
+            // Update trong XTN_MEMBERS (whitelist)
+            await setDoc(doc(db, 'xtn_members', userId), formValues, { merge: true });
 
             // Sync 2 chiều: cập nhật stats đội hình nếu đổi đội
             if (oldTeamId !== newTeamId) {
@@ -1974,16 +2084,15 @@ async function confirmImport() {
 
         for (const row of pendingImportData) {
             try {
-                // Check if email exists
+                // Check if email exists in xtn_members
                 const existing = await getDocs(
-                    query(collection(db, 'xtn_users'), where('email', '==', row.email))
+                    query(collection(db, 'xtn_members'), where('email', '==', row.email))
                 );
 
                 if (existing.empty) {
-                    // Add new user với email làm document ID (để login có thể migrate)
-                    // Dùng email làm ID vì chưa biết UID cho đến khi user login
+                    // Add vào XTN_MEMBERS (whitelist)
                     const emailDocId = row.email.replace(/[.#$[\]]/g, '_');
-                    await setDoc(doc(db, 'xtn_users', emailDocId), {
+                    await setDoc(doc(db, 'xtn_members', emailDocId), {
                         ...row,
                         role: 'member',
                         status: 'active',
@@ -2314,9 +2423,9 @@ async function handleAddMember(e) {
     }
 
     try {
-        // Check if email already exists
+        // Check if email already exists in xtn_members
         const existingSnap = await getDocs(
-            query(collection(db, 'xtn_users'), where('email', '==', email))
+            query(collection(db, 'xtn_members'), where('email', '==', email))
         );
 
         if (!existingSnap.empty) {
@@ -2353,25 +2462,27 @@ async function handleAddMember(e) {
                 return;
             }
 
-            // Xóa tất cả documents có email này
+            // Xóa tất cả documents có email này trong xtn_members
             console.log('[AddMember] Đang xóa documents cũ với email:', email);
             for (const docSnap of existingSnap.docs) {
-                await deleteDoc(doc(db, 'xtn_users', docSnap.id));
+                await deleteDoc(doc(db, 'xtn_members', docSnap.id));
                 console.log('[AddMember] Đã xóa document:', docSnap.id);
             }
         }
 
-        // Add new member với email làm document ID (khi user login, UID doc sẽ merge từ đây)
+        // Add new member vào XTN_MEMBERS (whitelist)
         const emailDocId = email.replace(/[.#$[\]]/g, '_');
-        await setDoc(doc(db, 'xtn_users', emailDocId), {
+        await setDoc(doc(db, 'xtn_members', emailDocId), {
             name,
             mssv: mssv || '',
             email,
             phone: phone || '',
             team_id: teamId || '',
             role,
+            position: 'Chiến sĩ',
             status: 'active',
-            created_at: serverTimestamp()
+            created_at: serverTimestamp(),
+            created_by: 'admin'
         });
 
         closeAddMemberModal();
@@ -3010,19 +3121,21 @@ async function loadAccounts() {
             });
         }
 
-        // Load all users (filter later on client-side to handle undefined roles)
+        // ========== QUERY TỪ XTN_ACCOUNTS (SINH VIÊN ĐĂNG NHẬP) ==========
+        // Đây là những người đã login nhưng KHÔNG phải chiến sĩ chính thức
         const filterRole = document.getElementById('accounts-filter-role')?.value || '';
-        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        const accountsSnap = await getDocs(collection(db, 'xtn_accounts'));
         let pendingCount = 0;
 
-        usersSnap.forEach(d => {
+        console.log('[Accounts] Loading from xtn_accounts:', accountsSnap.size, 'documents');
+
+        accountsSnap.forEach(d => {
             const data = d.data();
             const userRole = data.role && data.role !== '' ? data.role : 'pending';
+            const userStatus = data.status || 'pending';
 
             // Client-side filter
             if (filterRole && userRole !== filterRole) {
-                // Skip users that don't match filter
-                // Special case: "pending" filter should include undefined/empty roles
                 if (filterRole === 'pending' && (data.role === undefined || data.role === '' || data.role === null)) {
                     // Include this user
                 } else {
@@ -3035,18 +3148,21 @@ async function loadAccounts() {
                 name: data.name || 'Chưa có tên',
                 email: data.email || '',
                 role: userRole,
+                status: userStatus,
                 team_id: data.team_id || '',
                 team_name: teamsMap[data.team_id] || '',
                 mssv: data.mssv || '',
                 phone: data.phone || '',
                 created_at: data.created_at
             });
-            if (userRole === 'pending') pendingCount++;
+            if (userRole === 'pending' || userStatus === 'pending') pendingCount++;
         });
 
         // Update stats
-        document.getElementById('accounts-total-count').textContent = accountsDataCache.length;
-        document.getElementById('accounts-pending-count').textContent = pendingCount;
+        const totalEl = document.getElementById('accounts-total-count');
+        const pendingEl = document.getElementById('accounts-pending-count');
+        if (totalEl) totalEl.textContent = accountsDataCache.length;
+        if (pendingEl) pendingEl.textContent = pendingCount;
 
         // Render table
         renderAccountsTable();

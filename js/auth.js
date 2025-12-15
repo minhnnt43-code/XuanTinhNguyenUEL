@@ -159,107 +159,71 @@ async function getUserData(uid) {
 }
 
 /**
- * Tạo/cập nhật thông tin user trong Firestore
- * Ưu tiên tìm record theo EMAIL để giữ role/position admin đã set
+ * Kiểm tra user trong danh sách chiến sĩ (xtn_users)
+ * - Nếu CÓ → cho vào, giữ nguyên role
+ * - Nếu KHÔNG → trả về null (từ chối)
  */
 async function saveUserData(user, additionalData = {}) {
     try {
-        // Convert tên từ Google format sang Vietnamese format
+        const { query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
         const originalName = user.displayName || user.email.split('@')[0];
         const convertedName = convertToVietnameseName(originalName);
+        const email = user.email;
+        const uid = user.uid;
 
-        const userData = {
-            email: user.email,
-            name: convertedName,
-            original_google_name: originalName, // Giữ lại tên gốc để tham khảo
-            avatar_url: null,  // Không lấy ảnh từ Google
-            last_login: new Date().toISOString(),
-        };
+        console.log('🔐 [Auth] Processing login for:', email);
 
-        // Kiểm tra xem user đã tồn tại theo UID chưa
-        const existingDataByUid = await getUserData(user.uid);
+        // ===== CHECK XTN_USERS (Danh sách chiến sĩ) =====
+        let memberData = null;
+        let memberDocId = null;
 
-        // QUAN TRỌNG: Tìm record theo EMAIL (trường hợp admin đã tạo trước)
-        let existingDataByEmail = null;
-        let existingDocIdByEmail = null;
         try {
-            const { query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-            const emailQuery = query(collection(db, 'xtn_users'), where('email', '==', user.email));
-            const emailSnap = await getDocs(emailQuery);
+            // Tìm theo email
+            const usersQuery = query(collection(db, 'xtn_users'), where('email', '==', email));
+            const usersSnap = await getDocs(usersQuery);
 
-            emailSnap.forEach(docSnap => {
-                // Tìm record có email trùng nhưng UID khác
-                if (docSnap.id !== user.uid) {
-                    existingDataByEmail = docSnap.data();
-                    existingDocIdByEmail = docSnap.id;
-                    console.log('🔍 [Auth] Found existing record by email:', user.email, '| Old UID:', docSnap.id);
-                }
-            });
+            if (!usersSnap.empty) {
+                const userDoc = usersSnap.docs[0];
+                memberData = userDoc.data();
+                memberDocId = userDoc.id;
+                console.log('✅ [Auth] Found in xtn_users:', email, '| Role:', memberData.role);
+            }
         } catch (e) {
-            console.warn('[Auth] Could not search by email:', e);
+            console.warn('[Auth] Could not check xtn_users:', e);
         }
 
-        // Quyết định nguồn dữ liệu: ưu tiên record admin đã tạo (by email)
-        const existingData = existingDataByEmail || existingDataByUid;
+        // ===== XỬ LÝ KẾT QUẢ =====
 
-        if (existingData) {
-            // Giữ lại team nếu đã có
-            userData.team_id = existingData.team_id || null;
+        if (memberData) {
+            // ✅ USER LÀ CHIẾN SĨ - cập nhật login info
+            const updateData = {
+                uid: uid,
+                last_login: new Date().toISOString(),
+                login_count: (memberData.login_count || 0) + 1
+            };
 
-            // Giữ lại position nếu admin đã set
-            if (existingData.position) {
-                userData.position = existingData.position;
+            // Cập nhật tên nếu chưa có
+            if (!memberData.name || memberData.name === memberData.original_google_name) {
+                updateData.name = convertedName;
+                updateData.original_google_name = originalName;
             }
 
-            // Nếu user đã có tên (đã được convert hoặc tự sửa), không ghi đè
-            if (existingData.name && existingData.name !== existingData.original_google_name) {
-                userData.name = existingData.name;
-            }
+            // Lưu vào xtn_users
+            await setDoc(doc(db, 'xtn_users', memberDocId), updateData, { merge: true });
+            console.log('📝 [Auth] Updated login info');
 
-            // Ưu tiên role từ additionalData (super_admin check) > existingData > MEMBER
-            if (additionalData.role) {
-                userData.role = additionalData.role;
-            } else {
-                userData.role = existingData.role || ROLES.MEMBER;
-                console.log('✅ [Auth] Using existing role from admin:', userData.role);
-            }
+            return {
+                ...memberData,
+                ...updateData
+            };
 
-            // Giữ các field khác từ record cũ
-            if (existingData.mssv) userData.mssv = existingData.mssv;
-            if (existingData.phone) userData.phone = existingData.phone;
-            if (existingData.faculty) userData.faculty = existingData.faculty;
         } else {
-            // User mới hoàn toàn
-            userData.team_id = null;
-            userData.created_at = new Date().toISOString();
-
-            // Ưu tiên role từ additionalData (super_admin check) > PENDING
-            if (additionalData.role) {
-                userData.role = additionalData.role;
-            } else {
-                userData.role = ROLES.PENDING;
-            }
+            // ❌ KHÔNG PHẢI CHIẾN SĨ
+            console.log('❌ [Auth] Not in xtn_users:', email);
+            return null;
         }
 
-        // Merge các data khác (trừ role đã xử lý riêng)
-        const { role, ...otherData } = additionalData;
-        Object.assign(userData, otherData);
-
-        // Lưu vào record với UID thật
-        await setDoc(doc(db, "xtn_users", user.uid), userData, { merge: true });
-
-        // XÓA record cũ (theo email) nếu tồn tại và UID khác
-        if (existingDocIdByEmail && existingDocIdByEmail !== user.uid) {
-            try {
-                const { deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                await deleteDoc(doc(db, 'xtn_users', existingDocIdByEmail));
-                console.log('🗑️ [Auth] Deleted duplicate record:', existingDocIdByEmail);
-            } catch (e) {
-                console.warn('[Auth] Could not delete old record:', e);
-            }
-        }
-
-        return userData;
     } catch (error) {
         console.error("Lỗi lưu thông tin user:", error);
         throw error;
@@ -444,6 +408,7 @@ async function logout() {
 
 /**
  * Lắng nghe trạng thái đăng nhập
+ * SIMPLIFIED: Chỉ cho phép người trong xtn_members/xtn_users vào
  */
 function onAuthChange(callback) {
     return onAuthStateChanged(auth, async (user) => {
@@ -451,38 +416,66 @@ function onAuthChange(callback) {
             currentUser = user;
             console.log("🔐 [Auth] User logged in:", user.email);
 
-            let userData = await getUserData(user.uid);
-            console.log("🔐 [Auth] userData from Firestore:", userData);
+            // ===== KIỂM TRA CHIẾN SĨ =====
+            // saveUserData sẽ check xtn_members/xtn_users
+            // Trả về null nếu không phải chiến sĩ
+            let userData = null;
+            try {
+                userData = await saveUserData(user);
+            } catch (e) {
+                console.error("[Auth] Error in saveUserData:", e);
+            }
+
+            // Nếu không tìm thấy trong danh sách chiến sĩ
+            if (!userData) {
+                console.log("❌ [Auth] User not in members list, rejecting...");
+
+                // Hiện thông báo từ chối
+                if (typeof Swal !== 'undefined') {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Không có quyền truy cập',
+                        html: `
+                            <div style="text-align:center;">
+                                <p style="font-size:16px; margin-bottom:15px;">
+                                    <strong>Bạn không phải chiến sĩ Xuân tình nguyện UEL 2026</strong>
+                                </p>
+                                <p style="color:#666; font-size:14px;">
+                                    Email: <code>${user.email}</code>
+                                </p>
+                                <p style="color:#888; font-size:13px; margin-top:15px;">
+                                    Nếu bạn là chiến sĩ, vui lòng liên hệ Ban Chỉ huy để được thêm vào hệ thống.
+                                </p>
+                            </div>
+                        `,
+                        confirmButtonText: 'Đóng',
+                        confirmButtonColor: '#dc2626',
+                        allowOutsideClick: false
+                    });
+                } else {
+                    alert("Bạn không phải chiến sĩ Xuân tình nguyện UEL 2026");
+                }
+
+                // Đăng xuất
+                await signOut(auth);
+                currentUser = null;
+                userRole = null;
+                userTeam = null;
+                callback(null, null);
+                return;
+            }
+
+            console.log("🔐 [Auth] userData:", userData);
 
             // Kiểm tra và cập nhật Super Admin role nếu cần
             const shouldBeSuperAdmin = await checkSuperAdmin(user.email);
-            console.log("🔐 [Auth] shouldBeSuperAdmin:", shouldBeSuperAdmin, "| current role:", userData?.role);
-
-            if (shouldBeSuperAdmin && userData && userData.role !== ROLES.SUPER_ADMIN) {
-                // Cập nhật role lên super_admin
+            if (shouldBeSuperAdmin && userData.role !== ROLES.SUPER_ADMIN) {
                 console.log("🔐 [Auth] Upgrading to super_admin...");
-                await setDoc(doc(db, "xtn_users", user.uid), { role: ROLES.SUPER_ADMIN }, { merge: true });
                 userData.role = ROLES.SUPER_ADMIN;
-                console.log("✅ Auto-upgraded to super_admin:", user.email);
-            } else if (shouldBeSuperAdmin && !userData) {
-                // User chưa có trong database - tạo mới với role super_admin
-                console.log("🔐 [Auth] Creating new super_admin user...");
-                userData = {
-                    email: user.email,
-                    name: user.displayName || user.email.split('@')[0],
-                    role: ROLES.SUPER_ADMIN,
-                    created_at: new Date().toISOString()
-                };
-                await setDoc(doc(db, "xtn_users", user.uid), userData);
-                console.log("✅ Created new super_admin:", user.email);
             }
-            // ĐÃ XÓA logic auto-downgrade: Giữ nguyên role từ Firestore
-            // Role do super_admin phân sẽ được tôn trọng
 
-            if (userData) {
-                userRole = userData.role;
-                userTeam = userData.team_id;
-            }
+            userRole = userData.role;
+            userTeam = userData.team_id;
             callback(user, userData);
         } else {
             currentUser = null;

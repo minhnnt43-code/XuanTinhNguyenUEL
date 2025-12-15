@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuân Tình Nguyện UEL 2026 - Sắp Ra Mắt!</title>
+    <link rel="icon" type="image/png" href="images/logoxtn.png">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Merriweather:wght@700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/animations.css">
+
+    <!-- AOS - Animate on Scroll -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!-- Toast Notification System -->
+    <script src="js/toast.js"></script>
+
+    <style>
+        /* Coming Soon Badge */
+        .coming-soon-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            z-index: 9999;
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+            animation: pulse-badge 2s infinite;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @keyframes pulse-badge {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Hide login button */
+        .nav-links {
+            display: none !important;
+        }
+
+        /* Coming Soon Modal */
+        .coming-soon-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .coming-soon-modal.active {
+            display: flex;
+        }
+
+        .coming-soon-content {
+            background: white;
+            border: 3px solid #dc2626;
+            border-radius: 20px;
+            padding: 45px 50px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            color: #1f2937;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+            animation: modalPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalPopIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .coming-soon-content .modal-icon {
+            margin: 0 auto 25px;
+            text-align: center;
+        }
+
+        .coming-soon-content .modal-icon img {
+            width: 80px;
+            height: auto;
+        }
+
+        .coming-soon-content h2 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            color: #166534;
+            font-weight: 700;
+        }
+
+        .coming-soon-content .modal-desc {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+
+        .coming-soon-content .modal-highlight {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 25px;
+        }
+
+        .coming-soon-content .modal-highlight strong {
+            color: #166534;
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .coming-soon-content .modal-highlight span {
+            color: #4b5563;
+            font-size: 0.95rem;
+        }
+
+        .coming-soon-content .social-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .coming-soon-content .social-link:hover {
+            text-decoration: underline;
+        }
+
+        .coming-soon-content .btn-close-modal {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .coming-soon-content .btn-close-modal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(22, 163, 74, 0.4);
+        }
+
+        /* Button JD (Mô tả hoạt động) - Style đỏ */
+        .btn-cta.btn-jd {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: #fff;
+            border: 2px solid #fff;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+            text-decoration: none;
+        }
+
+        .btn-cta.btn-jd:hover {
+            background: linear-gradient(135deg, #b91c1c, #991b1b);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(220, 38, 38, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Coming Soon Badge -->
+    <div class="coming-soon-badge">
+        <i class="fa-solid fa-clock"></i>
+        SẮP RA MẮT!
+    </div>
+
+    <!-- Coming Soon Modal -->
+    <div class="coming-soon-modal" id="comingSoonModal">
+        <div class="coming-soon-content">
+            <div class="modal-icon">
+                <img src="images/bieutrungxtn.png" alt="XTN" style="width: 250px; height: auto;">
+            </div>
+            <h2>Xuân đang đến rất gần...</h2>
+            <p class="modal-desc">
+                Chiến dịch Xuân tình nguyện UEL năm 2026 sẽ chính thức trở lại trong thời gian sắp tới.
+            </p>
+            <div class="modal-highlight">
+                <strong>🎋 Hãy sẵn sàng!</strong>
+                <span>Một mùa Xuân tình nguyện đầy ý nghĩa đang chờ đón bạn</span>
+            </div>
+            <p class="modal-desc">
+                Theo dõi <a href="https://www.facebook.com/xuantinhnguyen.uel" target="_blank"
+                    class="social-link">Fanpage Xuân tình nguyện UEL</a> để đón nhận thông tin mới nhất!
+            </p>
+            <button class="btn-close-modal" onclick="closeComingSoonModal()">Đã hiểu</button>
+        </div>
+    </div>
+
+    <!-- 1. NAVIGATION (No Login Button) -->
+    <nav class="navbar">
+        <div class="logo-container">
+            <a href="comingsoon.html">
+                <img src="images/cumlogo.png" alt="Logo UEL XTN" class="nav-logo">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <!-- Login button removed -->
+        </ul>
+        <div class="mobile-toggle"><i class="fa-solid fa-bars"></i></div>
+    </nav>
+
+    <!-- 2. HERO SECTION WITH BACKGROUND SLIDESHOW -->
+    <section id="hero" class="hero-section">
+        <!-- Background Slideshow -->
+        <div class="hero-slideshow" id="hero-slideshow">
+            <!-- Slides will be loaded from Firebase or use fallback -->
+            <div class="slide active"
+                style="background-image: url('https://lh3.googleusercontent.com/d/103QZz5TUDdLDlIEP3pjjo2oSzFKZI-dx');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1Lidw_zXd8kH8Y1Q0BSlZdT4P3LJWprA7');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1_80XttkbXqmqA5HywMOq3JKebJ_skoCS');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1zQdksoC_Odz9CILbSdUV7npDTdx0-piJ');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1PM0t7R50vI1bw4hasusYAQAQBTRhkRVG');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/1hMP2NlddRRe0YcjrJHG7SLUPC3MvgnFu');">
+            </div>
+            <div class="slide"
+                style="background-image: url('https://lh3.googleusercontent.com/d/12p535-ZXI37aUmzn0Lvb6e_JYXJsMw3V');">
+            </div>
+        </div>
+
+        <!-- Dark Overlay for text readability -->
+        <div class="hero-overlay"></div>
+
+        <!-- Slide Navigation Dots -->
+        <div class="slide-dots">
+            <span class="dot active" data-slide="0"></span>
+            <span class="dot" data-slide="1"></span>
+            <span class="dot" data-slide="2"></span>
+            <span class="dot" data-slide="3"></span>
+            <span class="dot" data-slide="4"></span>
+            <span class="dot" data-slide="5"></span>
+            <span class="dot" data-slide="6"></span>
+        </div>
+
+        <!-- Hero Content -->
+        <div class="hero-content">
+            <!-- Logo Biểu trưng XTN -->
+            <img src="images/bieutrungxtn.png" alt="Xuân Tình Nguyện UEL 2026" class="hero-logo">
+
+            <p class="slogan">"Gom nhặt yêu thương - Sẻ chia Tết ấm"</p>
+
+            <!-- Countdown -->
+            <div class="countdown-wrapper">
+                <p class="countdown-label">
+                    <i class="fa-solid fa-clock"></i> Đếm ngược đến Tết Bính Ngọ 2026
+                </p>
+                <div id="countdown" class="timer">
+                    <div class="time-box">
+                        <span id="days">00</span>
+                        <small>Ngày</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="hours">00</span>
+                        <small>Giờ</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="minutes">00</span>
+                        <small>Phút</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="seconds">00</span>
+                        <small>Giây</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="cta-buttons">
+                <button onclick="showComingSoonModal()" class="btn-cta btn-register">
+                    <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
+                </button>
+                <a href="jd-comingsoon.html" class="btn-cta btn-jd">
+                    <i class="fa-solid fa-briefcase"></i> Mô tả hoạt động
+                </a>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="scroll-indicator">
+            <i class="fa-solid fa-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- 3. GALLERY - Simple Carousel -->
+    <section id="gallery" class="section-container gallery-section">
+        <div class="section-header" data-aos="fade-up">
+            <h2 class="section-title">
+                <i class="fa-solid fa-images"></i>
+                Gieo sắc Xuân sang
+            </h2>
+            <p class="section-desc">Khoảnh khắc rực rỡ của chiến dịch Xuân tình nguyện UEL qua các mùa</p>
+        </div>
+
+        <!-- Carousel Container -->
+        <div class="gallery-carousel-wrapper" data-aos="fade-up" data-aos-delay="200">
+            <button class="carousel-nav prev" onclick="scrollGallery(-1)" aria-label="Xem ảnh trước">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            </button>
+
+            <div class="carousel-track" id="galleryTrack">
+                <!-- Images loaded from Firebase -->
+                <div class="carousel-item"
+                    style="display:flex; justify-content:center; align-items:center; width:100%; height:300px;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:#16a34a;"></i>
+                </div>
+            </div>
+
+            <button class="carousel-nav next" onclick="scrollGallery(1)" aria-label="Xem ảnh tiếp theo">
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- Floating Contact Button (Bottom Left) -->
+    <div class="floating-contact">
+        <button class="contact-fab" onclick="toggleContactPopup()">
+            <i class="fa-solid fa-phone"></i>
+        </button>
+        <div class="contact-popup" id="contactPopup">
+            <div class="popup-header">
+                <h4>Thắc mắc về website này vui lòng liên hệ</h4>
+                <button class="popup-close" onclick="toggleContactPopup()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="popup-content">
+                <a href="tel:0899012608" class="contact-item">
+                    <i class="fa-solid fa-phone"></i>
+                    <span>0899.012.608 (Phone/Zalo)</span>
+                </a>
+                <a href="mailto:minhlq23504b@st.uel.edu.vn" class="contact-item">
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>minhlq23504b@st.uel.edu.vn</span>
+                </a>
+                <a href="https://facebook.com/lamquocminh18" target="_blank" class="contact-item">
+                    <i class="fa-brands fa-facebook"></i>
+                    <span>Lâm Quốc Minh</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer-official">
+        <div class="footer-content footer-flex-layout">
+
+            <!-- Logo + Copyright -->
+            <div class="footer-brand">
+                <img src="images/bieutrungxtn.png" alt="Logo XTN" class="footer-logo">
+                <div>
+                    <strong class="footer-title">Xuân Tình Nguyện UEL 2026</strong>
+                    <p class="footer-copyright">© Hội Sinh viên Việt Nam Trường
+                        Đại học Kinh tế - Luật</p>
+                </div>
+            </div>
+
+            <!-- Social Icons -->
+            <div class="social-icons footer-social">
+                <a href="https://www.facebook.com/xuantinhnguyen.uel" target="_blank" title="Facebook"
+                    aria-label="Facebook">
+                    <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
+                </a>
+                <a href="https://www.instagram.com/youth.uel" target="_blank" title="Instagram" aria-label="Instagram">
+                    <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+                </a>
+                <a href="https://www.tiktok.com/@youth.uel" target="_blank" title="TikTok" aria-label="TikTok">
+                    <i class="fa-brands fa-tiktok" aria-hidden="true"></i>
+                </a>
+                <a href="https://youth.uel.edu.vn/" target="_blank" title="Website" aria-label="Website chính thức">
+                    <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FLOATING SUPPORT BUTTON đã xóa vì trùng với floating-contact -->
+
+    <!-- script.js bị xóa để tránh trùng countdown -->
+
+    <!-- Dynamic Image Loader from Firebase -->
+    <script type="module">
+        import { loadHeroSlideshow, loadGalleryCarousel } from './js/media-loader.js';
+        // Load hero slideshow from Firebase if available
+        loadHeroSlideshow('hero-slideshow');
+        // Load gallery carousel (Gieo sắc Xuân sang)
+        loadGalleryCarousel('galleryTrack');
+    </script>
+
+    <!-- AOS Init & Functions -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 50
+        });
+
+        // Toggle Contact Popup
+        function toggleContactPopup() {
+            const popup = document.getElementById('contactPopup');
+            popup.classList.toggle('active');
+        }
+
+        // Gallery Scroll Navigation
+        function scrollGallery(direction) {
+            const track = document.getElementById('galleryTrack');
+            if (!track) return;
+            const scrollAmount = 320;
+            track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+        }
+
+        // Coming Soon Modal Functions
+        function showComingSoonModal() {
+            document.getElementById('comingSoonModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeComingSoonModal() {
+            document.getElementById('comingSoonModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('comingSoonModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeComingSoonModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeComingSoonModal();
+            }
+        });
+
+        // Countdown to Tết Bính Ngọ 2026 (February 17, 2026)
+        function updateCountdown() {
+            const tetDate = new Date('2026-02-17T00:00:00+07:00');
+            const now = new Date();
+            const diff = tetDate - now;
+
+            if (diff <= 0) {
+                document.getElementById('days').textContent = '00';
+                document.getElementById('hours').textContent = '00';
+                document.getElementById('minutes').textContent = '00';
+                document.getElementById('seconds').textContent = '00';
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('days').textContent = days.toString().padStart(2, '0');
+            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+        }
+
+        // Initial call and update every second
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+
+</html>
