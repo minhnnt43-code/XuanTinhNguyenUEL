@@ -1081,8 +1081,37 @@
         let currentImages = [];
         let currentIndex = 0;
 
-        // Load data from Firebase and merge with fallback
+        // Load data from Firebase OR cache (saves quota!)
         async function initTeamData() {
+            const CACHE_KEY = 'xtn_team_cache';
+            const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+
+            // Check localStorage cache first
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const { data, timestamp } = JSON.parse(cached);
+                    if (Date.now() - timestamp < CACHE_EXPIRY) {
+                        // Use cached data
+                        for (const teamId in data) {
+                            if (teamData[teamId]) {
+                                if (data[teamId].description) {
+                                    teamData[teamId].description = data[teamId].description;
+                                }
+                                if (data[teamId].images && data[teamId].images.length > 0) {
+                                    teamData[teamId].images = data[teamId].images;
+                                }
+                            }
+                        }
+                        console.log('[JD] Loaded from cache (no Firebase quota used!)');
+                        return; // Exit early - no need to call Firebase
+                    }
+                }
+            } catch (e) {
+                console.warn('[JD] Cache read error:', e);
+            }
+
+            // No valid cache - load from Firebase
             try {
                 const firebaseData = await loadAllTeamGalleries();
                 console.log('[JD] Loaded Firebase data:', firebaseData);
@@ -1090,16 +1119,26 @@
                 // Merge Firebase data with fallback
                 for (const teamId in firebaseData) {
                     if (teamData[teamId]) {
-                        // Override description if exists in Firebase
                         if (firebaseData[teamId].description) {
                             teamData[teamId].description = firebaseData[teamId].description;
                         }
-                        // Override images if exists in Firebase
                         if (firebaseData[teamId].images && firebaseData[teamId].images.length > 0) {
                             teamData[teamId].images = firebaseData[teamId].images;
                         }
                     }
                 }
+
+                // Save to cache for next time
+                try {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({
+                        data: firebaseData,
+                        timestamp: Date.now()
+                    }));
+                    console.log('[JD] Saved to cache for next visit');
+                } catch (e) {
+                    console.warn('[JD] Cache write error:', e);
+                }
+
                 console.log('[JD] Team data merged with Firebase');
             } catch (error) {
                 console.warn('[JD] Could not load Firebase data, using fallback:', error);
