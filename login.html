@@ -265,18 +265,10 @@
             box-shadow: 0 5px 20px rgba(215, 38, 56, 0.2);
         }
 
-        .btn-google:active {
-            transform: translateY(0);
-        }
-
         .btn-google:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
-        }
-
-        .btn-google i {
-            font-size: 1.3rem;
         }
 
         .btn-google .fa-google {
@@ -284,10 +276,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-        }
-
-        .btn-google .fa-spinner {
-            color: var(--primary);
         }
 
         /* Domain notice */
@@ -390,6 +378,105 @@
             text-decoration: none;
         }
 
+        /* ========== REJECTION BOX ========== */
+        .rejection-box {
+            display: none;
+        }
+
+        .rejection-box.show {
+            display: block;
+        }
+
+        .rejection-box .rejection-icon {
+            font-size: 4rem;
+            color: #dc2626;
+            margin-bottom: 20px;
+        }
+
+        .rejection-box .rejection-title {
+            color: #dc2626;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .rejection-box .rejection-email {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+
+        .rejection-box .rejection-message {
+            color: #6b7280;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .rejection-box .rejection-contact {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .rejection-box .rejection-contact a {
+            color: #16a34a;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .rejection-box .rejection-contact a:hover {
+            text-decoration: underline;
+        }
+
+        .rejection-box .btn-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .rejection-box .btn-home {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .rejection-box .btn-home:hover {
+            background: #e5e7eb;
+        }
+
+        .rejection-box .btn-logout {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .rejection-box .btn-logout:hover {
+            background: #b91c1c;
+        }
+
+        .login-form-content.hidden {
+            display: none;
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             .login-container {
@@ -411,16 +498,8 @@
 <body>
     <!-- Animated Background -->
     <div class="bg-animation">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <!-- Login Container -->
@@ -433,27 +512,54 @@
                 onerror="this.src='https://placehold.co/100x100?text=XTN'">
         </div>
 
-        <h1 class="login-title">Xuân Tình Nguyện</h1>
-        <p class="login-subtitle">
-            Đăng nhập để truy cập các tính năng dành cho <strong>Chiến sĩ</strong> và <strong>Ban Chỉ Huy</strong>
-        </p>
+        <!-- LOGIN FORM CONTENT (ẩn khi bị từ chối) -->
+        <div id="login-form-content" class="login-form-content">
+            <h1 class="login-title">Xuân Tình Nguyện</h1>
+            <p class="login-subtitle">
+                Đăng nhập để truy cập các tính năng dành cho <strong>Chiến sĩ</strong> và <strong>Ban Chỉ Huy</strong>
+            </p>
 
-        <div id="error-message" class="error-message"></div>
+            <div id="error-message" class="error-message"></div>
 
-        <div class="domain-notice">
-            <i class="fa-solid fa-info-circle"></i>
-            <span>Vui lòng sử dụng email <strong>@st.uel.edu.vn</strong> hoặc <strong>@uel.edu.vn</strong></span>
+            <div class="domain-notice">
+                <i class="fa-solid fa-info-circle"></i>
+                <span>Vui lòng sử dụng email <strong>@st.uel.edu.vn</strong> hoặc <strong>@uel.edu.vn</strong></span>
+            </div>
+
+            <button id="btn-google-login" class="btn-google">
+                <i class="fa-brands fa-google"></i>
+                Đăng nhập bằng Google
+            </button>
+
+            <a href="index.html" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i>
+                Quay về trang chủ
+            </a>
         </div>
 
-        <button id="btn-google-login" class="btn-google">
-            <i class="fa-brands fa-google"></i>
-            Đăng nhập bằng Google
-        </button>
-
-        <a href="index.html" class="back-link">
-            <i class="fa-solid fa-arrow-left"></i>
-            Quay về trang chủ
-        </a>
+        <!-- REJECTION BOX (hiện khi bị từ chối) -->
+        <div id="rejection-box" class="rejection-box">
+            <div class="rejection-icon">
+                <i class="fa-solid fa-ban"></i>
+            </div>
+            <h2 class="rejection-title">Không thể truy cập</h2>
+            <div id="rejection-email" class="rejection-email"></div>
+            <p class="rejection-message">
+                Email của bạn không nằm trong danh sách Chiến sĩ Xuân Tình Nguyện UEL 2026.
+            </p>
+            <div class="rejection-contact">
+                Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ Ban Chỉ huy qua
+                <a href="https://facebook.com/xuantinhnguyen.uel" target="_blank">Fanpage Xuân tình nguyện UEL</a>.
+            </div>
+            <div class="btn-actions">
+                <a href="index.html" class="btn-home">
+                    <i class="fa-solid fa-home"></i> Trang chủ
+                </a>
+                <button id="btn-rejection-logout" class="btn-logout">
+                    <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
+        </div>
 
         <div class="login-footer">
             © 2026 <a href="https://youth.uel.edu.vn" target="_blank">Hội Sinh viên UEL</a>
@@ -462,14 +568,47 @@
 
     <!-- Scripts -->
     <script type="module">
-        import { loginWithGoogle, handleRedirectResult, onAuthChange } from './js/auth.js';
+        import { loginWithGoogle, handleRedirectResult, onAuthChange, logout } from './js/auth.js';
 
         const btnLogin = document.getElementById('btn-google-login');
         const errorMessage = document.getElementById('error-message');
+        const loginFormContent = document.getElementById('login-form-content');
+        const rejectionBox = document.getElementById('rejection-box');
+        const rejectionEmail = document.getElementById('rejection-email');
+        const btnRejectionLogout = document.getElementById('btn-rejection-logout');
 
         console.log('🔐 [Login] Page loaded');
 
-        // QUAN TRỌNG: Check redirect result khi page load (sau khi Google redirect về)
+        // Function to show rejection UI
+        function showRejection(email) {
+            loginFormContent.classList.add('hidden');
+            rejectionBox.classList.add('show');
+            rejectionEmail.textContent = email;
+        }
+
+        // Function to hide rejection UI
+        function hideRejection() {
+            loginFormContent.classList.remove('hidden');
+            rejectionBox.classList.remove('show');
+        }
+
+        // Logout button on rejection box
+        btnRejectionLogout.addEventListener('click', async () => {
+            await logout();
+            hideRejection();
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = '<i class="fa-brands fa-google"></i> Đăng nhập bằng Google';
+        });
+
+        // Check for rejected email in sessionStorage (set by auth.js)
+        const rejectedEmail = sessionStorage.getItem('rejected_email');
+        if (rejectedEmail) {
+            console.log('🔐 [Login] Found rejected email in sessionStorage:', rejectedEmail);
+            sessionStorage.removeItem('rejected_email'); // Clear after reading
+            showRejection(rejectedEmail);
+        }
+
+        // Check redirect result on page load
         (async function () {
             try {
                 const result = await handleRedirectResult();
@@ -485,16 +624,26 @@
             }
         })();
 
-        // Check if already logged in
+        // Check if already logged in OR if just got rejected
         onAuthChange((user, userData) => {
-            console.log('🔐 [Login] onAuthChange:', user?.email);
-            if (user) {
+            console.log('🔐 [Login] onAuthChange:', user?.email, userData);
+
+            // Check sessionStorage again (in case auth.js just set it)
+            const rejectedEmail = sessionStorage.getItem('rejected_email');
+            if (rejectedEmail) {
+                console.log('🔐 [Login] Rejection detected via sessionStorage');
+                sessionStorage.removeItem('rejected_email');
+                showRejection(rejectedEmail);
+                return;
+            }
+
+            if (user && userData) {
                 console.log('🔐 [Login] User logged in, redirecting to dashboard...');
                 window.location.href = 'dashboard.html';
             }
         });
 
-        // Login button handler - Thử popup trước, fallback qua redirect
+        // Login button handler
         btnLogin.addEventListener('click', async () => {
             btnLogin.disabled = true;
             btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
@@ -503,14 +652,12 @@
             try {
                 const result = await loginWithGoogle();
 
-                // Nếu popup thành công, redirect ngay
                 if (result && result.success) {
                     console.log('🔐 [Login] Popup success, redirecting to dashboard...');
                     window.location.href = 'dashboard.html';
                     return;
                 }
 
-                // Nếu đang redirect thì đợi
                 if (result && result.redirecting) {
                     btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
                     return;

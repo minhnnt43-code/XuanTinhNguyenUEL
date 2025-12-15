@@ -826,6 +826,18 @@ h6,
     margin-top: 5px;
 }
 
+/* Form inputs - UTM Avo font */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="url"],
+input[type="date"],
+input[type="password"],
+select {
+    font-family: 'UTM Avo', Arial, sans-serif;
+}
+
 textarea {
     width: 100%;
     padding: 12px;

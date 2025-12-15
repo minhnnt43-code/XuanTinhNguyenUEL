@@ -588,8 +588,16 @@ function setupMenuByRole() {
 
     // Check if user is in Ký sự Tết team (check multiple possible values)
     const teamId = (userData.team_id || '').toLowerCase();
-    const isKySuTetTeam = teamId.includes('ky-su-tet') || teamId.includes('kysutet') || teamId.includes('ky_su_tet') || teamId === 'kst';
-    console.log('[Menu] team_id:', userData.team_id, '| isKySuTetTeam:', isKySuTetTeam);
+    const teamName = (userData.team_name || '').toLowerCase();
+    const combinedTeam = teamId + ' ' + teamName;
+    const isKySuTetTeam = combinedTeam.includes('ky-su-tet') ||
+        combinedTeam.includes('kysutet') ||
+        combinedTeam.includes('ky_su_tet') ||
+        combinedTeam.includes('ký sự tết') ||
+        combinedTeam.includes('ki su tet') ||
+        teamId === 'kst' ||
+        teamId === 'team_1765358166497'; // Fallback: specific team ID from logs
+    console.log('[Menu] team_id:', userData.team_id, '| team_name:', userData.team_name, '| isKySuTetTeam:', isKySuTetTeam);
 
     // Check if user is super owner (can see accounts + activity logs)
     const isSuperOwner = SUPER_OWNER_EMAILS.includes(email);
@@ -976,7 +984,7 @@ async function loadMembers() {
                 <button class="btn btn-info btn-sm" onclick="syncAllRolesFromPosition()" title="Đồng bộ role từ chức vụ (position) cho tất cả chiến sĩ" style="background:#3b82f6;border-color:#3b82f6;color:white;">
                     <i class="fa-solid fa-sync"></i> Đồng bộ Role
                 </button>
-                <button class="btn btn-sm" onclick="migrateToMembersCollection()" title="MIGRATE: Copy dữ liệu từ xtn_users sang xtn_members (chỉ chạy 1 lần)" style="background:#8b5cf6;border-color:#8b5cf6;color:white;">
+                <button class="btn btn-sm" onclick="migrateToMembersCollection()" title="MIGRATE: Copy dữ liệu từ xtn_users sang xtn_users (chỉ chạy 1 lần)" style="background:#8b5cf6;border-color:#8b5cf6;color:white;">
                     <i class="fa-solid fa-database"></i> Migrate Data
                 </button>
                 <div style="flex:1;"></div>
@@ -1243,11 +1251,11 @@ window.syncAllRolesFromPosition = async function () {
     loadMembers();
 };
 
-// ========== MIGRATION SCRIPT: xtn_users → xtn_members ==========
+// ========== MIGRATION SCRIPT: xtn_users → xtn_users ==========
 window.migrateToMembersCollection = async function () {
     // Xác nhận trước
     const confirmed = await showConfirm(
-        `Bạn có chắc muốn MIGRATE dữ liệu từ xtn_users sang xtn_members?\n\nĐiều này sẽ:\n• Copy tất cả user có role KHÔNG phải "pending" sang xtn_members\n• Giữ nguyên xtn_users (không xóa)\n• KHÔNG copy user mới đăng ký chưa được duyệt`,
+        `Bạn có chắc muốn MIGRATE dữ liệu từ xtn_users sang xtn_users?\n\nĐiều này sẽ:\n• Copy tất cả user có role KHÔNG phải "pending" sang xtn_users\n• Giữ nguyên xtn_users (không xóa)\n• KHÔNG copy user mới đăng ký chưa được duyệt`,
         'Migration Data'
     );
 
@@ -1300,8 +1308,8 @@ window.migrateToMembersCollection = async function () {
                 // Tạo document ID từ email
                 const emailDocId = email.replace(/[.#$[\]]/g, '_');
 
-                // Check xem đã có trong xtn_members chưa
-                const existingMember = await getDoc(doc(db, 'xtn_members', emailDocId));
+                // Check xem đã có trong xtn_users chưa
+                const existingMember = await getDoc(doc(db, 'xtn_users', emailDocId));
 
                 if (existingMember.exists()) {
                     console.log('[Migration] Already exists in members:', email);
@@ -1309,8 +1317,8 @@ window.migrateToMembersCollection = async function () {
                     continue;
                 }
 
-                // Copy sang xtn_members
-                await setDoc(doc(db, 'xtn_members', emailDocId), {
+                // Copy sang xtn_users
+                await setDoc(doc(db, 'xtn_users', emailDocId), {
                     email: email,
                     name: userData.name || '',
                     mssv: userData.mssv || '',
@@ -1355,8 +1363,8 @@ window.migrateToMembersCollection = async function () {
 window.updateMemberPosition = async function (userId, position) {
     const role = POSITION_TO_ROLE[position] || 'member';
     try {
-        // Update trong XTN_MEMBERS
-        await setDoc(doc(db, 'xtn_members', userId), {
+        // Update trong XTN_USERS
+        await setDoc(doc(db, 'xtn_users', userId), {
             position,
             role
         }, { merge: true });
@@ -1519,8 +1527,8 @@ window.editMember = async function (userId) {
             const oldTeamId = m.team_id;
             const newTeamId = formValues.team_id;
 
-            // Update trong XTN_MEMBERS (whitelist)
-            await setDoc(doc(db, 'xtn_members', userId), formValues, { merge: true });
+            // Update trong XTN_USERS
+            await setDoc(doc(db, 'xtn_users', userId), formValues, { merge: true });
 
             // Sync 2 chiều: cập nhật stats đội hình nếu đổi đội
             if (oldTeamId !== newTeamId) {
@@ -2084,15 +2092,15 @@ async function confirmImport() {
 
         for (const row of pendingImportData) {
             try {
-                // Check if email exists in xtn_members
+                // Check if email exists in xtn_users
                 const existing = await getDocs(
-                    query(collection(db, 'xtn_members'), where('email', '==', row.email))
+                    query(collection(db, 'xtn_users'), where('email', '==', row.email))
                 );
 
                 if (existing.empty) {
                     // Add vào XTN_MEMBERS (whitelist)
                     const emailDocId = row.email.replace(/[.#$[\]]/g, '_');
-                    await setDoc(doc(db, 'xtn_members', emailDocId), {
+                    await setDoc(doc(db, 'xtn_users', emailDocId), {
                         ...row,
                         role: 'member',
                         status: 'active',
@@ -2415,7 +2423,9 @@ async function handleAddMember(e) {
     const email = document.getElementById('new-member-email')?.value?.trim();
     const phone = document.getElementById('new-member-phone')?.value?.trim();
     const teamId = document.getElementById('new-member-team')?.value;
-    const role = document.getElementById('new-member-role')?.value || 'member';
+    const roleSelect = document.getElementById('new-member-role');
+    const role = roleSelect?.value || 'member';
+    const position = roleSelect?.options[roleSelect.selectedIndex]?.dataset?.position || 'Chiến sĩ';
 
     if (!name || !email) {
         showAlert('Vui lòng nhập đầy đủ họ tên và email!', 'warning', 'Thiếu thông tin');
@@ -2423,9 +2433,9 @@ async function handleAddMember(e) {
     }
 
     try {
-        // Check if email already exists in xtn_members
+        // Check if email already exists in xtn_users
         const existingSnap = await getDocs(
-            query(collection(db, 'xtn_members'), where('email', '==', email))
+            query(collection(db, 'xtn_users'), where('email', '==', email))
         );
 
         if (!existingSnap.empty) {
@@ -2462,24 +2472,24 @@ async function handleAddMember(e) {
                 return;
             }
 
-            // Xóa tất cả documents có email này trong xtn_members
+            // Xóa tất cả documents có email này trong xtn_users
             console.log('[AddMember] Đang xóa documents cũ với email:', email);
             for (const docSnap of existingSnap.docs) {
-                await deleteDoc(doc(db, 'xtn_members', docSnap.id));
+                await deleteDoc(doc(db, 'xtn_users', docSnap.id));
                 console.log('[AddMember] Đã xóa document:', docSnap.id);
             }
         }
 
-        // Add new member vào XTN_MEMBERS (whitelist)
+        // Add new member vào XTN_USERS
         const emailDocId = email.replace(/[.#$[\]]/g, '_');
-        await setDoc(doc(db, 'xtn_members', emailDocId), {
+        await setDoc(doc(db, 'xtn_users', emailDocId), {
             name,
             mssv: mssv || '',
             email,
             phone: phone || '',
             team_id: teamId || '',
             role,
-            position: 'Chiến sĩ',
+            position,
             status: 'active',
             created_at: serverTimestamp(),
             created_by: 'admin'

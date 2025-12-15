@@ -430,37 +430,16 @@ function onAuthChange(callback) {
             if (!userData) {
                 console.log("❌ [Auth] User not in members list, rejecting...");
 
-                // Hiện thông báo từ chối
-                if (typeof Swal !== 'undefined') {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Không có quyền truy cập',
-                        html: `
-                            <div style="text-align:center;">
-                                <p style="font-size:16px; margin-bottom:15px;">
-                                    <strong>Bạn không phải chiến sĩ Xuân tình nguyện UEL 2026</strong>
-                                </p>
-                                <p style="color:#666; font-size:14px;">
-                                    Email: <code>${user.email}</code>
-                                </p>
-                                <p style="color:#888; font-size:13px; margin-top:15px;">
-                                    Nếu bạn là chiến sĩ, vui lòng liên hệ Ban Chỉ huy để được thêm vào hệ thống.
-                                </p>
-                            </div>
-                        `,
-                        confirmButtonText: 'Đóng',
-                        confirmButtonColor: '#dc2626',
-                        allowOutsideClick: false
-                    });
-                } else {
-                    alert("Bạn không phải chiến sĩ Xuân tình nguyện UEL 2026");
-                }
+                // Lưu email bị từ chối vào sessionStorage để login.html hiển thị
+                sessionStorage.setItem('rejected_email', user.email);
 
-                // Đăng xuất
+                // Đăng xuất khỏi Firebase
                 await signOut(auth);
                 currentUser = null;
                 userRole = null;
                 userTeam = null;
+
+                // Callback với null - login.html sẽ check sessionStorage
                 callback(null, null);
                 return;
             }

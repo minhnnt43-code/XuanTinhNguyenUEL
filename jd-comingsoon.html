@@ -1482,7 +1482,7 @@
     </div>
 
     <script type="module">
-        import { callGroqAI } from './js/groq-api.js';
+        // AI Quiz removed - using static fallback
 
         // Quiz Questions - 5 câu hỏi với 7-8 options mỗi câu, bao quát 11 đội hình
         const quizQuestions = [
@@ -1658,73 +1658,44 @@
                 </div>
             `;
 
-            const answersText = answers.map((a, i) => `Câu ${i + 1}: ${a}`).join(', ');
+            // Static team recommendation based on answer counts
+            const teamMapping = {
+                kysu: { name: 'Ký sự Tết', emoji: '📸', desc: 'Đội hình phù hợp với những bạn yêu thích quay phim, chụp ảnh và kể chuyện qua hình ảnh.' },
+                giaidieu: { name: 'Giai điệu Mùa Xuân', emoji: '🎤', desc: 'Đội hình phù hợp với những bạn có năng khiếu ca hát, nhảy múa, biểu diễn văn nghệ.' },
+                tuvan: { name: 'Tư vấn và giảng dạy pháp luật cộng đồng', emoji: '⚖️', desc: 'Đội hình phù hợp với những bạn có kiến thức pháp luật, thích tư vấn và giảng dạy.' },
+                sechia: { name: 'Xuân Sẻ chia', emoji: '🎁', desc: 'Đội hình phù hợp với những bạn thích trao tặng quà, mang niềm vui đến người khác.' },
+                ganket: { name: 'Xuân Gắn kết', emoji: '🏃', desc: 'Đội hình phù hợp với những bạn thích tổ chức trò chơi, team building và hoạt động nhóm.' },
+                haucan: { name: 'Hậu cần', emoji: '📦', desc: 'Đội hình phù hợp với những bạn cẩn thận, chu đáo, thích lo liệu logistics.' },
+                tuhao: { name: 'Xuân Tự hào', emoji: '🌟', desc: 'Đội hình phù hợp với những bạn có tinh thần lãnh đạo, truyền cảm hứng.' },
+                vienchuc: { name: 'Viên chức trẻ', emoji: '📋', desc: 'Đội hình phù hợp với những bạn có kỹ năng giao tiếp, liên hệ với cơ quan địa phương.' },
+                chiensi: { name: 'Xuân Chiến sĩ', emoji: '💪', desc: 'Đội hình phù hợp với những bạn năng động, nhiệt huyết, sẵn sàng tham gia mọi hoạt động.' },
+                vanminh: { name: 'Tết Văn minh', emoji: '🌿', desc: 'Đội hình phù hợp với những bạn quan tâm đến môi trường và văn hóa ứng xử.' },
+                bansac: { name: 'Xuân Bản sắc', emoji: '🎨', desc: 'Đội hình phù hợp với những bạn yêu thích truyền thông, thiết kế, viết bài.' }
+            };
 
-            const systemPrompt = `Bạn là AI tư vấn đội hình cho chiến dịch Xuân Tình Nguyện UEL 2026.
+            // Count answer values
+            const counts = {};
+            answers.forEach(value => {
+                counts[value] = (counts[value] || 0) + 1;
+            });
 
-CÁC ĐỘI HÌNH (11 đội):
-1. Xuân Tự hào (40 chiến sĩ) - Truyền cảm hứng, xây dựng tinh thần đội, tổ chức các hoạt động nội bộ
-2. Xuân Bản sắc (40 chiến sĩ) - Quảng bá văn hóa truyền thống, thiết kế truyền thông, viết bài
-3. Xuân Sẻ chia (40 chiến sĩ) - Chuẩn bị và trao quà Tết, hỗ trợ bà con nghèo, gia đình khó khăn
-4. Xuân Gắn kết (40 chiến sĩ) - Tổ chức trò chơi, team building, hoạt động giao lưu cộng đồng
-5. Xuân Chiến sĩ (40 chiến sĩ) - Tham gia đa dạng hoạt động, xung kích, nhiệt huyết, năng động
-6. Tết Văn minh (40 chiến sĩ) - Tuyên truyền bảo vệ môi trường, nếp sống văn minh ngày Tết
-7. Tư vấn và giảng dạy pháp luật cộng đồng (36 chiến sĩ) - Tư vấn pháp luật, giảng dạy kiến thức pháp lý
-8. Giai điệu Mùa Xuân (35 chiến sĩ) - Ca hát, nhảy múa, biểu diễn văn nghệ phục vụ bà con
-9. Viên chức trẻ (20 chiến sĩ) - Liên hệ, phối hợp với UBND, Đoàn thanh niên địa phương
-10. Ký sự Tết (30 chiến sĩ) - Quay phim, chụp ảnh, làm phóng sự về hành trình tình nguyện
-11. Hậu cần (10 chiến sĩ) - Chuẩn bị vật tư, logistics, đảm bảo hậu cần toàn chiến dịch
-
-MAPPING GIÁ TRỊ CÂU TRẢ LỜI:
-- kysu = Ký sự Tết
-- giaidieu = Giai điệu Mùa Xuân
-- tuvan = Tư vấn và giảng dạy pháp luật cộng đồng
-- sechia = Xuân Sẻ chia
-- ganket = Xuân Gắn kết
-- haucan = Hậu cần
-- tuhao = Xuân Tự hào
-- chienssi = Xuân Chiến sĩ
-- vanminh = Tết Văn minh
-- bansac = Xuân Bản sắc
-- vienchuc = Viên chức trẻ
-
-DỰA TRÊN CÂU TRẢ LỜI, HÃY PHÂN TÍCH VÀ TRẢ VỀ JSON:
-{
-    "team": "Tên đội hình phù hợp nhất (đúng tên trong danh sách)",
-    "emoji": "Emoji đại diện (1 emoji)",
-    "reason": "Lý do ngắn gọn tại sao phù hợp (2-3 câu)",
-    "tips": "Lời khuyên cho ứng viên (1-2 câu)"
-}
-
-CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.`;
-
-            try {
-                const result = await callGroqAI(`Câu trả lời của ứng viên: ${answersText}. Hãy gợi ý đội hình phù hợp nhất.`, {
-                    systemPrompt,
-                    temperature: 0.7,
-                    maxTokens: 500
-                });
-
-                if (result.success) {
-                    let jsonStr = result.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                    const data = JSON.parse(jsonStr);
-                    showResult(data);
-                } else {
-                    throw new Error(result.error);
+            // Find most common answer
+            let topValue = 'chiensi'; // default
+            let maxCount = 0;
+            for (const [key, count] of Object.entries(counts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    topValue = key;
                 }
-            } catch (error) {
-                console.error('Quiz AI error:', error);
-                body.innerHTML = `
-                    <div class="quiz-result">
-                        <div class="quiz-result-icon">❌</div>
-                        <div class="quiz-result-team">Có lỗi xảy ra</div>
-                        <div class="quiz-result-desc">${error.message}</div>
-                        <div class="quiz-result-cta">
-                            <button onclick="closeQuizModal()" class="quiz-btn quiz-btn-next">Đóng</button>
-                        </div>
-                    </div>
-                `;
             }
+
+            const team = teamMapping[topValue] || teamMapping.chiensi;
+            showResult({
+                team: team.name,
+                emoji: team.emoji,
+                reason: team.desc,
+                tips: 'Hãy đăng ký ngay để trở thành một phần của chiến dịch Xuân Tình Nguyện UEL 2026!'
+            });
         }
 
         // Show result
@@ -1739,7 +1710,7 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.`;
                         <p style="margin-top: 10px;"><strong>💡 Lời khuyên:</strong> ${data.tips}</p>
                     </div>
                     <div class="quiz-result-cta">
-                        <a href="https://forms.google.com/your-registration-form" target="_blank">
+                        <a href="https://www.facebook.com/xuantinhnguyen.uel" target="_blank">
                             <i class="fa-solid fa-user-plus"></i> Đăng ký ngay!
                         </a>
                     </div>
@@ -1801,6 +1772,5 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.`;
         });
     </script>
 </body>
-
 
 </html>

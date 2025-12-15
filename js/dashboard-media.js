@@ -476,6 +476,17 @@ function renderTeamImages(teamId) {
                     <i class="fa-solid fa-palette" style="color:#666;"></i>
                     <input type="color" id="text-color-picker" value="#000000" style="width:24px; height:24px; border:none; cursor:pointer;">
                 </label>
+                <span style="width:1px; background:#ddd; margin:0 5px;"></span>
+                <select id="font-select" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; cursor:pointer; font-size:0.9rem;">
+                    <option value="UTM Avo" style="font-family:'UTM Avo'">UTM Avo</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                </select>
+                <button type="button" class="editor-btn editor-btn-red" data-color="#dc2626" title="Màu đỏ" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; background:#dc2626; color:white; cursor:pointer; font-weight:bold;">
+                    A
+                </button>
                 <button type="button" class="editor-btn" data-cmd="removeFormat" title="Xóa định dạng" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer;">
                     <i class="fa-solid fa-eraser"></i>
                 </button>
@@ -572,6 +583,25 @@ function attachEventListeners() {
     if (colorPicker) {
         colorPicker.addEventListener('input', (e) => {
             document.execCommand('foreColor', false, e.target.value);
+            document.getElementById('team-description-editor')?.focus();
+        });
+    }
+
+    // Font selector
+    const fontSelect = document.getElementById('font-select');
+    if (fontSelect) {
+        fontSelect.addEventListener('change', (e) => {
+            document.execCommand('fontName', false, e.target.value);
+            document.getElementById('team-description-editor')?.focus();
+        });
+    }
+
+    // Red color button
+    const redBtn = document.querySelector('.editor-btn-red');
+    if (redBtn) {
+        redBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.execCommand('foreColor', false, '#dc2626');
             document.getElementById('team-description-editor')?.focus();
         });
     }
@@ -708,17 +738,42 @@ async function handleEditMedia(e) {
 
     if (!id) return;
 
-    let newUrl = prompt('Nhập URL mới cho hình ảnh:', currentUrl);
-    if (!newUrl || newUrl.trim() === '' || newUrl === currentUrl) return;
+    // Use SweetAlert to show current URL clearly
+    const { value: newUrl, isConfirmed } = await Swal.fire({
+        title: '<i class="fa-solid fa-pen"></i> Chỉnh sửa URL hình ảnh',
+        html: `
+            <div style="text-align:left; margin-bottom:15px;">
+                <label style="font-weight:600; color:#666; display:block; margin-bottom:8px;">
+                    <i class="fa-solid fa-link"></i> URL hiện tại:
+                </label>
+                <textarea id="swal-url-input" style="width:100%; min-height:120px; padding:12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; font-family:monospace; resize:vertical;">${currentUrl || ''}</textarea>
+                <div style="margin-top:10px; font-size:0.85rem; color:#666;">
+                    <i class="fa-solid fa-lightbulb" style="color:#f59e0b;"></i> 
+                    Có thể dán link Google Drive - hệ thống sẽ tự động chuyển đổi!
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-save"></i> Lưu thay đổi',
+        cancelButtonText: '<i class="fa-solid fa-times"></i> Hủy',
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#6b7280',
+        width: '600px',
+        preConfirm: () => {
+            return document.getElementById('swal-url-input').value.trim();
+        }
+    });
+
+    if (!isConfirmed || !newUrl || newUrl === currentUrl) return;
 
     // Auto-convert Google Drive links
-    newUrl = convertGoogleDriveUrl(newUrl.trim());
+    const convertedUrl = convertGoogleDriveUrl(newUrl);
 
-    const collName = type === 'hero' ? COLLECTIONS.HERO : COLLECTIONS.JD_BG;
+    const collName = type === 'hero' ? COLLECTIONS.HERO : (type === 'gallery' ? COLLECTIONS.GALLERY : COLLECTIONS.JD_BG);
 
     try {
         await updateDoc(doc(db, collName, id), {
-            url: newUrl
+            url: convertedUrl
         });
 
         // Log activity
@@ -726,7 +781,7 @@ async function handleEditMedia(e) {
             type,
             imageId: id,
             oldUrl: currentUrl?.substring(0, 50) + '...',
-            newUrl: newUrl.substring(0, 50) + '...'
+            newUrl: convertedUrl.substring(0, 50) + '...'
         });
 
         await loadAllMedia();
