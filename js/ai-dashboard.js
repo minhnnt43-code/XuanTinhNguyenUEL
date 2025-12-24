@@ -477,10 +477,9 @@ export async function generateAutoReport() {
     btn.disabled = true;
 
     try {
-        // Load data if needed
-        if (dashboardData.activities.length === 0) {
-            await loadDashboardData();
-        }
+        // LUÔN load data mới từ Firestore để đảm bảo đồng bộ
+        console.log('[AI Dashboard] Force reloading data...');
+        await loadDashboardData();
 
         // Get filter values from Report tab
         const teamFilter = document.getElementById('report-team-select')?.value || '';

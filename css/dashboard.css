@@ -23,23 +23,24 @@ body.is-doihinh-admin #menu-activity.admin-only {
 }
 
 
-/* Font UTM Avo - Fallback */
+/* Font UTM Avo - Fallback - DISABLED (File không tồn tại)
 @font-face {
     font-family: 'UTM Avo';
     src: url('../fonts/UTM-Avo.woff2') format('woff2'),
-        url('../fonts/UTM-Avo.woff') format('woff'),
-        url('../fonts/UTM-Avo.ttf') format('truetype');
+        url('../fonts/UTM%20Avo.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
+*/
 
-/* Font UTM Impact - Thẻ Chiến Sĩ */
+/* Font UTM Impact - Thẻ Chiến Sĩ - DISABLED (File không tồn tại)
 @font-face {
     font-family: 'UTM Impact';
     src: url('../fonts/UTM Impact.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
+*/
 
 /* Font áp dụng - Be Vietnam Pro primary */
 body {

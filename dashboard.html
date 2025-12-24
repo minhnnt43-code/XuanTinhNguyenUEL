@@ -13,8 +13,7 @@
         @font-face {
             font-family: 'UTM Avo';
             src: url('fonts/UTM-Avo.woff2') format('woff2'),
-                url('fonts/UTM-Avo.woff') format('woff'),
-                url('fonts/UTM-Avo.ttf') format('truetype');
+                url('fonts/UTM%20Avo.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
@@ -307,7 +306,7 @@
                     </div>
                 </div>
 
-                <!-- AI Insights Widget -->
+                <!-- AI FEATURES DISABLED - Cho các bạn tự thực hiện
                 <div class="card ai-insights-card" id="ai-insights-widget" style="margin-top: 20px;">
                     <div class="ai-insights-header">
                         <h3><i class="fa-solid fa-robot"></i> AI Insights</h3>
@@ -331,7 +330,6 @@
                     </div>
                 </div>
 
-                <!-- AI Team Analysis Modal -->
                 <div id="modal-team-analysis" class="modal" style="display: none;">
                     <div class="modal-content" style="max-width: 700px;">
                         <div class="modal-header"
@@ -360,6 +358,7 @@
                         </div>
                     </div>
                 </div>
+                AI FEATURES DISABLED -->
             </section>
 
             <!-- ĐÃ XÓA: Section Đăng ký Chiến sĩ và Section Chờ duyệt (chuyển sang Google Form) -->
@@ -667,7 +666,8 @@
                 <div class="modal-content modal-lg">
                     <button class="modal-close" onclick="closeAIActivityModal()">&times;</button>
                     <h2><i class="fa-solid fa-wand-magic-sparkles"></i> AI Tạo Hoạt động</h2>
-                    <p style="color:#666;">Mô tả hoạt động bằng ngôn ngữ tự nhiên, AI sẽ tự động điền form cho bạn.</p>
+                    <p style="color:#666;">Mô tả hoạt động bằng ngôn ngữ tự nhiên, AI sẽ tự động điền form cho bạn.
+                    </p>
 
                     <div class="form-group">
                         <label>Mô tả hoạt động:</label>
@@ -724,7 +724,8 @@
                     <div id="ai-report-result" style="display:none;">
                         <h4>Báo cáo:</h4>
                         <div id="ai-report-content" class="card"
-                            style="background:#f8f9fa; max-height:400px; overflow-y:auto; white-space:pre-wrap;"></div>
+                            style="background:#f8f9fa; max-height:400px; overflow-y:auto; white-space:pre-wrap;">
+                        </div>
                         <button id="btn-copy-report" class="btn btn-secondary" style="margin-top:10px;">
                             <i class="fa-solid fa-copy"></i> Copy nội dung
                         </button>
@@ -944,14 +945,17 @@
                             <label>Chức vụ</label>
                             <select id="new-member-role">
                                 <option value="super_admin" data-position="Chỉ huy Trưởng">Chỉ huy Trưởng</option>
-                                <option value="super_admin" data-position="Chỉ huy Phó Thường trực">Chỉ huy Phó Thường
+                                <option value="super_admin" data-position="Chỉ huy Phó Thường trực">Chỉ huy Phó
+                                    Thường
                                     trực</option>
                                 <option value="super_admin" data-position="Chỉ huy Phó">Chỉ huy Phó</option>
                                 <option value="super_admin" data-position="Thành viên Thường trực Ban Chỉ huy">Thành
                                     viên Thường trực Ban Chỉ huy</option>
-                                <option value="super_admin" data-position="Thành viên Ban Chỉ huy">Thành viên Ban Chỉ
+                                <option value="super_admin" data-position="Thành viên Ban Chỉ huy">Thành viên Ban
+                                    Chỉ
                                     huy</option>
-                                <option value="kysutet_admin" data-position="Đội trưởng Ký sự Tết">Đội trưởng Ký sự Tết
+                                <option value="kysutet_admin" data-position="Đội trưởng Ký sự Tết">Đội trưởng Ký sự
+                                    Tết
                                 </option>
                                 <option value="kysutet_admin" data-position="Đội phó Ký sự Tết">Đội phó Ký sự Tết
                                 </option>
@@ -1290,10 +1294,12 @@
                         <button id="btn-new-report" class="btn btn-success">
                             <i class="fa-solid fa-plus"></i> Thêm báo cáo mới
                         </button>
+                        <!-- AI DISABLED
                         <button id="btn-ai-auto-report" class="btn btn-primary"
                             title="AI tự động tạo báo cáo từ dữ liệu hoạt động">
                             <i class="fa-solid fa-robot"></i> AI Tạo báo cáo
                         </button>
+                        -->
                     </div>
 
                     <!-- Reports List -->
@@ -1336,7 +1342,8 @@
 
                 <div class="card">
                     <h3><i class="fa-solid fa-database"></i> Sao lưu dữ liệu (JSON)</h3>
-                    <p style="color:#666; margin-bottom:20px;">Tải toàn bộ dữ liệu về máy dưới dạng JSON để backup. Bao
+                    <p style="color:#666; margin-bottom:20px;">Tải toàn bộ dữ liệu về máy dưới dạng JSON để backup.
+                        Bao
                         gồm: Thành viên, Đội hình, Hoạt động, Báo cáo, Thẻ chiến sĩ, Đăng ký.</p>
 
                     <div class="btn-row" style="gap:10px; flex-wrap:wrap;">
@@ -1354,7 +1361,8 @@
 
                 <div class="card" style="margin-top:20px;">
                     <h3><i class="fa-solid fa-file-excel" style="color:#22c55e;"></i> Sao lưu dữ liệu (Excel)</h3>
-                    <p style="color:#666; margin-bottom:20px;">Tải dữ liệu về máy dưới dạng file Excel để dễ dàng xem và
+                    <p style="color:#666; margin-bottom:20px;">Tải dữ liệu về máy dưới dạng file Excel để dễ dàng
+                        xem và
                         chỉnh sửa.</p>
 
                     <div class="btn-row" style="gap:10px; flex-wrap:wrap;">
@@ -1387,14 +1395,16 @@
                         </button>
                     </div>
                     <small style="margin-top:10px; display:block; color:#888;">
-                        <i class="fa-solid fa-info-circle"></i> Khi tắt, tất cả users sẽ không thể sử dụng AI (tạo báo
+                        <i class="fa-solid fa-info-circle"></i> Khi tắt, tất cả users sẽ không thể sử dụng AI (tạo
+                        báo
                         cáo, insights, phân tích).
                     </small>
                 </div>
 
                 <div class="card" style="margin-top:20px;">
                     <h3><i class="fa-solid fa-exclamation-triangle" style="color:#dc2626;"></i> Vùng nguy hiểm</h3>
-                    <p style="color:#666; margin-bottom:20px;">Các thao tác không thể hoàn tác. Cân nhắc kỹ trước khi
+                    <p style="color:#666; margin-bottom:20px;">Các thao tác không thể hoàn tác. Cân nhắc kỹ trước
+                        khi
                         thực hiện.</p>
 
                     <button id="btn-clear-activities" class="btn btn-danger" style="opacity:0.7;">
@@ -1433,7 +1443,8 @@
 
                 <!-- Email Domain Whitelist -->
                 <div class="card" style="margin-top:20px;">
-                    <h3><i class="fa-solid fa-envelope-circle-check" style="color:#22c55e;"></i> Whitelist Domain Email
+                    <h3><i class="fa-solid fa-envelope-circle-check" style="color:#22c55e;"></i> Whitelist Domain
+                        Email
                     </h3>
                     <p style="color:#666; margin-bottom:20px;">
                         Chỉ cho phép đăng nhập từ các domain email được cho phép (để trống = cho phép tất cả).
@@ -1512,5 +1523,3 @@
 </body>
 
 </html>
-
-

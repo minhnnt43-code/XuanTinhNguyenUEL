@@ -927,7 +927,7 @@ async function loadMembers() {
         usersSnap.forEach(d => {
             if (membersDataCache.some(m => m.id === d.id)) return;
             const u = d.data();
-            // Chỉ lấy những người có role không phải pending
+            // Chỉ lấy những người có role không phải pending (người import sẽ là 'member')
             if (u.role === 'pending') return;
 
             membersDataCache.push({
@@ -951,7 +951,8 @@ async function loadMembers() {
             teamFilterOptions += `<option value="${t.id}">${t.name}</option>`;
         });
 
-        // Sort theo chức vụ hierarchy
+        // Sort theo chức vụ hierarchy VÀ nhóm theo đội hình
+        // Thứ tự: Ban Chỉ huy (không thuộc đội) → Từng đội (Đội trưởng → Đội phó → Chiến sĩ)
         const positionOrder = {
             'Chỉ huy Trưởng': 1,
             'Chỉ huy Phó Thường trực': 2,
@@ -961,11 +962,57 @@ async function loadMembers() {
             'Đội phó': 6,
             'Chiến sĩ': 7
         };
+
+        // Thứ tự đội hình cố định theo yêu cầu
+        const TEAM_ORDER_BY_NAME = {
+            'ban chỉ huy': 0,
+            'ban chỉ huy chiến dịch': 0,
+            'đội hình xuân tự hào': 1,
+            'đội hình xuân bản sắc': 2,
+            'đội hình xuân sẻ chia': 3,
+            'đội hình xuân gắn kết': 4,
+            'đội hình xuân chiến sĩ': 5,
+            'đội hình tết văn minh': 6,
+            'đội hình tư vấn và giảng dạy pháp luật cộng đồng': 7,
+            'đội hình giai điệu mùa xuân': 8,
+            'đội hình viên chức trẻ': 9,
+            'đội hình ký sự tết': 10,
+            'đội hình hậu cần': 11
+        };
+
+        // Map team_id → order dựa trên tên đội
+        const teamOrder = {};
+        Object.keys(teamsMap).forEach(id => {
+            const teamName = (teamsMap[id] || '').toLowerCase();
+            teamOrder[id] = TEAM_ORDER_BY_NAME[teamName] ?? 999;
+        });
+
         membersDataCache.sort((a, b) => {
-            const orderA = positionOrder[a.position] || 99;
-            const orderB = positionOrder[b.position] || 99;
-            if (orderA !== orderB) return orderA - orderB;
-            // Nếu cùng chức vụ, sort theo tên
+            const posA = positionOrder[a.position] || 99;
+            const posB = positionOrder[b.position] || 99;
+
+            // Ban Chỉ huy (chức vụ 1-4) luôn ở đầu, không quan tâm team
+            const isBCH_A = posA <= 4;
+            const isBCH_B = posB <= 4;
+
+            if (isBCH_A && !isBCH_B) return -1; // A là BCH, B không → A trước
+            if (!isBCH_A && isBCH_B) return 1;  // B là BCH, A không → B trước
+            if (isBCH_A && isBCH_B) {
+                // Cả hai đều BCH → sort theo chức vụ
+                if (posA !== posB) return posA - posB;
+                return a.name.localeCompare(b.name, 'vi');
+            }
+
+            // Không phải BCH → nhóm theo đội hình trước
+            const teamOrderA = teamOrder[a.team_id] ?? 999;
+            const teamOrderB = teamOrder[b.team_id] ?? 999;
+
+            if (teamOrderA !== teamOrderB) return teamOrderA - teamOrderB;
+
+            // Cùng đội → sort theo chức vụ (Đội trưởng → Đội phó → Chiến sĩ)
+            if (posA !== posB) return posA - posB;
+
+            // Cùng chức vụ → sort theo tên
             return a.name.localeCompare(b.name, 'vi');
         });
 
@@ -2002,6 +2049,15 @@ async function handleImportExcel(e) {
         // Validate
         const result = validateImportData(data, ['Họ và tên', 'Email']);
 
+        console.log('[Import] Validation result:', {
+            total: result.totalRows,
+            valid: result.validData.length,
+            errors: result.errors.length
+        });
+        if (result.errors.length > 0) {
+            console.log('[Import] Error details:', result.errors);
+        }
+
         // Show preview
         showImportPreview(result);
 
@@ -2089,40 +2145,134 @@ async function confirmImport() {
     try {
         let successCount = 0;
         let errorCount = 0;
+        let skippedCount = 0; // Đếm số người bị skip vì đã tồn tại
 
-        for (const row of pendingImportData) {
+        // Load teams để mapping tên đội hình → team_id
+        const teamsSnapshot = await getDocs(collection(db, 'xtn_teams'));
+        const teamsMap = {};
+        teamsSnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const teamName = (data.team_name || '').toLowerCase().trim();
+            if (teamName) {
+                teamsMap[teamName] = docSnap.id;
+            }
+        });
+        // Helper: delay để tránh Firebase rate limit
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const BATCH_SIZE = 10; // Xử lý 10 người mỗi batch
+        const DELAY_BETWEEN_BATCHES = 500; // 500ms giữa các batch
+
+        // Ẩn modal import preview UI (KHÔNG xóa data)
+        const previewModal = document.getElementById('modal-import-preview');
+        if (previewModal) previewModal.style.display = 'none';
+
+        // Tạo modal thanh tiến độ
+        const progressModal = document.createElement('div');
+        progressModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:99999;';
+        progressModal.innerHTML = `
+            <div style="background:white;padding:30px;border-radius:12px;min-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+                <h3 style="margin:0 0 20px 0;color:#333;">Đang nhập chiến sĩ...</h3>
+                <div style="background:#eee;height:30px;border-radius:15px;overflow:hidden;margin-bottom:15px;">
+                    <div id="import-progress-bar" style="background:linear-gradient(90deg,#4CAF50,#8BC34A);height:100%;width:0%;transition:width 0.3s;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;"></div>
+                </div>
+                <div id="import-progress-text" style="text-align:center;color:#666;font-size:14px;">0 / ${pendingImportData.length} chiến sĩ</div>
+            </div>
+        `;
+        document.body.appendChild(progressModal);
+        const progressBar = document.getElementById('import-progress-bar');
+        const progressText = document.getElementById('import-progress-text');
+
+        for (let i = 0; i < pendingImportData.length; i++) {
+            const row = pendingImportData[i];
             try {
+                // Tra cứu team_id từ tên đội hình
+                let actualTeamId = '';
+                if (row.team_id) {
+                    const teamNameLower = row.team_id.toLowerCase().trim();
+                    // Tìm exact match trước
+                    if (teamsMap[teamNameLower]) {
+                        actualTeamId = teamsMap[teamNameLower];
+                    } else {
+                        // Tìm partial match (ví dụ: "Xuân tự hào" match "Đội hình Xuân tự hào")
+                        for (const [name, id] of Object.entries(teamsMap)) {
+                            if (name.includes(teamNameLower) || teamNameLower.includes(name.replace('đội hình ', ''))) {
+                                actualTeamId = id;
+                                break;
+                            }
+                        }
+                    }
+                    console.log('[Import] Team mapping:', row.team_id, '->', actualTeamId || '(not found)');
+                }
+
                 // Check if email exists in xtn_users
                 const existing = await getDocs(
                     query(collection(db, 'xtn_users'), where('email', '==', row.email))
                 );
 
+                const userData = {
+                    ...row,
+                    team_id: actualTeamId, // Ghi đè bằng team_id đúng
+                    role: 'member',
+                    status: 'active',
+                    imported: true
+                };
+
                 if (existing.empty) {
-                    // Add vào XTN_MEMBERS (whitelist)
+                    // Tạo mới
                     const emailDocId = row.email.replace(/[.#$[\]]/g, '_');
                     await setDoc(doc(db, 'xtn_users', emailDocId), {
-                        ...row,
-                        role: 'member',
-                        status: 'active',
-                        created_at: serverTimestamp(),
-                        imported: true
+                        ...userData,
+                        created_at: serverTimestamp()
                     });
                     successCount++;
                 } else {
-                    console.log('[Import] Skipped (exists):', row.email);
+                    // UPDATE người đã tồn tại (không đè created_at, uid, photoURL)
+                    const existingDoc = existing.docs[0];
+                    await setDoc(doc(db, 'xtn_users', existingDoc.id), {
+                        ...userData,
+                        updated_at: serverTimestamp()
+                    }, { merge: true });
+                    console.log('[Import] Updated (exists):', row.email);
+                    skippedCount++; // Đếm là "updated"
                 }
             } catch (err) {
                 console.error('[Import] Error adding:', row.email, err);
                 errorCount++;
             }
+
+            // Cập nhật thanh tiến độ
+            const current = i + 1;
+            const percentage = Math.round((current / pendingImportData.length) * 100);
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+            progressText.textContent = `${current} / ${pendingImportData.length} chiến sĩ`;
+
+            // Log progress every 50 người
+            if (current % 50 === 0 || current === pendingImportData.length) {
+                console.log(`[Import] Progress: ${current}/${pendingImportData.length} - Success: ${successCount}, Updated: ${skippedCount}, Errors: ${errorCount}`);
+            }
+
+            // Delay mỗi BATCH_SIZE để tránh rate limit
+            if ((i + 1) % BATCH_SIZE === 0 && i < pendingImportData.length - 1) {
+                await delay(DELAY_BETWEEN_BATCHES);
+            }
         }
 
-        closeImportPreview();
+        // Xóa progress modal
+        document.body.removeChild(progressModal);
+
+        let resultMsg = `Import hoàn tất!\n✅ Mới thêm: ${successCount}`;
+        if (skippedCount > 0) resultMsg += `\n🔄 Đã cập nhật: ${skippedCount}`;
+        if (errorCount > 0) resultMsg += `\n❌ Lỗi: ${errorCount}`;
+
         await showAlert(
-            `Import hoàn tất!\n✅ Thành công: ${successCount}\n❌ Lỗi: ${errorCount}`,
+            resultMsg,
             successCount > 0 ? 'success' : 'warning',
             'Kết quả Import'
         );
+
+        // Cleanup
+        pendingImportData = [];
 
         // Reload members list
         loadMembers();
