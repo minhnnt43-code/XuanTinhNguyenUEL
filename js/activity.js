@@ -360,14 +360,28 @@ function navigateStatsWeek(direction) {
 
 }
 
-// Lấy team_name của user hiện tại từ xtn_teams
+// Lấy team_name của user hiện tại
 async function loadCurrentUserTeam() {
     try {
         if (!auth.currentUser) return;
 
         const userData = await getUserData(auth.currentUser.uid);
-        if (userData && userData.team_id) {
-            // Lấy team_name từ xtn_teams collection
+        if (!userData) return;
+
+        // Fallback 1: Nếu user có team_name trực tiếp (từ xtn_users)
+        if (userData.team_name) {
+            currentUserTeam = userData.team_name;
+            return;
+        }
+
+        // Fallback 2: Nếu user có team field (có thể là tên đội)
+        if (userData.team) {
+            currentUserTeam = userData.team;
+            return;
+        }
+
+        // Fallback 3: Nếu có team_id, tra cứu trong xtn_teams
+        if (userData.team_id) {
             const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
             teamsSnap.forEach(docSnap => {
                 const team = docSnap.data();
@@ -375,7 +389,6 @@ async function loadCurrentUserTeam() {
                     currentUserTeam = team.team_name || docSnap.id;
                 }
             });
-
         }
     } catch (e) {
         console.warn('[Activity] Could not load user team:', e);
