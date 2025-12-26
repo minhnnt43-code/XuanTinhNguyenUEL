@@ -165,11 +165,12 @@ async function getUserData(uid) {
  */
 async function saveUserData(user, additionalData = {}) {
     try {
-        const { query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const { query, where, getDocs, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
 
         const originalName = user.displayName || user.email.split('@')[0];
         const convertedName = convertToVietnameseName(originalName);
-        const email = user.email;
+        // ===== NORMALIZE EMAIL ĐỂ QUERY CHÍNH XÁC =====
+        const email = user.email.toLowerCase().trim();
         const uid = user.uid;
 
         console.log('🔐 [Auth] Processing login for:', email);
@@ -179,7 +180,7 @@ async function saveUserData(user, additionalData = {}) {
         let memberDocId = null;
 
         try {
-            // Tìm theo email
+            // Tìm theo email (đã normalize)
             const usersQuery = query(collection(db, 'xtn_users'), where('email', '==', email));
             const usersSnap = await getDocs(usersQuery);
 
@@ -187,7 +188,7 @@ async function saveUserData(user, additionalData = {}) {
                 const userDoc = usersSnap.docs[0];
                 memberData = userDoc.data();
                 memberDocId = userDoc.id;
-                console.log('✅ [Auth] Found in xtn_users:', email, '| Role:', memberData.role);
+                console.log('✅ [Auth] Found in xtn_users:', email, '| Doc ID:', memberDocId, '| Role:', memberData.role);
             }
         } catch (e) {
             console.warn('[Auth] Could not check xtn_users:', e);
@@ -199,6 +200,7 @@ async function saveUserData(user, additionalData = {}) {
             // ✅ USER LÀ CHIẾN SĨ - cập nhật login info
             const updateData = {
                 uid: uid,
+                email: email, // Đảm bảo email được normalize
                 last_login: new Date().toISOString(),
                 login_count: (memberData.login_count || 0) + 1
             };
@@ -209,9 +211,24 @@ async function saveUserData(user, additionalData = {}) {
                 updateData.original_google_name = originalName;
             }
 
-            // Lưu vào xtn_users
-            await setDoc(doc(db, 'xtn_users', memberDocId), updateData, { merge: true });
-            console.log('📝 [Auth] Updated login info');
+            // ===== MIGRATE: Nếu doc ID khác UID → tạo doc mới với UID, xóa doc cũ =====
+            if (memberDocId !== uid) {
+                console.log('🔄 [Auth] Migrating doc from', memberDocId, 'to', uid);
+
+                // Tạo doc MỚI với UID, copy toàn bộ data
+                await setDoc(doc(db, 'xtn_users', uid), {
+                    ...memberData,
+                    ...updateData
+                });
+
+                // Xóa doc cũ (email-based)
+                await deleteDoc(doc(db, 'xtn_users', memberDocId));
+                console.log('✅ [Auth] Migrated and deleted old doc:', memberDocId);
+            } else {
+                // Doc đã là UID-based → chỉ update
+                await setDoc(doc(db, 'xtn_users', uid), updateData, { merge: true });
+                console.log('📝 [Auth] Updated login info for UID doc');
+            }
 
             return {
                 ...memberData,

@@ -335,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Tạo document MỚI theo UID với data đã có
                     await setDoc(doc(db, "xtn_users", user.uid), {
                         ...existingData,
+                        email: normalizedEmail, // Đảm bảo email được normalize
                         name: existingData.name || user.displayName || user.email.split('@')[0],  // Ưu tiên tên trong DB
                         last_login: new Date().toISOString()
                     });
@@ -1221,7 +1222,7 @@ async function loadMembers() {
         // Load từ Firebase xtn_users, cache 24h để giảm quota
 
         const CACHE_KEY = 'xtn_members_cache';
-        const CACHE_DURATION = 1 * 60 * 60 * 1000; // 1 hour (giảm từ 24h để data refresh nhanh)
+        const CACHE_DURATION = 3 * 60 * 1000; // 3 phút
 
         // Try cache first
         const cached = localStorage.getItem(CACHE_KEY);
@@ -1614,72 +1615,84 @@ window.filterMembersByTeam = function () {
 
 // Lọc và xóa các bản ghi trùng lặp (cùng email hoặc MSSV)
 window.filterDuplicateMembers = async function () {
-    const emailMap = {};
-    const mssvMap = {};
-    const duplicates = [];
+    const emailGroups = {};
 
-    // Tìm duplicates
+    // Group by email (normalized)
     membersDataCache.forEach(m => {
-        // Check email duplicate
         if (m.email && m.email.trim()) {
             const emailKey = m.email.toLowerCase().trim();
-            if (emailMap[emailKey]) {
-                duplicates.push({
-                    id: m.id,
-                    reason: 'email',
-                    value: m.email,
-                    name: m.name,
-                    originalName: emailMap[emailKey].name
-                });
-            } else {
-                emailMap[emailKey] = { id: m.id, name: m.name };
+            if (!emailGroups[emailKey]) {
+                emailGroups[emailKey] = [];
             }
-        }
-
-        // Check MSSV duplicate
-        if (m.mssv && m.mssv.trim()) {
-            const mssvKey = m.mssv.toUpperCase().trim();
-            if (mssvMap[mssvKey]) {
-                duplicates.push({
-                    id: m.id,
-                    reason: 'mssv',
-                    value: m.mssv,
-                    name: m.name,
-                    originalName: mssvMap[mssvKey].name
-                });
-            } else {
-                mssvMap[mssvKey] = { id: m.id, name: m.name };
-            }
+            emailGroups[emailKey].push(m);
         }
     });
 
-    if (duplicates.length === 0) {
+    // Find duplicates (2+ records with same email)
+    const duplicateGroups = Object.entries(emailGroups)
+        .filter(([email, members]) => members.length > 1);
+
+    if (duplicateGroups.length === 0) {
         await showAlert('✅ Không tìm thấy bản ghi trùng lặp!', 'success', 'Hoàn thành');
         return;
     }
 
-    // Hiển thị danh sách trùng - CHỈ XEM, KHÔNG XÓA
-    const listHtml = duplicates.map(d =>
+    // Tính "completeness score" cho mỗi member
+    function getCompletenessScore(m) {
+        let score = 0;
+        if (m.name && m.name.trim()) score += 1;
+        if (m.mssv && m.mssv.trim()) score += 2; // MSSV quan trọng
+        if (m.phone && m.phone.trim()) score += 1;
+        if (m.faculty && m.faculty.trim()) score += 1;
+        if (m.team_id && m.team_id.trim()) score += 1;
+        if (m.position && m.position.trim()) score += 1;
+        if (m.role && m.role !== 'member') score += 1; // Có role đặc biệt
+        return score;
+    }
+
+    // Prepare list of duplicates to delete
+    const toDelete = [];
+    const toKeep = [];
+
+    duplicateGroups.forEach(([email, members]) => {
+        // Sort by completeness (highest first)
+        members.sort((a, b) => getCompletenessScore(b) - getCompletenessScore(a));
+
+        // Keep first (most complete), delete rest
+        toKeep.push({ ...members[0], score: getCompletenessScore(members[0]) });
+        for (let i = 1; i < members.length; i++) {
+            toDelete.push({
+                ...members[i],
+                score: getCompletenessScore(members[i]),
+                keepName: members[0].name
+            });
+        }
+    });
+
+    // Show confirmation
+    const listHtml = toDelete.map(d =>
         `<tr>
-            <td style="padding:8px; border-bottom:1px solid #fde68a;"><strong>${d.name}</strong></td>
-            <td style="padding:8px; border-bottom:1px solid #fde68a;">${d.reason === 'email' ? 'Email' : 'MSSV'}</td>
-            <td style="padding:8px; border-bottom:1px solid #fde68a; color:#dc2626;">${d.value}</td>
-            <td style="padding:8px; border-bottom:1px solid #fde68a;">Trùng với: ${d.originalName}</td>
+            <td style="padding:8px; border-bottom:1px solid #fecaca;"><strong>${d.name || '(Không tên)'}</strong></td>
+            <td style="padding:8px; border-bottom:1px solid #fecaca;">${d.email}</td>
+            <td style="padding:8px; border-bottom:1px solid #fecaca;">${d.mssv || '-'}</td>
+            <td style="padding:8px; border-bottom:1px solid #fecaca; color:#16a34a;">Giữ: ${d.keepName}</td>
+            <td style="padding:8px; border-bottom:1px solid #fecaca; color:#dc2626;">Score: ${d.score}</td>
         </tr>`
     ).join('');
 
-    await Swal.fire({
-        title: `<i class="fa-solid fa-exclamation-triangle" style="color:#f59e0b;"></i> Tìm thấy ${duplicates.length} bản ghi trùng`,
+    const result = await Swal.fire({
+        title: `<i class="fa-solid fa-trash-can" style="color:#dc2626;"></i> Xóa ${toDelete.length} bản ghi trùng`,
         html: `
-            <p style="margin-bottom:15px; color:#6b7280;">Các bản ghi sau có email/MSSV trùng với người khác:</p>
+            <p style="margin-bottom:15px; color:#6b7280;">Hệ thống sẽ <strong style="color:#dc2626;">XÓA</strong> các bản ghi có ít thông tin hơn:</p>
             <div style="max-height:300px; overflow-y:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
                     <thead>
-                        <tr style="background:#fef3c7;">
-                            <th style="padding:8px; text-align:left;">Tên</th>
-                            <th style="padding:8px; text-align:left;">Loại</th>
-                            <th style="padding:8px; text-align:left;">Giá trị trùng</th>
-                            <th style="padding:8px; text-align:left;">Ghi chú</th>
+                        <tr style="background:#fee2e2;">
+                            <th style="padding:8px; text-align:left;">Tên (sẽ xóa)</th>
+                            <th style="padding:8px; text-align:left;">Email</th>
+                            <th style="padding:8px; text-align:left;">MSSV</th>
+                            <th style="padding:8px; text-align:left;">Giữ lại</th>
+                            <th style="padding:8px; text-align:left;">Điểm</th>
                         </tr>
                     </thead>
                     <tbody style="background:white;">
@@ -1687,14 +1700,44 @@ window.filterDuplicateMembers = async function () {
                     </tbody>
                 </table>
             </div>
-            <p style="margin-top:15px; color:#6b7280; font-size:12px;">
-                💡 <strong>Gợi ý:</strong> Kiểm tra lại file Excel gốc và sửa email/MSSV trùng, sau đó import lại.
+            <p style="margin-top:15px; color:#16a34a; font-size:12px;">
+                ✅ Giữ lại <strong>${toKeep.length}</strong> bản ghi có thông tin đầy đủ nhất
             </p>
         `,
-        confirmButtonText: 'Đã hiểu',
-        confirmButtonColor: '#3b82f6',
-        width: 650
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-trash"></i> Xóa trùng lặp',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626',
+        width: 700
     });
+
+    if (!result.isConfirmed) return;
+
+    // Delete duplicates
+    let deleted = 0;
+    let errors = 0;
+
+    for (const d of toDelete) {
+        try {
+            await deleteDoc(doc(db, 'xtn_users', d.id));
+            deleted++;
+            console.log('[Duplicate] Deleted:', d.id, d.email);
+        } catch (e) {
+            console.error('[Duplicate] Error deleting:', d.id, e);
+            errors++;
+        }
+    }
+
+    // Clear cache and reload
+    localStorage.removeItem('xtn_members_cache');
+
+    await showAlert(
+        `✅ Đã xóa ${deleted} bản ghi trùng lặp!` + (errors > 0 ? ` (${errors} lỗi)` : ''),
+        errors > 0 ? 'warning' : 'success',
+        'Hoàn thành'
+    );
+
+    loadMembers();
 };
 
 // Đồng bộ TẤT CẢ role từ position (sửa dữ liệu cũ bị sai)
@@ -2715,8 +2758,11 @@ async function confirmImport() {
                 }
 
                 // FORCE MODE: Không check trùng, ghi đè tất cả
+                // Normalize email để query thống nhất
+                const normalizedEmail = row.email.toLowerCase().trim();
                 const userData = {
                     ...row,
+                    email: normalizedEmail, // Đảm bảo email được normalize
                     team_id: actualTeamId,
                     role: 'member',
                     status: 'active',
@@ -2725,7 +2771,7 @@ async function confirmImport() {
                 };
 
                 // Tạo doc ID từ email (thay ký tự đặc biệt)
-                const emailDocId = row.email.replace(/[.#$[\]]/g, '_');
+                const emailDocId = normalizedEmail.replace(/[.#$[\]]/g, '_');
                 await setDoc(doc(db, 'xtn_users', emailDocId), userData);
                 successCount++;
             } catch (err) {
@@ -3726,11 +3772,19 @@ async function loadProfileSection() {
     if (userData.team_id) {
         try {
             const teamDoc = await getDoc(doc(db, 'xtn_teams', userData.team_id));
-            document.getElementById('profile-team').value = teamDoc.exists()
-                ? teamDoc.data().team_name
-                : STATIC_TEAM_MAP[userData.team_id] || 'Đội hình ' + userData.team_id;
+            if (teamDoc.exists() && teamDoc.data().team_name) {
+                document.getElementById('profile-team').value = teamDoc.data().team_name;
+            } else {
+                // Dùng STATIC_TEAM_MAP hoặc team_id đã là tên đầy đủ
+                const mappedName = STATIC_TEAM_MAP[userData.team_id];
+                const isFullName = Object.values(STATIC_TEAM_MAP).includes(userData.team_id);
+                document.getElementById('profile-team').value = mappedName || (isFullName ? userData.team_id : 'Chưa được phân đội');
+            }
         } catch (e) {
-            document.getElementById('profile-team').value = STATIC_TEAM_MAP[userData.team_id] || 'Đội hình ' + userData.team_id;
+            // Fallback: STATIC_TEAM_MAP
+            const mappedName = STATIC_TEAM_MAP[userData.team_id];
+            const isFullName = Object.values(STATIC_TEAM_MAP).includes(userData.team_id);
+            document.getElementById('profile-team').value = mappedName || (isFullName ? userData.team_id : 'Chưa được phân đội');
         }
     } else {
         document.getElementById('profile-team').value = 'Chưa được phân đội';
