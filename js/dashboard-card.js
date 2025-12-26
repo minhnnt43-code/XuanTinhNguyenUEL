@@ -61,7 +61,7 @@ const COLOR_YELLOW = '#FFE500';
 const COLOR_ORANGE = '#FF6B00';
 
 // Font
-const FONT_IMPACT = '"UTM Impact", "Arial Black", sans-serif';
+const FONT_IMPACT = '"UTM Impact"';
 
 // ============================================================
 // EXPORT
@@ -80,6 +80,17 @@ export async function initCardCanvas() {
     cardCtx = cardCanvas.getContext('2d');
     cardCanvas.width = CANVAS_WIDTH;
     cardCanvas.height = CANVAS_HEIGHT;
+
+    // ===== LOAD FONT UTM IMPACT TRƯỚC KHI VẼ =====
+    // Đảm bảo font available cho canvas ngay cả khi user chưa cài
+    try {
+        const utmImpact = new FontFace('UTM Impact', 'url(fonts/UTM%20Impact.ttf)');
+        await utmImpact.load();
+        document.fonts.add(utmImpact);
+        console.log('[Card] UTM Impact font loaded successfully');
+    } catch (fontError) {
+        console.warn('[Card] Could not load UTM Impact font, using fallback:', fontError);
+    }
 
     // Load template (with cache buster)
     templateImg.src = 'images/thechiensi.png?v=' + Date.now();

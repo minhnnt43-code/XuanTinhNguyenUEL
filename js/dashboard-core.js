@@ -1221,7 +1221,7 @@ async function loadMembers() {
         // Load từ Firebase xtn_users, cache 24h để giảm quota
 
         const CACHE_KEY = 'xtn_members_cache';
-        const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+        const CACHE_DURATION = 1 * 60 * 60 * 1000; // 1 hour (giảm từ 24h để data refresh nhanh)
 
         // Try cache first
         const cached = localStorage.getItem(CACHE_KEY);
