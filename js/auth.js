@@ -144,13 +144,29 @@ function convertToVietnameseName(googleName) {
 
 /**
  * Lấy thông tin user từ Firestore
+ * Tìm theo UID trước, nếu không có thì tìm theo email
  */
 async function getUserData(uid) {
     try {
+        // 1. Thử tìm theo UID trước
         const userDoc = await getDoc(doc(db, "xtn_users", uid));
         if (userDoc.exists()) {
             return userDoc.data();
         }
+
+        // 2. Nếu không có, tìm theo email của user hiện tại
+        if (auth.currentUser?.email) {
+            const { query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            const email = auth.currentUser.email.toLowerCase().trim();
+            const emailQuery = query(collection(db, 'xtn_users'), where('email', '==', email));
+            const snap = await getDocs(emailQuery);
+
+            if (!snap.empty) {
+                console.log('[Auth] getUserData: Found by email instead of UID');
+                return snap.docs[0].data();
+            }
+        }
+
         return null;
     } catch (error) {
         console.error("Lỗi lấy thông tin user:", error);
@@ -211,24 +227,10 @@ async function saveUserData(user, additionalData = {}) {
                 updateData.original_google_name = originalName;
             }
 
-            // ===== MIGRATE: Nếu doc ID khác UID → tạo doc mới với UID, xóa doc cũ =====
-            if (memberDocId !== uid) {
-                console.log('🔄 [Auth] Migrating doc from', memberDocId, 'to', uid);
-
-                // Tạo doc MỚI với UID, copy toàn bộ data
-                await setDoc(doc(db, 'xtn_users', uid), {
-                    ...memberData,
-                    ...updateData
-                });
-
-                // Xóa doc cũ (email-based)
-                await deleteDoc(doc(db, 'xtn_users', memberDocId));
-                console.log('✅ [Auth] Migrated and deleted old doc:', memberDocId);
-            } else {
-                // Doc đã là UID-based → chỉ update
-                await setDoc(doc(db, 'xtn_users', uid), updateData, { merge: true });
-                console.log('📝 [Auth] Updated login info for UID doc');
-            }
+            // ===== KHÔNG MIGRATE - CHỈ UPDATE DOC HIỆN TẠI =====
+            // Giữ nguyên doc ID (email-based), chỉ thêm uid field
+            await setDoc(doc(db, 'xtn_users', memberDocId), updateData, { merge: true });
+            console.log('📝 [Auth] Updated login info for doc:', memberDocId);
 
             return {
                 ...memberData,
@@ -346,9 +348,17 @@ async function handleRedirectResult() {
                 clearUserCache();
 
                 const isSuperAdminCheck = await checkSuperAdmin(user.email);
-                await saveUserData(user, {
+                const userData = await saveUserData(user, {
                     role: isSuperAdminCheck ? ROLES.SUPER_ADMIN : undefined
                 });
+
+                // Check if user is in member list
+                if (!userData) {
+                    console.log('❌ [Auth] User not in members list after redirect, rejecting...');
+                    sessionStorage.setItem('rejected_email', user.email);
+                    await signOut(auth);
+                    return { user: null, success: false, rejected: true };
+                }
 
                 return { user, success: true };
             }

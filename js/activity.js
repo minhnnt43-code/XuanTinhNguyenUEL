@@ -220,10 +220,22 @@ function normalizeTeamName(team) {
 }
 
 // ===== INITIALIZATION =====
-export async function initActivityModule() {
+export async function initActivityModule(teamName = null, userRole = null) {
+    // Override from dashboard-core (bypass duplicate doc issue)
+    if (teamName) {
+        currentUserTeam = teamName;
+        console.log('[Activity] Initialized with team:', currentUserTeam);
+    }
+    if (userRole) {
+        currentUserRole = userRole;
+        console.log('[Activity] Initialized with role:', currentUserRole);
+    }
+
     // Prevent multiple initializations
     if (isInitialized) {
-
+        // Update team/role even if initialized
+        if (teamName) currentUserTeam = teamName;
+        if (userRole) currentUserRole = userRole;
         renderCalendar();
         return;
     }
@@ -237,12 +249,17 @@ export async function initActivityModule() {
     // Load đội hình từ danh sách cố định (tiết kiệm Firebase quota)
     loadTeamsFromStatic();
 
-    // Load team và role của user hiện tại
-    await loadCurrentUserTeam();
+    // Load team của user - CHỈ khi chưa có từ Dashboard
+    if (!currentUserTeam) {
+        await loadCurrentUserTeam();
+    }
 
-    // Lấy role của user
-    const userData = await getUserData(auth.currentUser?.uid);
-    currentUserRole = userData?.role || 'member';
+    // Lấy role của user - CHỈ khi chưa có từ Dashboard
+    if (!currentUserRole) {
+        const userData = await getUserData(auth.currentUser?.uid);
+        currentUserRole = userData?.role || 'member';
+    }
+    console.log('[Activity] Final role:', currentUserRole);
 
     // Kiểm tra quyền chỉnh sửa:
     // - super_admin, kysutet_admin: chỉnh sửa TẤT CẢ
@@ -273,7 +290,9 @@ export async function initActivityModule() {
 function canEditTeamActivity(teamName) {
     // super_admin hoặc kysutet_admin: chỉnh sửa TẤT CẢ
     // LƯU Ý: Dùng currentUserRole trực tiếp thay vì isSuperAdmin()
-    if (currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin') {
+    // Database có thể lưu 'super' hoặc 'super_admin'
+    const isFullAdmin = currentUserRole === 'super_admin' || currentUserRole === 'super' || currentUserRole === 'kysutet_admin';
+    if (isFullAdmin) {
         return true;
     }
 
@@ -302,13 +321,7 @@ function setDefaultDateFilters() {
         elements.statsDateTo.value = formatDate(today, 'yyyy-mm-dd');
     }
 
-    // Set default cho Export Report (ngày chiến dịch)
-    if (elements.exportDateFrom) {
-        elements.exportDateFrom.value = formatDate(CONFIG.startDate, 'yyyy-mm-dd');
-    }
-    if (elements.exportDateTo) {
-        elements.exportDateTo.value = formatDate(CONFIG.endDate, 'yyyy-mm-dd');
-    }
+    // Không cần set default cho Export - dùng chung filter toolbar
 }
 
 // Navigate stats week: direction = -1 (tuần trước), 0 (tuần này), 1 (tuần sau)
@@ -366,30 +379,61 @@ async function loadCurrentUserTeam() {
         if (!auth.currentUser) return;
 
         const userData = await getUserData(auth.currentUser.uid);
-        if (!userData) return;
+        if (!userData) {
+            console.log('[Activity] No userData found for current user');
+            return;
+        }
+
+        console.log('[Activity] User data for team:', userData.team_id, userData.team_name, userData.team);
 
         // Fallback 1: Nếu user có team_name trực tiếp (từ xtn_users)
         if (userData.team_name) {
             currentUserTeam = userData.team_name;
+            console.log('[Activity] Team from team_name:', currentUserTeam);
             return;
         }
 
         // Fallback 2: Nếu user có team field (có thể là tên đội)
         if (userData.team) {
             currentUserTeam = userData.team;
+            console.log('[Activity] Team from team field:', currentUserTeam);
             return;
         }
 
-        // Fallback 3: Nếu có team_id, tra cứu trong xtn_teams
+        // Fallback 3: Nếu có team_id, tra cứu
         if (userData.team_id) {
+            const teamId = userData.team_id;
+            console.log('[Activity] Looking up team_id:', teamId);
+
+            // 3a. Check trong TEAM_SLUG_MAP (vien-chuc-tre → Đội hình Viên chức trẻ)
+            if (TEAM_SLUG_MAP[teamId]) {
+                currentUserTeam = TEAM_SLUG_MAP[teamId];
+                console.log('[Activity] Found in TEAM_SLUG_MAP:', currentUserTeam);
+                return;
+            }
+
+            // 3b. Check trong CONFIG.teams (partial match)
+            const matchedTeam = CONFIG.teams.find(t =>
+                t.toLowerCase().includes(teamId.toLowerCase().replace(/-/g, ' '))
+            );
+            if (matchedTeam) {
+                currentUserTeam = matchedTeam;
+                console.log('[Activity] Found in CONFIG.teams:', currentUserTeam);
+                return;
+            }
+
+            // 3c. Tra cứu trong xtn_teams collection
             const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
             teamsSnap.forEach(docSnap => {
                 const team = docSnap.data();
-                if (docSnap.id === userData.team_id || team.team_id === userData.team_id) {
+                if (docSnap.id === teamId || team.team_id === teamId) {
                     currentUserTeam = team.team_name || docSnap.id;
+                    console.log('[Activity] Found in xtn_teams:', currentUserTeam);
                 }
             });
         }
+
+        console.log('[Activity] Final currentUserTeam:', currentUserTeam);
     } catch (e) {
         console.warn('[Activity] Could not load user team:', e);
     }
@@ -432,10 +476,7 @@ function cacheElements() {
     elements.reportDateFilter = document.getElementById('report-date-filter');
     elements.activitiesReportStatus = document.getElementById('activities-report-status');
 
-    // Export Report
-    elements.exportDateFrom = document.getElementById('export-date-from');
-    elements.exportDateTo = document.getElementById('export-date-to');
-    elements.exportTeamSelect = document.getElementById('export-team-select');
+    // Export Report - dùng chung filter với toolbar
     elements.btnExportReport = document.getElementById('btn-export-report');
 
     // History
@@ -868,7 +909,15 @@ function openActivityModal(activity = null, date = null, team = null) {
     const defaultTeam = isFullAdmin ? '' : currentUserTeam;
     const activityTeam = activity?.team || team || defaultTeam || '';
 
+    console.log('[Activity Modal] Opening modal with:', {
+        currentUserRole,
+        currentUserTeam,
+        isFullAdmin,
+        activityTeam
+    });
+
     const canEditThisActivity = canEditTeamActivity(activityTeam);
+    console.log('[Activity Modal] canEditThisActivity:', canEditThisActivity);
 
     // Dropdown options: doihinh_admin chỉ thấy team của mình, admin thấy tất cả
     let teamOptions = '';
@@ -1034,10 +1083,23 @@ async function saveActivity(id = null) {
     }
 
     // KIỂM TRA QUYỀN THEO TEAM
+    console.log('[Activity] Saving activity for team:', data.team);
+    console.log('[Activity] Current role:', currentUserRole);
+    console.log('[Activity] Current user team:', currentUserTeam);
+
     if (!canEditTeamActivity(data.team)) {
+        console.error('[Activity] Permission denied!', {
+            targetTeam: data.team,
+            userRole: currentUserRole,
+            userTeam: currentUserTeam,
+            normalizedTarget: normalizeTeamName(data.team),
+            normalizedUserTeam: normalizeTeamName(currentUserTeam)
+        });
         showToast(`Bạn không có quyền tạo/sửa hoạt động cho đội "${data.team}"!`, 'error');
         return;
     }
+
+    console.log('[Activity] Permission granted. Saving...');
 
     try {
         if (id) {
@@ -1503,18 +1565,18 @@ function renderStatsTable(data) {
                 : '<span class="badge" style="background:#f3f4f6;color:#6b7280;font-size:12px;">Không</span>';
 
             return `
-            <tr style="font-size:13px;">
+            <tr>
                 <td>${start + i + 1}</td>
                 <td>${formatDate(a.date, 'full')}</td>
                 <td>${a.startTime} - ${a.endTime}</td>
-                <td><strong style="color:#2563eb;">${a.title || '-'}</strong></td>
+                <td><strong>${a.title || '-'}</strong></td>
                 <td>${normalizeTeamName(a.team)}</td>
                 <td>${a.location || '-'}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.content || ''}">${a.content || '-'}</td>
                 <td>${bchBadge}</td>
                 <td>${kstBadge}</td>
                 <td>${updatedTime}</td>
-                <td style="font-size:12px;">${a.updatedBy || a.createdBy || '-'}</td>
+                <td>${a.updatedBy || a.createdBy || '-'}</td>
                 <td class="actions">
                     <button class="btn-icon edit" data-id="${a.id}" title="Sửa">
                         <i class="fa-solid fa-edit"></i>
@@ -1633,18 +1695,15 @@ function exportToCSV() {
 
 // Export Reports to CSV
 function exportReports() {
-    const dateFrom = elements.exportDateFrom?.value || '';
-    const dateTo = elements.exportDateTo?.value || '';
-    const teamFilter = elements.exportTeamSelect?.value || '';
+    // Sử dụng filter từ toolbar thống nhất
+    const dateFilter = elements.reportDateFilter?.value || '';
+    const teamFilter = elements.reportTeamSelect?.value || '';
 
     let filtered = [...reports];
 
-    // Filter by date range
-    if (dateFrom) {
-        filtered = filtered.filter(r => r.date >= dateFrom);
-    }
-    if (dateTo) {
-        filtered = filtered.filter(r => r.date <= dateTo);
+    // Filter by date (single date from unified toolbar)
+    if (dateFilter) {
+        filtered = filtered.filter(r => r.date === dateFilter);
     }
 
     // Filter by team
@@ -1938,62 +1997,78 @@ function renderReports() {
     }
 
     elements.reportsList.innerHTML = filtered.map(r => {
-        const reportDate = r.date || `Tuần ${r.week}`;
+        // Format ngày theo chuẩn Việt Nam (dd/mm/yyyy)
+        const formatVNDate = (dateStr) => {
+            if (!dateStr) return 'N/A';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return dateStr;
+        };
+        const reportDate = formatVNDate(r.date) || `Tuần ${r.week}`;
         const createdDate = r.createdAt?.toDate?.()?.toLocaleDateString('vi-VN') || 'N/A';
 
         // Lấy title từ hoạt động liên kết (nếu có)
         let activityTitle = '';
+        let activityContent = '';
         if (r.linkedActivityId) {
             const linkedActivity = activities.find(a => a.id === r.linkedActivityId);
             if (linkedActivity?.title) {
                 activityTitle = linkedActivity.title;
             }
+            if (linkedActivity?.content) {
+                activityContent = linkedActivity.content;
+            }
         }
+
+        // Nội dung hoạt động (từ activity liên kết hoặc field riêng)
+        const activityDesc = activityContent || r.activityContent || '';
+
+        // Nội dung báo cáo
+        const reportContent = r.content || r.reportContent || r.summary || '';
+
+        // Format timestamp cập nhật
+        const updatedTime = r.updatedAt?.toDate?.()?.toLocaleString('vi-VN') || createdDate;
 
         return `
         <div class="report-card" data-id="${r.id}">
+            <!-- Header: Đội hình + Ngày + Buttons -->
             <div class="report-card-header">
-                ${activityTitle ? `<div style="color:#2563eb; font-size:1.1rem; font-weight:600; margin-bottom:5px;">
-                    <i class="fa-solid fa-bookmark"></i> ${activityTitle}
-                </div>` : ''}
-                <h4>${normalizeTeamName(r.team)} - ${reportDate}</h4>
-                <div class="report-card-actions">\u003cbutton class="btn btn-sm btn-secondary btn-history" data-id="${r.id}" title="Lịch sử">
+                <div class="report-card-title">
+                    <h4>${normalizeTeamName(r.team)}</h4>
+                    <span class="report-date">Báo cáo cho: <strong>Ngày ${reportDate}</strong></span>
+                </div>
+                <div class="report-card-actions">
+                    <button class="btn btn-sm btn-outline btn-history" data-id="${r.id}">
                         <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử
                     </button>
-                    <button class="btn btn-sm btn-warning btn-edit" data-id="${r.id}" title="Sửa">
+                    <button class="btn btn-sm btn-warning btn-edit" data-id="${r.id}">
                         <i class="fa-solid fa-edit"></i> Sửa
                     </button>
-                    <button class="btn btn-sm btn-danger btn-delete" data-id="${r.id}" title="Xóa">
+                    <button class="btn btn-sm btn-danger btn-delete" data-id="${r.id}">
                         <i class="fa-solid fa-trash"></i> Xóa
                     </button>
                 </div>
             </div>
-            <div class="report-card-meta">
-                <span><i class="fa-solid fa-users"></i> ${r.participants || 0} người</span>
-                <span><i class="fa-solid fa-clock"></i> ${r.totalHours || 0} giờ</span>
-                <span><i class="fa-solid fa-calendar"></i> ${createdDate}</span>
-                <span class="status ${r.submitted ? 'submitted' : 'pending'}">
-                    ${r.submitted ? 'Đã nộp' : 'Chưa nộp'}
-                </span>
+            
+            <!-- Body: Nội dung chi tiết -->
+            <div class="report-card-body">
+                <p class="report-field"><strong>Số lượng tham gia:</strong> ${r.participants || 0} người</p>
+                
+                <p class="report-field"><strong>Nội dung hoạt động:</strong></p>
+                <p class="report-value">${activityDesc || 'Không có'}</p>
+                
+                <p class="report-field"><strong>Nội dung báo cáo:</strong></p>
+                <p class="report-value">${reportContent || 'Không có'}</p>
+                
+                <p class="report-field"><strong>Minh chứng:</strong></p>
+                <p class="report-value">${r.evidence && r.evidence.length > 0
+                ? r.evidence.map(e => `<a href="${e}" target="_blank" rel="noopener">${e}</a>`).join('<br>')
+                : 'Không có'}</p>
             </div>
-            <div class="report-card-content">
-                <p><strong>Nội dung:</strong> ${r.activityContent || r.summary || 'Chưa có nội dung'}</p>
-                ${r.evidence && r.evidence.length > 0 ? `
-                    <p><strong>Minh chứng:</strong> 
-                        ${r.evidence.map((e, i) => `<a href="${e}" target="_blank" rel="noopener">Link ${i + 1}</a>`).join(', ')}
-                    </p>
-                ` : ''}
-                ${r.customFields && r.customFields.length > 0 ? `
-                    <div class="report-custom-fields">
-                        <p><strong><i class="fa-solid fa-layer-group"></i> Mục bổ sung:</strong></p>
-                        <ul class="custom-fields-list">
-                            ${r.customFields.map(cf => `<li><strong>${cf.label}:</strong> ${cf.value}</li>`).join('')}
-                        </ul>
-                    </div>
-                ` : ''}
-            </div>
+            
+            <!-- Footer: Người cập nhật + Thời gian -->
             <div class="report-card-footer">
-                <small>Cập nhật bởi: ${r.updatedBy || r.createdBy || 'N/A'}</small>
+                <small>Cập nhật bởi: ${r.updatedBy || r.createdBy || 'N/A'} lúc ${updatedTime}</small>
             </div>
         </div>
     `;
@@ -2007,7 +2082,7 @@ function renderReports() {
             if (!report) return;
 
             // Kiểm tra quyền: chỉ admin hoặc cùng đội mới được sửa
-            const isAdmin = isSuperAdmin();
+            const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin';
             if (!isAdmin && currentUserTeam) {
                 const normalizedUserTeam = normalizeTeamName(currentUserTeam);
                 const normalizedReportTeam = normalizeTeamName(report.team);
@@ -2028,7 +2103,8 @@ function renderReports() {
             const report = reports.find(r => r.id === btn.dataset.id);
 
             // Kiểm tra quyền: chỉ admin hoặc cùng đội mới được xóa
-            const isAdmin = isSuperAdmin();
+            // Dùng currentUserRole trực tiếp thay vì isSuperAdmin() để đảm bảo sync
+            const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin';
             if (!isAdmin && currentUserTeam && report) {
                 const normalizedUserTeam = normalizeTeamName(currentUserTeam);
                 const normalizedReportTeam = normalizeTeamName(report.team);
@@ -2323,7 +2399,7 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
     document.getElementById('report-modal')?.remove();
 
     const isEdit = !!report;
-    const isAdmin = isSuperAdmin();
+    const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'kysutet_admin';
 
     // Default team: ưu tiên prefillTeam (từ activity) trước currentUserTeam
     const defaultTeam = report?.team || prefillTeam || currentUserTeam || selectedTeam || CONFIG.teams[0];

@@ -1299,31 +1299,7 @@
 
                 <!-- Tab Content: Report -->
                 <div class="activity-tab-content" id="tab-report">
-                    <!-- Export Report Section -->
-                    <div class="export-report-section">
-                        <h4><i class="fa-solid fa-file-export"></i> Xuất Báo cáo Tổng hợp</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Từ ngày</label>
-                                <input type="date" id="export-date-from">
-                            </div>
-                            <div class="form-group">
-                                <label>Đến ngày</label>
-                                <input type="date" id="export-date-to">
-                            </div>
-                            <div class="form-group">
-                                <label>Chọn Đội hình</label>
-                                <select id="export-team-select">
-                                    <option value="">Tất cả Đội hình</option>
-                                </select>
-                            </div>
-                            <button id="btn-export-report" class="btn btn-success">
-                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Report Toolbar -->
+                    <!-- Unified Report Toolbar -->
                     <div class="report-toolbar"
                         style="display:flex; gap:15px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
                         <input type="text" id="report-search" placeholder="Tìm theo đội hình, nội dung..."
@@ -1334,6 +1310,9 @@
                         </select>
                         <button id="btn-new-report" class="btn btn-success">
                             <i class="fa-solid fa-plus"></i> Thêm báo cáo mới
+                        </button>
+                        <button id="btn-export-report" class="btn btn-warning">
+                            <i class="fa-solid fa-file-excel"></i> Xuất Excel
                         </button>
                     </div>
 

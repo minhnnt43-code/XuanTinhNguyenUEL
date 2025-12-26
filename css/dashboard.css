@@ -760,8 +760,9 @@ h6,
     background: #fef3c7;
     padding: 12px;
     text-align: left;
-    font-weight: 600;
-    color: #92400e;
+    font-weight: 700;
+    color: #dc2626;
+    font-size: 0.9rem;
 }
 
 .data-table td {
@@ -1683,6 +1684,150 @@ input[type="range"]::-moz-range-track {
     font-size: 0.85rem;
 }
 
+/* New styles for redesigned report card */
+.report-card-title {
+    flex: 1;
+}
+
+.report-card-title h4 {
+    margin: 0;
+    color: #dc2626;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.report-date {
+    display: block;
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+.report-card-body {
+    padding: 15px 0;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 12px;
+}
+
+.report-field {
+    color: #374151;
+    font-size: 0.9rem;
+    margin: 8px 0 4px 0;
+}
+
+.report-field strong {
+    color: #dc2626;
+}
+
+.report-value {
+    color: #1f2937;
+    font-size: 0.9rem;
+    margin: 0 0 12px 0;
+    padding-left: 0;
+}
+
+.report-value a {
+    color: #2563eb;
+    word-break: break-all;
+}
+
+.report-value a:hover {
+    text-decoration: underline;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid #9ca3af;
+    color: #6b7280;
+}
+
+.btn-outline:hover {
+    background: #f3f4f6;
+}
+
+.report-card-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    background: linear-gradient(135deg, #fef9c3, #fefce8);
+    padding: 10px 15px;
+    border-radius: 8px;
+    border-left: 3px solid #eab308;
+}
+
+.report-card-info span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #713f12;
+}
+
+.report-card-info i {
+    color: #a16207;
+}
+
+.report-card-info .status {
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.report-card-info .status.submitted {
+    background: #22c55e;
+    color: white;
+}
+
+.report-card-info .status.pending {
+    background: #f97316;
+    color: white;
+}
+
+.report-card-content {
+    background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #22c55e;
+    font-size: 0.9rem;
+    color: #166534;
+}
+
+.report-card-content p {
+    margin: 0;
+}
+
+.report-card-content i {
+    color: #16a34a;
+    margin-right: 6px;
+}
+
+.report-card-evidence {
+    background: linear-gradient(135deg, #ede9fe, #f5f3ff);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #8b5cf6;
+    font-size: 0.85rem;
+    color: #5b21b6;
+}
+
+.report-card-evidence p {
+    margin: 0;
+}
+
+.report-card-evidence a {
+    color: #7c3aed;
+    font-weight: 600;
+}
+
+.report-card-evidence i {
+    color: #8b5cf6;
+    margin-right: 6px;
+}
+
 /* Export Report Section - Clean design */
 .export-report-section {
     background: white;
@@ -2569,12 +2714,13 @@ select:disabled {
 .data-table thead th {
     padding: 14px 12px;
     text-align: left;
-    font-weight: 600;
-    font-size: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #475569;
+    color: #dc2626;
     white-space: nowrap;
+    font-family: 'UTM Avo';
 }
 
 .data-table tbody tr {
@@ -2594,6 +2740,8 @@ select:disabled {
     padding: 12px;
     vertical-align: middle;
     color: #334155;
+    font-size: 0.9rem !important;
+    font-family: 'UTM Avo', Arial, sans-serif !important;
 }
 
 .data-table tbody td strong {

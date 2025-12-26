@@ -394,6 +394,8 @@
     padding: 12px 10px;
     text-align: left;
     border-bottom: 1px solid #eee;
+    font-size: 0.9rem !important;
+    font-family: 'UTM Avo', Arial, sans-serif !important;
 }
 
 .data-table th {

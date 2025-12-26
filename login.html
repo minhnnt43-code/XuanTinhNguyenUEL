@@ -545,11 +545,13 @@
             <h2 class="rejection-title">Không thể truy cập</h2>
             <div id="rejection-email" class="rejection-email"></div>
             <p class="rejection-message">
-                Email của bạn không nằm trong danh sách Chiến sĩ Xuân Tình Nguyện UEL 2026.
+                Bạn không có trong danh sách Chiến sĩ Xuân tình nguyện 2026.<br><br>
+                Hãy đăng nhập lại lần nữa, nếu bạn cho rằng bạn là Chiến sĩ Xuân tình nguyện 2026, nếu không được hãy
+                liên hệ:
             </p>
             <div class="rejection-contact">
-                Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ Ban Chỉ huy qua
-                <a href="https://facebook.com/xuantinhnguyen.uel" target="_blank">Fanpage Xuân tình nguyện UEL</a>.
+                <strong>👤 Đ/c Lâm Quốc Minh - Đội trưởng Đội hình Ký sự Tết</strong><br>
+                🔗 <a href="https://fb.com/lamquocminh18" target="_blank">fb.com/lamquocminh18</a>
             </div>
             <div class="btn-actions">
                 <a href="index.html" class="btn-home">
@@ -612,6 +614,16 @@
         (async function () {
             try {
                 const result = await handleRedirectResult();
+
+                // Check for rejection after redirect
+                const rejectedEmail = sessionStorage.getItem('rejected_email');
+                if (rejectedEmail || (result && result.rejected)) {
+                    const email = rejectedEmail || '';
+                    sessionStorage.removeItem('rejected_email');
+                    showRejection(email);
+                    return;
+                }
+
                 if (result && result.success) {
                     console.log('🔐 [Login] Redirect login success, redirecting to dashboard...');
                     window.location.href = 'dashboard.html';
@@ -619,6 +631,15 @@
                 }
             } catch (error) {
                 console.error('Redirect result error:', error);
+
+                // Check for rejection in catch
+                const rejectedEmail = sessionStorage.getItem('rejected_email');
+                if (rejectedEmail) {
+                    sessionStorage.removeItem('rejected_email');
+                    showRejection(rejectedEmail);
+                    return;
+                }
+
                 errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
                 errorMessage.classList.add('show');
             }
@@ -628,15 +649,16 @@
         onAuthChange((user, userData) => {
             console.log('🔐 [Login] onAuthChange:', user?.email, userData);
 
-            // Check sessionStorage again (in case auth.js just set it)
+            // Check sessionStorage for rejection (from auth.js)
             const rejectedEmail = sessionStorage.getItem('rejected_email');
             if (rejectedEmail) {
-                console.log('🔐 [Login] Rejection detected via sessionStorage');
+                console.log('🔐 [Login] Rejection detected via sessionStorage:', rejectedEmail);
                 sessionStorage.removeItem('rejected_email');
                 showRejection(rejectedEmail);
                 return;
             }
 
+            // If user logged in and has data, redirect
             if (user && userData) {
                 console.log('🔐 [Login] User logged in, redirecting to dashboard...');
                 window.location.href = 'dashboard.html';
@@ -652,6 +674,16 @@
             try {
                 const result = await loginWithGoogle();
 
+                // Check for rejection after login attempt
+                const rejectedEmail = sessionStorage.getItem('rejected_email');
+                if (rejectedEmail) {
+                    sessionStorage.removeItem('rejected_email');
+                    showRejection(rejectedEmail);
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = '<i class="fa-brands fa-google"></i> Đăng nhập bằng Google';
+                    return;
+                }
+
                 if (result && result.success) {
                     console.log('🔐 [Login] Popup success, redirecting to dashboard...');
                     window.location.href = 'dashboard.html';
@@ -662,10 +694,23 @@
                     btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuyển hướng...';
                     return;
                 }
+
+                // If no success and no redirect, reset button
+                btnLogin.disabled = false;
+                btnLogin.innerHTML = '<i class="fa-brands fa-google"></i> Đăng nhập bằng Google';
             } catch (error) {
                 console.error('Login error:', error);
-                errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
-                errorMessage.classList.add('show');
+
+                // Check for rejection in catch block too
+                const rejectedEmail = sessionStorage.getItem('rejected_email');
+                if (rejectedEmail) {
+                    sessionStorage.removeItem('rejected_email');
+                    showRejection(rejectedEmail);
+                } else {
+                    errorMessage.textContent = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
+                    errorMessage.classList.add('show');
+                }
+
                 btnLogin.disabled = false;
                 btnLogin.innerHTML = '<i class="fa-brands fa-google"></i> Đăng nhập bằng Google';
             }

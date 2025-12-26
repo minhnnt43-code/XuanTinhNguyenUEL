@@ -41,6 +41,17 @@ import { initAvatarCanvas, handleAvatarUpload, resetAvatarFull, downloadAvatar }
 let currentUser = null;
 let userData = null;
 
+// ============================================================
+// HELPER: Chuyển email thành Document ID chuẩn hóa
+// ============================================================
+function emailToDocId(email) {
+    if (!email) return null;
+    // Lowercase, trim, replace special chars với underscore
+    return email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+}
+// Export cho các module khác dùng
+window.emailToDocId = emailToDocId;
+
 // Danh sách email được phép xem Quản lý Tài khoản và Lịch sử hoạt động
 const SUPER_OWNER_EMAILS = [
     'minhlq23504b@st.uel.edu.vn',
@@ -206,13 +217,28 @@ async function checkMandatoryProfile(user, userData) {
             btn.disabled = true;
 
             try {
-                // Update Firebase
-                await updateDoc(doc(db, 'xtn_users', user.uid), {
+                // TÌM HỒ SƠ THEO EMAIL (không quan tâm ID format)
+                const normalizedEmail = user.email.toLowerCase().trim();
+                const emailQuery = await getDocs(
+                    query(collection(db, 'xtn_users'), where('email', '==', normalizedEmail))
+                );
+
+                if (emailQuery.empty) {
+                    throw new Error('Không tìm thấy hồ sơ chiến sĩ với email này');
+                }
+
+                // Lấy ID thực tế của hồ sơ
+                const actualDocId = emailQuery.docs[0].id;
+                console.log('[Profile] Tìm thấy hồ sơ:', actualDocId);
+
+                // Update đúng hồ sơ đó
+                await updateDoc(doc(db, 'xtn_users', actualDocId), {
                     mssv: mssv,
                     phone: phone,
                     faculty: faculty,
                     updated_at: new Date().toISOString()
                 });
+                console.log('[Profile] Đã cập nhật hồ sơ:', actualDocId);
 
                 // Update local userData
                 userData.mssv = mssv;
@@ -308,54 +334,87 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Lấy thông tin user từ Firestore
+        // LOGIC MỚI: Dùng EMAIL làm Document ID duy nhất
         try {
-            // 1. Tìm theo UID trước
-            const userDoc = await getDoc(doc(db, "xtn_users", user.uid));
+            // 1. Tạo email-based Doc ID
+            const emailDocId = emailToDocId(user.email);
+            console.log('🔐 [Auth] Email:', user.email, '→ Doc ID:', emailDocId);
 
-            // 2. Nếu không tìm thấy theo UID, tìm theo email (từ form thêm chiến sĩ)
-            if (!userDoc.exists()) {
-                console.log('🔐 [Auth] User not found by UID, searching by email:', user.email);
+            // 2. Tìm theo email-based Doc ID (ưu tiên)
+            let memberDoc = await getDoc(doc(db, "xtn_users", emailDocId));
 
-                // Normalize email (lowercase, trim) để so sánh chính xác
+            // 3. Nếu không có, thử tìm theo UID (backward compatibility)
+            if (!memberDoc.exists()) {
+                console.log('🔐 [Auth] Not found by emailDocId, trying UID:', user.uid);
+                memberDoc = await getDoc(doc(db, "xtn_users", user.uid));
+            }
+
+            // 4. Nếu vẫn không có, query theo email field (legacy data)
+            if (!memberDoc.exists()) {
+                console.log('🔐 [Auth] Not found by UID, querying by email field...');
                 const normalizedEmail = user.email.toLowerCase().trim();
-                console.log('🔐 [Auth] Normalized email:', normalizedEmail);
-
                 const emailQuery = await getDocs(
                     query(collection(db, 'xtn_users'), where('email', '==', normalizedEmail))
                 );
 
-                console.log('🔐 [Auth] Query result:', emailQuery.empty ? 'Empty' : `Found ${emailQuery.docs.length} docs`);
-
                 if (!emailQuery.empty) {
-                    // Tìm thấy theo email - lấy role từ đó và cập nhật UID document
-                    const oldDocId = emailQuery.docs[0].id;
-                    const existingData = emailQuery.docs[0].data();
-                    console.log('🔐 [Auth] Found user by email (doc ID:', oldDocId, '), role:', existingData.role);
+                    // Tìm thấy - lấy data và doc ID
+                    memberDoc = emailQuery.docs[0];
+                    console.log('🔐 [Auth] Found by email query, doc ID:', memberDoc.id);
+                }
+            }
 
-                    // Tạo document MỚI theo UID với data đã có
-                    await setDoc(doc(db, "xtn_users", user.uid), {
-                        ...existingData,
-                        email: normalizedEmail, // Đảm bảo email được normalize
-                        name: existingData.name || user.displayName || user.email.split('@')[0],  // Ưu tiên tên trong DB
-                        last_login: new Date().toISOString()
+            if (memberDoc && memberDoc.exists()) {
+                const existingData = memberDoc.data();
+                console.log('✅ [Auth] User found! Role:', existingData.role, '| Name:', existingData.name);
+
+                // AUTO-CLEANUP: Tìm và xóa các bản trùng lặp cùng email
+                const normalizedEmail = user.email.toLowerCase().trim();
+                const allDocsWithEmail = await getDocs(
+                    query(collection(db, 'xtn_users'), where('email', '==', normalizedEmail))
+                );
+
+                if (allDocsWithEmail.docs.length > 1) {
+                    console.log('🧹 [Auth] Phát hiện', allDocsWithEmail.docs.length, 'bản trùng, đang dọn dẹp...');
+
+                    // Sắp xếp: ưu tiên bản có đủ thông tin (phone, mssv)
+                    const sorted = allDocsWithEmail.docs.sort((a, b) => {
+                        const aData = a.data();
+                        const bData = b.data();
+                        const aScore = (aData.phone ? 1 : 0) + (aData.mssv ? 1 : 0) + (aData.faculty ? 1 : 0);
+                        const bScore = (bData.phone ? 1 : 0) + (bData.mssv ? 1 : 0) + (bData.faculty ? 1 : 0);
+                        return bScore - aScore; // Bản có nhiều thông tin hơn lên đầu
                     });
 
-                    // XÓA document cũ (theo email/auto-id) để tránh trùng lặp
-                    if (oldDocId !== user.uid) {
-                        await deleteDoc(doc(db, 'xtn_users', oldDocId));
-                        console.log('🗑️ [Auth] Deleted old duplicate doc:', oldDocId);
+                    // Giữ bản đầu tiên (có nhiều thông tin nhất), xóa còn lại
+                    const keepDoc = sorted[0];
+                    for (let i = 1; i < sorted.length; i++) {
+                        try {
+                            await deleteDoc(doc(db, 'xtn_users', sorted[i].id));
+                            console.log('🗑️ [Auth] Đã xóa bản trùng:', sorted[i].id);
+                        } catch (e) {
+                            console.error('Lỗi xóa bản trùng:', e);
+                        }
                     }
 
-                    userData = existingData;
-                    console.log('✅ Migrated user to UID-based doc:', user.uid);
-                } else {
-                    // Không tìm thấy trong danh sách chiến sĩ - từ chối truy cập
-                    userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
-                    console.log('⛔ [Auth] User not in member list, role: guest');
-                    console.log('⛔ [Auth] Tried to find email:', normalizedEmail);
+                    // Cập nhật memberDoc là bản được giữ
+                    memberDoc = keepDoc;
                 }
+
+                // CHỈ UPDATE thêm uid và last_login - KHÔNG đổi tên/role/đội hình
+                await updateDoc(doc(db, 'xtn_users', memberDoc.id), {
+                    uid: user.uid,
+                    last_login: new Date().toISOString(),
+                    photoURL: user.photoURL || null
+                });
+                console.log('📝 [Auth] Updated uid/last_login for doc:', memberDoc.id);
+
+                userData = existingData;
             } else {
-                userData = userDoc.data();
+                // Không tìm thấy trong danh sách chiến sĩ - từ chối truy cập
+                userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
+                console.log('⛔ [Auth] User not in member list, role: guest');
+                console.log('⛔ [Auth] Tried email:', user.email, '→ Doc ID:', emailDocId);
             }
 
             // Check và auto-upgrade Super Admin
@@ -364,7 +423,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (shouldBeSuperAdmin && userData.role !== 'super_admin') {
                 console.log('🔐 [Auth] Upgrading to super_admin...');
-                await setDoc(doc(db, "xtn_users", user.uid), { role: 'super_admin' }, { merge: true });
+                // Dùng emailDocId thay vì user.uid để update đúng document
+                const updateDocId = memberDoc ? memberDoc.id : emailToDocId(user.email);
+                await setDoc(doc(db, "xtn_users", updateDocId), { role: 'super_admin' }, { merge: true });
                 userData.role = 'super_admin';
                 console.log('✅ Auto-upgraded to super_admin:', user.email);
             }
@@ -865,7 +926,30 @@ function setupMenuByRole() {
     document.querySelectorAll('.owner-only').forEach(el => el.classList.add('hidden'));
 
     // Check if user is in Ký sự Tết team (check multiple possible values)
+    // Check if user is in Ký sự Tết team (check multiple possible values)
     const teamId = (userData.team_id || '').toLowerCase();
+
+    // FIX: Resolve team_name from team_id if missing
+    if (!userData.team_name && teamId) {
+        const slugMap = {
+            'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+            'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+            'xuan-tu-hao': 'Đội hình Xuân tự hào',
+            'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+            'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+            'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+            'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+            'tet-van-minh': 'Đội hình Tết văn minh',
+            'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+            'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+            'hau-can': 'Đội hình Hậu cần',
+            'ky-su-tet': 'Đội hình Ký sự Tết'
+        };
+        if (slugMap[teamId]) {
+            userData.team_name = slugMap[teamId];
+        }
+    }
+
     const teamName = (userData.team_name || '').toLowerCase();
     const combinedTeam = teamId + ' ' + teamName;
     const isKySuTetTeam = combinedTeam.includes('ky-su-tet') ||
@@ -945,7 +1029,7 @@ function showSection(sectionId) {
     if (sectionId === 'section-members') loadMembers();
     if (sectionId === 'section-accounts') loadAccounts();
     if (sectionId === 'section-activities') loadActivities();
-    if (sectionId === 'section-activity') initActivityModule();
+    if (sectionId === 'section-activity') initActivityModule(userData.team_name, userData.role);
     if (sectionId === 'section-teams') loadTeams();
     if (sectionId === 'section-questions') loadQuestions();
     if (sectionId === 'section-cards-admin') initCardsAdmin();
@@ -1022,7 +1106,7 @@ async function showDefaultSection() {
         showSection('section-dashboard'); // Tạm hiện dashboard, sẽ bị chặn bởi alert
         setTimeout(async () => {
             await showAlert(
-                'Bạn không có trong danh sách Chiến sĩ XTN 2026.\\n\\nVui lòng liên hệ Ban Tổ chức để được hỗ trợ.',
+                'Bạn không có trong danh sách Chiến sĩ Xuân tình nguyện 2026.\\n\\nHãy đăng nhập lại lần nữa, nếu bạn cho rằng bạn là Chiến sĩ Xuân tình nguyện 2026, nếu không được hãy liên hệ:\\n\\n👤 Lâm Quốc Minh\\n📞 0899.012.608 (Zalo)\\n🔗 fb.com/lamquocminh18',
                 'error',
                 'Từ chối truy cập'
             );
@@ -1159,6 +1243,48 @@ function getPositionColor(position) {
     };
     return colors[position] || '#6b7280';
 }
+
+// Helper function to render a single member row HTML
+function renderMemberRow(m, teamsMap = {}) {
+    const displayPosition = m.position || 'Chiến sĩ';
+    const posColor = getPositionColor(displayPosition);
+    const teamName = TEAM_ID_TO_NAME[m.team_id] || m.team_name || teamsMap[m.team_id] || '';
+    const teamColor = getTeamColor(m.team_id);
+
+    return `
+        <tr data-id="${m.id}" data-name="${(m.name || '').toLowerCase()}" data-email="${(m.email || '').toLowerCase()}" data-team="${m.team_id || ''}">
+            <td><input type="checkbox" class="member-checkbox" data-id="${m.id}" onchange="toggleMemberSelection('${m.id}')"></td>
+            <td><strong>${m.name || 'Chưa có tên'}</strong></td>
+            <td style="font-size:13px; color:#0369a1;">${m.mssv || '-'}</td>
+            <td>
+                <span class="badge" style="background:${posColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">
+                    ${displayPosition}
+                </span>
+            </td>
+            <td style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.faculty || ''}">
+                ${m.faculty ? `<span class="badge" style="background:${getFacultyColor(m.faculty)}; color:white; padding:4px 10px; border-radius:12px; font-size:11px; white-space:nowrap;">${m.faculty}</span>` : '<span style="color:#9ca3af;">-</span>'}
+            </td>
+            <td style="font-size:13px;">${m.email || '-'}</td>
+            <td>${m.phone || '-'}</td>
+            <td>
+                <span class="badge" style="background:${teamColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">
+                    ${teamName}
+                </span>
+            </td>
+            <td>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn btn-sm btn-secondary" onclick="editMember('${m.id}')" title="Sửa" style="padding:6px 10px;">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}')" title="Xóa" style="padding:6px 10px;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
 
 function getTeamColor(teamId) {
     if (!teamId) return '#9ca3af'; // Chưa phân đội - xám
@@ -1388,6 +1514,9 @@ async function loadMembers() {
                 <button class="btn btn-sm" onclick="migrateToMembersCollection()" title="MIGRATE: Copy dữ liệu từ xtn_users sang xtn_users (chỉ chạy 1 lần)" style="background:#8b5cf6;border-color:#8b5cf6;color:white;">
                     <i class="fa-solid fa-database"></i> Migrate Data
                 </button>
+                <button class="btn btn-sm" onclick="normalizeAllEmails()" title="Chuẩn hóa tất cả email thành chữ thường để tránh trùng lặp" style="background:#14b8a6;border-color:#14b8a6;color:white;">
+                    <i class="fa-solid fa-at"></i> Chuẩn hóa Email
+                </button>
                 <div style="flex:1;"></div>
                 <select id="members-team-filter" onchange="filterMembersByTeam()" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                     ${teamFilterOptions}
@@ -1412,12 +1541,29 @@ async function loadMembers() {
                 <tbody id="members-tbody">
         `;
 
+        // Auto-delete members without team_id (không phải chiến sĩ chính thức)
+        const membersWithoutTeam = membersDataCache.filter(m => !m.team_id || !m.team_id.trim());
+        if (membersWithoutTeam.length > 0) {
+            console.log(`[Auto-cleanup] Found ${membersWithoutTeam.length} members without team_id, deleting...`);
+            membersWithoutTeam.forEach(async (m) => {
+                try {
+                    await db.collection('xtn_users').doc(m.id).delete();
+                    console.log(`[Auto-cleanup] Deleted: ${m.name} (${m.email})`);
+                } catch (err) {
+                    console.error(`[Auto-cleanup] Failed to delete ${m.id}:`, err);
+                }
+            });
+            // Remove from cache
+            membersDataCache = membersDataCache.filter(m => m.team_id && m.team_id.trim());
+        }
+
         membersDataCache.forEach(m => {
-            // Position badge color
-            const posColor = getPositionColor(m.position);
+            // Position badge color - nếu không có position thì mặc định là Chiến sĩ (xanh lá)
+            const displayPosition = m.position || 'Chiến sĩ';
+            const posColor = getPositionColor(displayPosition);
 
             // Team badge - ưu tiên TEAM_ID_TO_NAME, fallback sang m.team_name hoặc teamsMap
-            const teamName = TEAM_ID_TO_NAME[m.team_id] || m.team_name || teamsMap[m.team_id] || 'Chưa phân đội';
+            const teamName = TEAM_ID_TO_NAME[m.team_id] || m.team_name || teamsMap[m.team_id] || '';
             const teamColor = getTeamColor(m.team_id);
 
             html += `
@@ -1427,7 +1573,7 @@ async function loadMembers() {
                     <td style="font-size:13px; color:#0369a1;">${m.mssv || '-'}</td>
                     <td>
                         <span class="badge" style="background:${posColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">
-                            ${m.position || 'Chiến sĩ'}
+                            ${displayPosition}
                         </span>
                     </td>
                     <td style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.faculty || ''}">
@@ -1513,8 +1659,7 @@ window.deleteMember = async function (memberId) {
 
     try {
         // Soft delete: đánh dấu deleted: true trong Firebase
-        const emailKey = (member.email || '').toLowerCase().trim();
-        const docId = emailKey.replace(/[.#$[\]]/g, '_');
+        const docId = emailToDocId(member.email);
 
         await setDoc(doc(db, 'xtn_users', docId), {
             ...member,
@@ -1523,11 +1668,25 @@ window.deleteMember = async function (memberId) {
             deleted_by: currentUser?.email || 'unknown'
         }, { merge: true });
 
+        // Remove from cache
+        membersDataCache = membersDataCache.filter(m => m.id !== memberId);
+
+        // Remove row from DOM inline instead of full reload
+        const row = document.querySelector(`#members-tbody tr[data-id="${memberId}"]`);
+        if (row) {
+            row.remove();
+        }
+
+        // Update count display
+        const countEl = document.getElementById('visible-members-count');
+        if (countEl) {
+            countEl.textContent = membersDataCache.length;
+        }
+
         showAlert(`Đã xóa chiến sĩ ${member.name}`, 'success');
 
-        // Clear cache và reload danh sách
+        // Clear cache
         localStorage.removeItem('xtn_members_cache');
-        loadMembers();
     } catch (e) {
         console.error('Delete member error:', e);
         showAlert('Lỗi xóa chiến sĩ: ' + e.message, 'error');
@@ -1568,18 +1727,32 @@ window.editMember = async function (memberId) {
     if (!formValues) return;
 
     try {
-        const emailKey = (member.email || '').toLowerCase().trim();
-        const docId = emailKey.replace(/[.#$[\]]/g, '_');
+        const docId = emailToDocId(member.email);
 
-        await setDoc(doc(db, 'xtn_users', docId), {
+        // Update member data
+        const updatedMember = {
             ...member,
             phone: formValues.phone,
             faculty: formValues.faculty,
             updated_at: serverTimestamp()
-        }, { merge: true });
+        };
+
+        await setDoc(doc(db, 'xtn_users', docId), updatedMember, { merge: true });
+
+        // Update cache
+        const cacheIndex = membersDataCache.findIndex(m => m.id === memberId);
+        if (cacheIndex > -1) {
+            membersDataCache[cacheIndex] = { ...membersDataCache[cacheIndex], ...updatedMember };
+        }
+
+        // Update DOM inline instead of full reload
+        const row = document.querySelector(`#members-tbody tr[data-id="${memberId}"]`);
+        if (row) {
+            const newRowHtml = renderMemberRow(membersDataCache[cacheIndex] || updatedMember);
+            row.outerHTML = newRowHtml;
+        }
 
         showAlert('Đã cập nhật thông tin!', 'success');
-        loadMembers();
     } catch (e) {
         console.error('Edit member error:', e);
         showAlert('Lỗi cập nhật: ' + e.message, 'error');
@@ -1800,6 +1973,106 @@ window.syncAllRolesFromPosition = async function () {
     // Reload
     invalidateMembersCache();
     loadMembers();
+};
+
+// ========== NORMALIZE ALL EMAILS: Chuẩn hóa email thành chữ thường ==========
+window.normalizeAllEmails = async function () {
+    const result = await Swal.fire({
+        title: '<i class="fa-solid fa-at" style="color:#14b8a6;"></i> Chuẩn hóa Email',
+        html: `
+            <p style="margin-bottom:15px; color:#6b7280;">Công cụ này sẽ:</p>
+            <ul style="text-align:left; color:#374151; font-size:14px;">
+                <li>✅ Chuyển TẤT CẢ email thành <strong>chữ thường</strong></li>
+                <li>✅ Ngăn chặn lỗi trùng lặp khi đăng nhập</li>
+                <li>✅ Chỉ cần chạy <strong>1 lần</strong></li>
+            </ul>
+            <p style="margin-top:15px; color:#f59e0b; font-size:13px;">
+                ⚠️ Sau khi chạy, tất cả email sẽ được normalize.
+            </p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-check"></i> Chuẩn hóa ngay',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#14b8a6',
+        width: 500
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Show progress
+    Swal.fire({
+        title: 'Đang chuẩn hóa...',
+        html: '<p id="normalize-progress">0 / ? chiến sĩ</p>',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // Fetch all users
+        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        const total = usersSnap.docs.length;
+        let updated = 0;
+        let skipped = 0;
+        let errors = 0;
+
+        for (let i = 0; i < usersSnap.docs.length; i++) {
+            const docSnap = usersSnap.docs[i];
+            const data = docSnap.data();
+            const currentEmail = data.email || '';
+            const normalizedEmail = currentEmail.toLowerCase().trim();
+
+            // Update progress
+            document.getElementById('normalize-progress').textContent = `${i + 1} / ${total} chiến sĩ`;
+
+            // Skip if already normalized or no email
+            if (!currentEmail || currentEmail === normalizedEmail) {
+                skipped++;
+                continue;
+            }
+
+            // Update email to lowercase
+            try {
+                await setDoc(doc(db, 'xtn_users', docSnap.id), {
+                    email: normalizedEmail
+                }, { merge: true });
+                updated++;
+                console.log('[Normalize] Updated:', currentEmail, '->', normalizedEmail);
+            } catch (e) {
+                console.error('[Normalize] Error updating:', docSnap.id, e);
+                errors++;
+            }
+        }
+
+        // Clear cache
+        localStorage.removeItem('xtn_members_cache');
+
+        // Show result
+        await Swal.fire({
+            icon: 'success',
+            title: 'Hoàn thành!',
+            html: `
+                <p>Đã xử lý <strong>${total}</strong> chiến sĩ:</p>
+                <ul style="text-align:left; margin-top:10px;">
+                    <li>✅ Đã chuẩn hóa: <strong style="color:#16a34a;">${updated}</strong></li>
+                    <li>⏭️ Đã chuẩn: <strong>${skipped}</strong></li>
+                    ${errors > 0 ? `<li>❌ Lỗi: <strong style="color:#dc2626;">${errors}</strong></li>` : ''}
+                </ul>
+            `,
+            confirmButtonColor: '#14b8a6'
+        });
+
+        loadMembers();
+
+    } catch (e) {
+        console.error('[Normalize] Fatal error:', e);
+        await Swal.fire({
+            icon: 'error',
+            title: 'Lỗi!',
+            text: e.message,
+            confirmButtonColor: '#dc2626'
+        });
+    }
 };
 
 // ========== MIGRATION SCRIPT: xtn_users → xtn_users ==========
@@ -2770,8 +3043,8 @@ async function confirmImport() {
                     created_at: serverTimestamp()
                 };
 
-                // Tạo doc ID từ email (thay ký tự đặc biệt)
-                const emailDocId = normalizedEmail.replace(/[.#$[\]]/g, '_');
+                // Tạo doc ID từ email (dùng helper đồng nhất)
+                const emailDocId = emailToDocId(normalizedEmail);
                 await setDoc(doc(db, 'xtn_users', emailDocId), userData);
                 successCount++;
             } catch (err) {
@@ -3320,8 +3593,8 @@ async function handleAddMember(e) {
 
         // Add new member vào XTN_USERS
         const normalizedEmail = email.toLowerCase().trim();
-        const emailDocId = normalizedEmail.replace(/[.#$[\]]/g, '_');
-        await setDoc(doc(db, 'xtn_users', emailDocId), {
+        const docId = emailToDocId(email);  // Dùng helper thống nhất
+        await setDoc(doc(db, 'xtn_users', docId), {
             name,
             mssv: mssv || '',
             email: normalizedEmail,  // Lưu email lowercase để query dễ dàng
