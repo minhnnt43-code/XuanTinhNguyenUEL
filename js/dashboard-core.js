@@ -7,9 +7,7 @@ import { auth, db } from './firebase.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc, setDoc, collection, getDocs, query, where, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Import modules
-import { initAvatarCanvas, handleAvatarUpload, downloadAvatar, resetAvatarFull, setShowAlert as setAvatarShowAlert } from './dashboard-avatar.js';
-import { initCardCanvas, handleCardPhoto, handleCardForm, downloadCard, setUserData as setCardUserData } from './dashboard-card.js';
+// Import modules (Card & Avatar moved to line 35-37)
 import {
     loadRegistrations, handleRegister, viewRegistration, saveRegistration,
     closeRegistrationModal, toggleRegSelection, toggleAllRegs, deleteSelectedRegs,
@@ -22,16 +20,20 @@ import {
     backupAllJSON, backupUsersJSON, backupActivitiesJSON,
     backupAllExcel, backupUsersExcel, backupActivitiesExcel
 } from './backup.js';
-import { initAIDashboard } from './ai-dashboard.js';
+// AI REMOVED - import { initAIDashboard } from './ai-dashboard.js';
 // AI features - TẠM TẮT, LÀM SAU
 // import { aiCreateActivity, aiGenerateReport } from './ai-features.js';
 import './admin-teams.js'; // Import to register window functions
 import { renderTeamsTable } from './admin-teams.js';
+// REMOVED: Static members data - Now loading from Firebase xtn_users
 // Activity Logging
 import { log as activityLog } from './activity-logger.js';
 import { initActivityLogs, renderActivityLogsSection } from './dashboard-activity-logs.js';
 // Media Management
 import { initMediaManager, renderMediaManagerHTML } from './dashboard-media.js';
+// Card & Avatar Creation
+import { initCardCanvas, setUserData as setCardUserData, createAndSubmitCard, confirmCard } from './dashboard-card.js';
+import { initAvatarCanvas, handleAvatarUpload, resetAvatarFull, downloadAvatar } from './dashboard-avatar.js';
 
 // ============================================================
 // STATE
@@ -56,8 +58,191 @@ const FACULTIES_LIST = [
     'Luật',
     'Luật Kinh tế',
     'Toán Kinh tế',
-    'Viện Quốc tế'
+    'Sinh viên liên kết Quốc tế'
 ];
+
+// ============================================================
+// MANDATORY PROFILE CHECK - Bắt buộc điền thông tin khi đăng nhập lần đầu
+// ============================================================
+async function checkMandatoryProfile(user, userData) {
+    // Skip check cho super_admin hoặc pending users
+    if (userData.role === 'pending' || userData.role === 'guest') {
+        return true; // Cho pending qua, họ sẽ bị chặn bởi role check
+    }
+
+    // Kiểm tra các trường bắt buộc
+    const hasMSSV = userData.mssv && userData.mssv.trim() !== '';
+    const hasPhone = userData.phone && userData.phone.trim() !== '';
+    const hasFaculty = userData.faculty && userData.faculty.trim() !== '';
+
+    // Nếu đủ thông tin → cho qua
+    if (hasMSSV && hasPhone && hasFaculty) {
+        console.log('[Profile] ✅ Profile complete');
+        return true;
+    }
+
+    console.log('[Profile] ⚠️ Profile incomplete, showing mandatory form');
+
+    // Hiện modal bắt buộc điền thông tin
+    return new Promise((resolve) => {
+        // Remove any existing modal
+        document.getElementById('mandatory-profile-modal')?.remove();
+
+        const modalHtml = `
+            <div id="mandatory-profile-modal" style="
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.8); z-index: 999999;
+                display: flex; align-items: center; justify-content: center;
+            ">
+                <div style="
+                    background: white; border-radius: 16px; max-width: 480px; width: 90%;
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.3); overflow: hidden;
+                ">
+                    <!-- Header -->
+                    <div style="
+                        background: linear-gradient(135deg, #16a34a, #22c55e);
+                        color: white; padding: 24px; text-align: center;
+                    ">
+                        <div style="font-size: 48px; margin-bottom: 10px;">📋</div>
+                        <h2 style="margin: 0; font-size: 22px;">Hoàn tất thông tin cá nhân</h2>
+                        <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">
+                            Vui lòng điền đầy đủ thông tin để tiếp tục sử dụng hệ thống
+                        </p>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div style="padding: 24px;">
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151;">
+                                <i class="fa-solid fa-id-card" style="color: #16a34a; margin-right: 6px;"></i>
+                                Mã số sinh viên (MSSV) <span style="color: #dc2626;">*</span>
+                            </label>
+                            <input type="text" id="mp-mssv" value="${userData.mssv || ''}" 
+                                placeholder="VD: K235042524" 
+                                style="width: 100%; padding: 12px 14px; border: 2px solid ${hasMSSV ? '#d1d5db' : '#fca5a5'}; 
+                                border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151;">
+                                <i class="fa-solid fa-phone" style="color: #16a34a; margin-right: 6px;"></i>
+                                Số điện thoại <span style="color: #dc2626;">*</span>
+                            </label>
+                            <input type="tel" id="mp-phone" value="${userData.phone || ''}" 
+                                placeholder="VD: 0899012608"
+                                style="width: 100%; padding: 12px 14px; border: 2px solid ${hasPhone ? '#d1d5db' : '#fca5a5'}; 
+                                border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151;">
+                                <i class="fa-solid fa-building-columns" style="color: #16a34a; margin-right: 6px;"></i>
+                                Khoa / Viện <span style="color: #dc2626;">*</span>
+                            </label>
+                            <select id="mp-faculty" style="width: 100%; padding: 12px 14px; 
+                                border: 2px solid ${hasFaculty ? '#d1d5db' : '#fca5a5'}; 
+                                border-radius: 8px; font-size: 15px; box-sizing: border-box; background: white;">
+                                <option value="">-- Chọn Khoa/Viện --</option>
+                                ${FACULTIES_LIST.map(f => `<option value="${f}" ${userData.faculty === f ? 'selected' : ''}>${f}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div id="mp-error" style="display: none; background: #fef2f2; border: 1px solid #fecaca; 
+                            color: #dc2626; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;">
+                        </div>
+                        
+                        <button id="mp-submit-btn" style="
+                            width: 100%; padding: 14px; background: linear-gradient(135deg, #16a34a, #22c55e);
+                            color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+                            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+                            transition: transform 0.2s, box-shadow 0.2s;
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(22, 163, 74, 0.4)';"
+                           onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                            <i class="fa-solid fa-check"></i> Xác nhận thông tin
+                        </button>
+                    </div>
+                    
+                    <!-- Footer note -->
+                    <div style="padding: 16px 24px; background: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
+                        <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                            <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i>
+                            Thông tin này sẽ được sử dụng để in thẻ Chiến sĩ và liên hệ khi cần thiết
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Focus first empty field
+        if (!hasMSSV) document.getElementById('mp-mssv').focus();
+        else if (!hasPhone) document.getElementById('mp-phone').focus();
+        else document.getElementById('mp-faculty').focus();
+
+        // Handle submit
+        document.getElementById('mp-submit-btn').onclick = async () => {
+            const mssv = document.getElementById('mp-mssv').value.trim();
+            const phone = document.getElementById('mp-phone').value.trim();
+            const faculty = document.getElementById('mp-faculty').value;
+            const errorEl = document.getElementById('mp-error');
+
+            // Validate
+            const errors = [];
+            if (!mssv) errors.push('MSSV');
+            if (!phone) errors.push('Số điện thoại');
+            if (!faculty) errors.push('Khoa/Viện');
+
+            if (errors.length > 0) {
+                errorEl.innerHTML = `<i class="fa-solid fa-exclamation-triangle"></i> Vui lòng điền: <strong>${errors.join(', ')}</strong>`;
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Show loading
+            const btn = document.getElementById('mp-submit-btn');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+            btn.disabled = true;
+
+            try {
+                // Update Firebase
+                await updateDoc(doc(db, 'xtn_users', user.uid), {
+                    mssv: mssv,
+                    phone: phone,
+                    faculty: faculty,
+                    updated_at: new Date().toISOString()
+                });
+
+                // Update local userData
+                userData.mssv = mssv;
+                userData.phone = phone;
+                userData.faculty = faculty;
+
+                // Invalidate cache so member list refreshes
+                invalidateMembersCache();
+
+                // Close modal
+                document.getElementById('mandatory-profile-modal').remove();
+
+                showToast('Đã lưu thông tin cá nhân!', 'success');
+
+                // Reload page to init dashboard properly
+                window.location.reload();
+
+            } catch (error) {
+                console.error('Save profile error:', error);
+                errorEl.innerHTML = `<i class="fa-solid fa-exclamation-triangle"></i> Lỗi: ${error.message}`;
+                errorEl.style.display = 'block';
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
+        };
+
+        // Don't resolve - user must complete form
+        // Modal cannot be closed except by completing the form
+    });
+}
 
 // ============================================================
 // INIT
@@ -73,6 +258,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMobileMenu();
 
     onAuthStateChanged(auth, async (user) => {
+        // Show loading overlay
+        if (window.loadingOverlay) {
+            window.loadingOverlay.show();
+            window.loadingOverlay.setProgress(10, 'Đang xác thực...');
+        }
+
         if (!user) {
             window.location.href = 'login.html';
             return;
@@ -80,6 +271,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentUser = user;
         setRegCurrentUser(user);
+
+        // Progress: Auth complete
+        if (window.loadingOverlay) {
+            window.loadingOverlay.setProgress(30, 'Đang tải thông tin người dùng...');
+        }
 
         // ============================================================
         // DANH SÁCH SUPER ADMIN - TẢI TỪ FIRESTORE (FALLBACK HARDCODE)
@@ -118,10 +314,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 2. Nếu không tìm thấy theo UID, tìm theo email (từ form thêm chiến sĩ)
             if (!userDoc.exists()) {
-                console.log('🔐 [Auth] User not found by UID, searching by email...');
+                console.log('🔐 [Auth] User not found by UID, searching by email:', user.email);
+
+                // Normalize email (lowercase, trim) để so sánh chính xác
+                const normalizedEmail = user.email.toLowerCase().trim();
+                console.log('🔐 [Auth] Normalized email:', normalizedEmail);
+
                 const emailQuery = await getDocs(
-                    query(collection(db, 'xtn_users'), where('email', '==', user.email))
+                    query(collection(db, 'xtn_users'), where('email', '==', normalizedEmail))
                 );
+
+                console.log('🔐 [Auth] Query result:', emailQuery.empty ? 'Empty' : `Found ${emailQuery.docs.length} docs`);
 
                 if (!emailQuery.empty) {
                     // Tìm thấy theo email - lấy role từ đó và cập nhật UID document
@@ -132,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Tạo document MỚI theo UID với data đã có
                     await setDoc(doc(db, "xtn_users", user.uid), {
                         ...existingData,
-                        name: user.displayName || existingData.name || user.email.split('@')[0],
+                        name: existingData.name || user.displayName || user.email.split('@')[0],  // Ưu tiên tên trong DB
                         last_login: new Date().toISOString()
                     });
 
@@ -145,9 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     userData = existingData;
                     console.log('✅ Migrated user to UID-based doc:', user.uid);
                 } else {
-                    // Không tìm thấy - tạo mới với role pending
-                    userData = { role: 'pending', name: user.displayName || user.email.split('@')[0] };
-                    console.log('🔐 [Auth] New user, role: pending');
+                    // Không tìm thấy trong danh sách chiến sĩ - từ chối truy cập
+                    userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
+                    console.log('⛔ [Auth] User not in member list, role: guest');
+                    console.log('⛔ [Auth] Tried to find email:', normalizedEmail);
                 }
             } else {
                 userData = userDoc.data();
@@ -167,11 +371,49 @@ document.addEventListener('DOMContentLoaded', () => {
             // Role do super_admin phân sẽ được tôn trọng
         } catch (e) {
             console.error('Error loading user data:', e);
-            userData = { role: 'pending', name: user.displayName || user.email.split('@')[0] };
+            userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
+        }
+
+        // ============================================================
+        // KIỂM TRA QUYỀN - CHỈ CHO PHÉP 4 ROLE
+        // ============================================================
+        const ALLOWED_ROLES = ['super_admin', 'kysutet_admin', 'doihinh_admin', 'member'];
+
+        if (!ALLOWED_ROLES.includes(userData.role)) {
+            if (window.loadingOverlay) window.loadingOverlay.hide();
+            await Swal.fire({
+                icon: 'error',
+                title: 'Không có quyền truy cập',
+                html: `<p>Tài khoản <strong>${user.email}</strong> không có quyền truy cập hệ thống.</p>
+                       <p style="color:#888; font-size:0.9rem;">Vui lòng liên hệ Ban Chỉ huy Trường để được cấp quyền.</p>
+                       <p style="color:#888; font-size:0.85rem; margin-top:8px;">Role hiện tại: <code>${userData.role || 'không xác định'}</code></p>`,
+                confirmButtonText: 'Đăng xuất',
+                confirmButtonColor: '#dc2626',
+                allowOutsideClick: false
+            });
+            await signOut(auth);
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // ============================================================
+        // MANDATORY PROFILE CHECK - Bắt buộc điền thông tin cá nhân
+        // ============================================================
+        const profileComplete = await checkMandatoryProfile(user, userData);
+        if (!profileComplete) {
+            // User đang điền form, dừng init dashboard
+            if (window.loadingOverlay) {
+                window.loadingOverlay.hide();
+            }
+            return;
+        }
+
+        // Progress: User data loaded
+        if (window.loadingOverlay) {
+            window.loadingOverlay.setProgress(50, 'Đang thiết lập giao diện...');
         }
 
         // Pass helpers to modules
-        setAvatarShowAlert(showAlert);
         setRegHelpers(showAlert, showConfirm);
         // Add uid and email to userData for card module
         setCardUserData({ ...userData, uid: user.uid, email: user.email, photoURL: user.photoURL });
@@ -210,18 +452,34 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hiện đội hình (team)
         const teamEl = document.getElementById('user-team');
         if (teamEl && userData.team_id) {
+            // Static mapping fallback
+            const TEAM_ID_TO_NAME = {
+                'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+                'xuan-tu-hao': 'Đội hình Xuân tự hào',
+                'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+                'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+                'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+                'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+                'tet-van-minh': 'Đội hình Tết văn minh',
+                'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+                'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+                'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+                'hau-can': 'Đội hình Hậu cần',
+                'ky-su-tet': 'Đội hình Ký sự Tết'
+            };
+
             // Lấy team_name từ xtn_teams nếu có
             try {
                 const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
                 let teamName = '';
                 teamsSnap.forEach(docSnap => {
                     if (docSnap.id === userData.team_id || docSnap.data().team_id === userData.team_id) {
-                        teamName = docSnap.data().team_name || userData.team_id;
+                        teamName = docSnap.data().team_name || TEAM_ID_TO_NAME[userData.team_id] || 'Đội hình ' + userData.team_id;
                     }
                 });
-                teamEl.textContent = teamName || userData.team_id || '';
+                teamEl.textContent = teamName || TEAM_ID_TO_NAME[userData.team_id] || 'Đội hình ' + userData.team_id;
             } catch (e) {
-                teamEl.textContent = userData.team_id || '';
+                teamEl.textContent = TEAM_ID_TO_NAME[userData.team_id] || 'Đội hình ' + userData.team_id;
             }
         } else if (teamEl) {
             teamEl.textContent = '';
@@ -234,17 +492,32 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarImg.onerror = () => { avatarImg.src = 'images/default-avatar.png'; };
         }
 
+        // Progress: Menu setup
+        if (window.loadingOverlay) {
+            window.loadingOverlay.setProgress(70, 'Đang tải modules...');
+        }
+
         // Setup menu theo role
         setupMenuByRole();
+
+        // Progress: Almost done
+        if (window.loadingOverlay) {
+            window.loadingOverlay.setProgress(90, 'Hoàn tất...');
+        }
 
         // Ẩn loading, hiện section mặc định
         hideSection('section-loading');
         showDefaultSection();
 
-        // Init AI Dashboard (cho tất cả roles trừ pending)
-        if (userData.role && userData.role !== 'pending') {
-            initAIDashboard();
+        // Progress: Complete!
+        if (window.loadingOverlay) {
+            window.loadingOverlay.setProgress(100, 'Hoàn thành!');
+            setTimeout(() => {
+                window.loadingOverlay.hide();
+            }, 500);
         }
+
+        // AI REMOVED - initAIDashboard();
 
         // Log login activity
         activityLog.login();
@@ -284,9 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('avatar-upload')?.addEventListener('change', handleAvatarUpload);
     document.getElementById('btn-avatar-reset')?.addEventListener('click', resetAvatarFull);
     document.getElementById('btn-avatar-download')?.addEventListener('click', downloadAvatar);
-    document.getElementById('card-form')?.addEventListener('submit', handleCardForm);
-    document.getElementById('card-photo')?.addEventListener('change', handleCardPhoto);
-    document.getElementById('btn-card-download')?.addEventListener('click', downloadCard);
+    // Card form handlers are setup in initCardCanvas()
     document.getElementById('activity-form')?.addEventListener('submit', handleActivityForm);
     document.getElementById('team-form')?.addEventListener('submit', handleTeamForm);
     document.getElementById('question-form')?.addEventListener('submit', handleQuestionForm);
@@ -299,6 +570,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('excel-import-file')?.addEventListener('change', handleImportExcel);
     document.getElementById('btn-download-template')?.addEventListener('click', downloadImportTemplate);
     document.getElementById('btn-confirm-import')?.addEventListener('click', confirmImport);
+
+    // JSON Import
+    document.getElementById('btn-import-json')?.addEventListener('click', () => {
+        document.getElementById('json-import-file')?.click();
+    });
+    document.getElementById('json-import-file')?.addEventListener('change', handleImportJSON);
 
     // Add Member Manually
     document.getElementById('btn-add-member')?.addEventListener('click', openAddMemberModal);
@@ -602,8 +879,9 @@ function setupMenuByRole() {
     // Check if user is super owner (can see accounts + activity logs)
     const isSuperOwner = SUPER_OWNER_EMAILS.includes(email);
 
-    if (role === 'pending') {
-        document.getElementById('menu-register')?.classList.remove('hidden');
+    if (role === 'guest') {
+        // Guest = không có trong danh sách chiến sĩ → không show gì, sẽ redirect về trang từ chối
+        console.log('[Menu] Guest user - access denied');
     } else if (role === 'member') {
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
@@ -738,12 +1016,21 @@ async function showDefaultSection() {
     }
 
     // Fallback to role-based defaults
-    // ĐÃ XÓA section-register và section-pending (đăng ký qua Google Form)
-    // Pending users sẽ được redirect về avatar
-    if (role === 'pending') {
-        showSection('section-avatar');
+    if (role === 'guest') {
+        // Guest = không có trong danh sách chiến sĩ → hiện thông báo và logout
+        showSection('section-dashboard'); // Tạm hiện dashboard, sẽ bị chặn bởi alert
+        setTimeout(async () => {
+            await showAlert(
+                'Bạn không có trong danh sách Chiến sĩ XTN 2026.\\n\\nVui lòng liên hệ Ban Tổ chức để được hỗ trợ.',
+                'error',
+                'Từ chối truy cập'
+            );
+            // Logout
+            await auth.signOut();
+            window.location.reload();
+        }, 500);
     } else if (role === 'member') {
-        showSection('section-avatar');
+        showSection('section-dashboard');
     } else {
         showSection('section-dashboard');
     }
@@ -754,19 +1041,30 @@ async function showDefaultSection() {
 // ============================================================
 async function loadDashboardStats() {
     try {
-        const [membersSnap, teamsSnap, activitiesSnap] = await Promise.all([
-            getDocs(collection(db, 'xtn_users')),  // Load ALL users
-            getDocs(collection(db, 'xtn_teams')),
-            getDocs(collection(db, 'xtn_activities'))  // Load activities
-        ]);
+        // Chiến sĩ: Lấy từ membersDataCache (loaded from Firebase)
+        const memberCount = membersDataCache.length;
+
+        // Đội hình: 12 đội (10 đội chính + Ban Chỉ huy + Ký sự Tết)
+        const teamCount = 12;
+
+        // Hoạt động: Vẫn lấy từ Firebase
+        let activityCount = 0;
+        try {
+            const activitiesSnap = await getDocs(collection(db, 'xtn_activities'));
+            activityCount = activitiesSnap.size;
+        } catch (e) {
+            console.warn('Load activities count failed:', e.message);
+        }
 
         const statMembers = document.getElementById('stat-members');
         const statTeams = document.getElementById('stat-teams');
         const statActivities = document.getElementById('stat-activities');
 
-        if (statMembers) statMembers.textContent = membersSnap.size;
-        if (statTeams) statTeams.textContent = teamsSnap.size;
-        if (statActivities) statActivities.textContent = activitiesSnap.size;
+        if (statMembers) statMembers.textContent = memberCount;
+        if (statTeams) statTeams.textContent = teamCount;
+        if (statActivities) statActivities.textContent = activityCount;
+
+        console.log('[Stats] Members:', memberCount, '| Teams:', teamCount, '| Activities:', activityCount);
     } catch (e) {
         console.error('Load stats error:', e);
     }
@@ -895,14 +1193,19 @@ function getFacultyColor(faculty) {
     return colors[faculty] || '#6b7280'; // Default gray
 }
 
+// Helper: Invalidate members cache (gọi sau khi thêm/sửa/xóa chiến sĩ)
+function invalidateMembersCache() {
+    localStorage.removeItem('xtn_members_cache');
+    console.log('[Members] 🗑️ Cache invalidated - will reload fresh data on next load');
+}
+
 async function loadMembers() {
     const list = document.getElementById('members-list');
     if (!list) return;
 
     list.innerHTML = '<p style="text-align:center;color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</p>';
     selectedMembers.clear();
-    membersDataCache = [];
-    membersDataCache.length = 0;
+    // membersDataCache will be set from cache or Firebase below
 
     try {
         // Load teams
@@ -914,40 +1217,81 @@ async function loadMembers() {
             teamsListCache.push({ id: d.id, name: d.data().team_name || d.id });
         });
 
-        // ========== QUERY TỪ XTN_USERS (Danh sách chiến sĩ) ==========
-        const usersSnap = await getDocs(collection(db, 'xtn_users'));
+        // ========== FIREBASE + CACHE APPROACH ==========
+        // Load từ Firebase xtn_users, cache 24h để giảm quota
 
-        if (usersSnap.empty) {
-            list.innerHTML = '<p style="text-align:center;color:#888;">Chưa có chiến sĩ. Hãy import hoặc thêm mới.</p>';
-            return;
+        const CACHE_KEY = 'xtn_members_cache';
+        const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+        // Try cache first
+        const cached = localStorage.getItem(CACHE_KEY);
+        let useCache = false;
+
+        if (cached) {
+            try {
+                const { data, timestamp } = JSON.parse(cached);
+                if (Date.now() - timestamp < CACHE_DURATION) {
+                    membersDataCache = data;
+                    useCache = true;
+                    console.log('[Members] ✅ Loaded from cache:', data.length, 'records (age:', Math.round((Date.now() - timestamp) / 1000 / 60), 'minutes)');
+                } else {
+                    console.log('[Members] ⏰ Cache expired, loading fresh data...');
+                }
+            } catch (e) {
+                console.warn('[Members] Cache parse error, loading fresh:', e);
+            }
         }
 
-        console.log('[Members] Loading from xtn_users:', usersSnap.size, 'documents');
+        // Load from Firebase if no valid cache
+        if (!useCache) {
+            try {
+                const usersSnap = await getDocs(collection(db, 'xtn_users'));
+                membersDataCache = [];
 
-        usersSnap.forEach(d => {
-            if (membersDataCache.some(m => m.id === d.id)) return;
-            const u = d.data();
-            // Chỉ lấy những người có role không phải pending (người import sẽ là 'member')
-            if (u.role === 'pending') return;
+                usersSnap.forEach(doc => {
+                    const data = doc.data();
+                    // Chỉ load members đã approved (role !== 'pending')
+                    // Bỏ qua người bị deleted
+                    if (data.role !== 'pending' && !data.deleted) {
+                        membersDataCache.push({
+                            id: doc.id,
+                            ...data
+                        });
+                    }
+                });
 
-            membersDataCache.push({
-                id: d.id,
-                name: u.name || '',
-                mssv: u.mssv || '',
-                email: u.email || '',
-                phone: u.phone || '',
-                faculty: u.faculty || '',
-                position: u.position || 'Chiến sĩ',
-                role: u.role || 'member',
-                team_id: u.team_id || '',
-                uid: u.uid || d.id
-            });
-        });
+                // Save to cache
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    data: membersDataCache,
+                    timestamp: Date.now()
+                }));
+
+                console.log('[Members] 🔥 Loaded from Firebase:', membersDataCache.length, 'records (cached for 24h)');
+            } catch (fbErr) {
+                console.error('[Members] ❌ Firebase load failed:', fbErr.message);
+                showToast('Không thể tải danh sách chiến sĩ. Vui lòng thử lại.', 'error');
+                return;
+            }
+        }
 
         // Build HTML
-        // Build team filter options
+        // Build team filter options từ danh sách cố định (12 đội hình) - TẤT CẢ có prefix "Đội hình "
+        const TEAM_OPTIONS = [
+            { id: 'ban-chi-huy-chien-dich', name: 'Ban Chỉ huy Chiến dịch' },
+            { id: 'xuan-tu-hao', name: 'Đội hình Xuân tự hào' },
+            { id: 'xuan-ban-sac', name: 'Đội hình Xuân bản sắc' },
+            { id: 'xuan-se-chia', name: 'Đội hình Xuân sẻ chia' },
+            { id: 'xuan-gan-ket', name: 'Đội hình Xuân gắn kết' },
+            { id: 'xuan-chien-si', name: 'Đội hình Xuân chiến sĩ' },
+            { id: 'tet-van-minh', name: 'Đội hình Tết văn minh' },
+            { id: 'tu-van-giang-day-phap-luat', name: 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng' },
+            { id: 'giai-dieu-mua-xuan', name: 'Đội hình Giai điệu mùa xuân' },
+            { id: 'vien-chuc-tre', name: 'Đội hình Viên chức trẻ' },
+            { id: 'hau-can', name: 'Đội hình Hậu cần' },
+            { id: 'ky-su-tet', name: 'Đội hình Ký sự Tết' }
+        ];
         let teamFilterOptions = '<option value="">Tất cả đội hình</option>';
-        teamsListCache.forEach(t => {
+        TEAM_OPTIONS.forEach(t => {
             teamFilterOptions += `<option value="${t.id}">${t.name}</option>`;
         });
 
@@ -957,35 +1301,44 @@ async function loadMembers() {
             'Chỉ huy Trưởng': 1,
             'Chỉ huy Phó Thường trực': 2,
             'Chỉ huy Phó': 3,
-            'Thành viên Ban Chỉ huy': 4,
-            'Đội trưởng': 5,
-            'Đội phó': 6,
-            'Chiến sĩ': 7
+            'Thành viên Thường trực Ban Chỉ huy': 4,
+            'Thành viên Ban Chỉ huy': 5,
+            'Đội trưởng': 6,
+            'Đội phó': 7,
+            'Chiến sĩ': 8
         };
 
-        // Thứ tự đội hình cố định theo yêu cầu
-        const TEAM_ORDER_BY_NAME = {
-            'ban chỉ huy': 0,
-            'ban chỉ huy chiến dịch': 0,
-            'đội hình xuân tự hào': 1,
-            'đội hình xuân bản sắc': 2,
-            'đội hình xuân sẻ chia': 3,
-            'đội hình xuân gắn kết': 4,
-            'đội hình xuân chiến sĩ': 5,
-            'đội hình tết văn minh': 6,
-            'đội hình tư vấn và giảng dạy pháp luật cộng đồng': 7,
-            'đội hình giai điệu mùa xuân': 8,
-            'đội hình viên chức trẻ': 9,
-            'đội hình ký sự tết': 10,
-            'đội hình hậu cần': 11
+        // Thứ tự đội hình theo team_id
+        const TEAM_ORDER = {
+            'ban-chi-huy-chien-dich': 0,
+            'xuan-tu-hao': 1,
+            'xuan-ban-sac': 2,
+            'xuan-se-chia': 3,
+            'xuan-gan-ket': 4,
+            'xuan-chien-si': 5,
+            'tet-van-minh': 6,
+            'tu-van-giang-day-phap-luat': 7,
+            'giai-dieu-mua-xuan': 8,
+            'vien-chuc-tre': 9,
+            'hau-can': 10,
+            'ky-su-tet': 11
         };
 
-        // Map team_id → order dựa trên tên đội
-        const teamOrder = {};
-        Object.keys(teamsMap).forEach(id => {
-            const teamName = (teamsMap[id] || '').toLowerCase();
-            teamOrder[id] = TEAM_ORDER_BY_NAME[teamName] ?? 999;
-        });
+        // Mapping team_id → tên hiển thị - TẤT CẢ có prefix "Đội hình "
+        const TEAM_ID_TO_NAME = {
+            'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+            'xuan-tu-hao': 'Đội hình Xuân tự hào',
+            'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+            'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+            'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+            'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+            'tet-van-minh': 'Đội hình Tết văn minh',
+            'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+            'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+            'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+            'hau-can': 'Đội hình Hậu cần',
+            'ky-su-tet': 'Đội hình Ký sự Tết'
+        };
 
         membersDataCache.sort((a, b) => {
             const posA = positionOrder[a.position] || 99;
@@ -1004,8 +1357,8 @@ async function loadMembers() {
             }
 
             // Không phải BCH → nhóm theo đội hình trước
-            const teamOrderA = teamOrder[a.team_id] ?? 999;
-            const teamOrderB = teamOrder[b.team_id] ?? 999;
+            const teamOrderA = TEAM_ORDER[a.team_id] ?? 999;
+            const teamOrderB = TEAM_ORDER[b.team_id] ?? 999;
 
             if (teamOrderA !== teamOrderB) return teamOrderA - teamOrderB;
 
@@ -1062,18 +1415,18 @@ async function loadMembers() {
             // Position badge color
             const posColor = getPositionColor(m.position);
 
-            // Team badge
-            const teamName = teamsMap[m.team_id] || 'Chưa phân đội';
+            // Team badge - ưu tiên TEAM_ID_TO_NAME, fallback sang m.team_name hoặc teamsMap
+            const teamName = TEAM_ID_TO_NAME[m.team_id] || m.team_name || teamsMap[m.team_id] || 'Chưa phân đội';
             const teamColor = getTeamColor(m.team_id);
 
             html += `
-                <tr data-id="${m.id}" data-name="${m.name.toLowerCase()}" data-email="${m.email.toLowerCase()}" data-team="${m.team_id || ''}">
+                <tr data-id="${m.id}" data-name="${(m.name || '').toLowerCase()}" data-email="${(m.email || '').toLowerCase()}" data-team="${m.team_id || ''}">
                     <td><input type="checkbox" class="member-checkbox" data-id="${m.id}" onchange="toggleMemberSelection('${m.id}')"></td>
-                    <td><strong>${m.name}</strong></td>
+                    <td><strong>${m.name || 'Chưa có tên'}</strong></td>
                     <td style="font-size:13px; color:#0369a1;">${m.mssv || '-'}</td>
                     <td>
                         <span class="badge" style="background:${posColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">
-                            ${m.position}
+                            ${m.position || 'Chiến sĩ'}
                         </span>
                     </td>
                     <td style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.faculty || ''}">
@@ -1136,6 +1489,102 @@ function updateBulkActionUI() {
     if (countSpan) countSpan.textContent = count;
 }
 
+// Xóa chiến sĩ (soft delete - đánh dấu deleted: true)
+window.deleteMember = async function (memberId) {
+    const member = membersDataCache.find(m => m.id === memberId);
+    if (!member) {
+        showAlert('Không tìm thấy chiến sĩ', 'error');
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'Xác nhận xóa?',
+        html: `Bạn có chắc muốn xóa chiến sĩ <strong>${member.name}</strong>?<br><small style="color:#888;">Chiến sĩ sẽ bị ẩn khỏi danh sách.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        // Soft delete: đánh dấu deleted: true trong Firebase
+        const emailKey = (member.email || '').toLowerCase().trim();
+        const docId = emailKey.replace(/[.#$[\]]/g, '_');
+
+        await setDoc(doc(db, 'xtn_users', docId), {
+            ...member,
+            deleted: true,
+            deleted_at: serverTimestamp(),
+            deleted_by: currentUser?.email || 'unknown'
+        }, { merge: true });
+
+        showAlert(`Đã xóa chiến sĩ ${member.name}`, 'success');
+
+        // Clear cache và reload danh sách
+        localStorage.removeItem('xtn_members_cache');
+        loadMembers();
+    } catch (e) {
+        console.error('Delete member error:', e);
+        showAlert('Lỗi xóa chiến sĩ: ' + e.message, 'error');
+    }
+};
+
+// Sửa thông tin chiến sĩ
+window.editMember = async function (memberId) {
+    const member = membersDataCache.find(m => m.id === memberId);
+    if (!member) {
+        showAlert('Không tìm thấy chiến sĩ', 'error');
+        return;
+    }
+
+    const { value: formValues } = await Swal.fire({
+        title: 'Sửa thông tin chiến sĩ',
+        html: `
+            <div style="text-align:left;">
+                <label style="font-weight:600;">Họ tên:</label>
+                <input id="swal-name" class="swal2-input" value="${member.name}" disabled style="background:#f3f4f6;">
+                <label style="font-weight:600;">SĐT:</label>
+                <input id="swal-phone" class="swal2-input" value="${member.phone || ''}" placeholder="Số điện thoại">
+                <label style="font-weight:600;">Khoa/Viện:</label>
+                <input id="swal-faculty" class="swal2-input" value="${member.faculty || ''}" placeholder="Khoa/Viện">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Lưu',
+        cancelButtonText: 'Hủy',
+        preConfirm: () => {
+            return {
+                phone: document.getElementById('swal-phone').value.trim(),
+                faculty: document.getElementById('swal-faculty').value.trim()
+            };
+        }
+    });
+
+    if (!formValues) return;
+
+    try {
+        const emailKey = (member.email || '').toLowerCase().trim();
+        const docId = emailKey.replace(/[.#$[\]]/g, '_');
+
+        await setDoc(doc(db, 'xtn_users', docId), {
+            ...member,
+            phone: formValues.phone,
+            faculty: formValues.faculty,
+            updated_at: serverTimestamp()
+        }, { merge: true });
+
+        showAlert('Đã cập nhật thông tin!', 'success');
+        loadMembers();
+    } catch (e) {
+        console.error('Edit member error:', e);
+        showAlert('Lỗi cập nhật: ' + e.message, 'error');
+    }
+};
+
 window.filterMembers = function () {
     const query = document.getElementById('members-search')?.value.toLowerCase() || '';
     const teamFilter = document.getElementById('members-team-filter')?.value || '';
@@ -1175,9 +1624,15 @@ window.filterDuplicateMembers = async function () {
         if (m.email && m.email.trim()) {
             const emailKey = m.email.toLowerCase().trim();
             if (emailMap[emailKey]) {
-                duplicates.push({ id: m.id, reason: 'email', value: m.email, name: m.name });
+                duplicates.push({
+                    id: m.id,
+                    reason: 'email',
+                    value: m.email,
+                    name: m.name,
+                    originalName: emailMap[emailKey].name
+                });
             } else {
-                emailMap[emailKey] = m.id;
+                emailMap[emailKey] = { id: m.id, name: m.name };
             }
         }
 
@@ -1185,56 +1640,61 @@ window.filterDuplicateMembers = async function () {
         if (m.mssv && m.mssv.trim()) {
             const mssvKey = m.mssv.toUpperCase().trim();
             if (mssvMap[mssvKey]) {
-                duplicates.push({ id: m.id, reason: 'mssv', value: m.mssv, name: m.name });
+                duplicates.push({
+                    id: m.id,
+                    reason: 'mssv',
+                    value: m.mssv,
+                    name: m.name,
+                    originalName: mssvMap[mssvKey].name
+                });
             } else {
-                mssvMap[mssvKey] = m.id;
+                mssvMap[mssvKey] = { id: m.id, name: m.name };
             }
         }
     });
 
     if (duplicates.length === 0) {
-        await showAlert('Không tìm thấy bản ghi trùng lặp!', 'success', 'Hoàn thành');
+        await showAlert('✅ Không tìm thấy bản ghi trùng lặp!', 'success', 'Hoàn thành');
         return;
     }
 
-    // Hiển thị danh sách trùng
+    // Hiển thị danh sách trùng - CHỈ XEM, KHÔNG XÓA
     const listHtml = duplicates.map(d =>
-        `• <strong>${d.name}</strong> (${d.reason}: ${d.value})`
-    ).join('<br>');
+        `<tr>
+            <td style="padding:8px; border-bottom:1px solid #fde68a;"><strong>${d.name}</strong></td>
+            <td style="padding:8px; border-bottom:1px solid #fde68a;">${d.reason === 'email' ? 'Email' : 'MSSV'}</td>
+            <td style="padding:8px; border-bottom:1px solid #fde68a; color:#dc2626;">${d.value}</td>
+            <td style="padding:8px; border-bottom:1px solid #fde68a;">Trùng với: ${d.originalName}</td>
+        </tr>`
+    ).join('');
 
-    const confirmed = await Swal.fire({
+    await Swal.fire({
         title: `<i class="fa-solid fa-exclamation-triangle" style="color:#f59e0b;"></i> Tìm thấy ${duplicates.length} bản ghi trùng`,
         html: `
-            <p style="margin-bottom:15px; color:#6b7280;">Các bản ghi sau bị trùng email/MSSV sẽ bị xóa:</p>
-            <div style="text-align:left; max-height:200px; overflow-y:auto; background:#fef3c7; padding:15px; border-radius:8px; font-size:13px;">
-                ${listHtml}
+            <p style="margin-bottom:15px; color:#6b7280;">Các bản ghi sau có email/MSSV trùng với người khác:</p>
+            <div style="max-height:300px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="background:#fef3c7;">
+                            <th style="padding:8px; text-align:left;">Tên</th>
+                            <th style="padding:8px; text-align:left;">Loại</th>
+                            <th style="padding:8px; text-align:left;">Giá trị trùng</th>
+                            <th style="padding:8px; text-align:left;">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody style="background:white;">
+                        ${listHtml}
+                    </tbody>
+                </table>
             </div>
-            <p style="margin-top:15px; color:#dc2626; font-weight:600;">⚠️ Thao tác này không thể hoàn tác!</p>
+            <p style="margin-top:15px; color:#6b7280; font-size:12px;">
+                💡 <strong>Gợi ý:</strong> Kiểm tra lại file Excel gốc và sửa email/MSSV trùng, sau đó import lại.
+            </p>
         `,
-        showCancelButton: true,
-        confirmButtonText: '<i class="fa-solid fa-trash"></i> Xóa tất cả trùng',
-        cancelButtonText: 'Hủy',
-        confirmButtonColor: '#dc2626',
-        width: 500
+        confirmButtonText: 'Đã hiểu',
+        confirmButtonColor: '#3b82f6',
+        width: 650
     });
-
-    if (!confirmed.isConfirmed) return;
-
-    // Xóa từng bản ghi trùng
-    let deletedCount = 0;
-    for (const dup of duplicates) {
-        try {
-            await deleteDoc(doc(db, 'xtn_users', dup.id));
-            deletedCount++;
-        } catch (e) {
-            console.error('Delete duplicate error:', e);
-        }
-    }
-
-    await showAlert(`Đã xóa ${deletedCount}/${duplicates.length} bản ghi trùng!`, 'success', 'Hoàn thành');
-
-    // Reload danh sách
-    loadMembers();
 };
 
 // Đồng bộ TẤT CẢ role từ position (sửa dữ liệu cũ bị sai)
@@ -1295,6 +1755,7 @@ window.syncAllRolesFromPosition = async function () {
     await showAlert(`Đã đồng bộ ${updatedCount} tài khoản!${errorCount > 0 ? ` (${errorCount} lỗi)` : ''}`, 'success', 'Hoàn thành');
 
     // Reload
+    invalidateMembersCache();
     loadMembers();
 };
 
@@ -1444,9 +1905,23 @@ window.editMember = async function (userId) {
         `<option value="${p}" ${m.position === p ? 'selected' : ''}>${p}</option>`
     ).join('');
 
-    // Build team options
+    // Build team options từ danh sách cố định
+    const TEAM_OPTIONS_EDIT = [
+        { id: 'ban-chi-huy-chien-dich', name: 'Ban Chỉ huy Chiến dịch' },
+        { id: 'xuan-tu-hao', name: 'Xuân tự hào' },
+        { id: 'xuan-ban-sac', name: 'Xuân bản sắc' },
+        { id: 'xuan-se-chia', name: 'Xuân sẻ chia' },
+        { id: 'xuan-gan-ket', name: 'Xuân gắn kết' },
+        { id: 'xuan-chien-si', name: 'Xuân chiến sĩ' },
+        { id: 'tet-van-minh', name: 'Tết văn minh' },
+        { id: 'tu-van-giang-day-phap-luat', name: 'Tư vấn và giảng dạy pháp luật cộng đồng' },
+        { id: 'giai-dieu-mua-xuan', name: 'Giai điệu mùa xuân' },
+        { id: 'vien-chuc-tre', name: 'Viên chức trẻ' },
+        { id: 'hau-can', name: 'Hậu cần' },
+        { id: 'ky-su-tet', name: 'Ký sự Tết' }
+    ];
     let teamOptions = '<option value="">-- Chưa phân đội --</option>';
-    teamsListCache.forEach(t => {
+    TEAM_OPTIONS_EDIT.forEach(t => {
         teamOptions += `<option value="${t.id}" ${t.id === m.team_id ? 'selected' : ''}>${t.name}</option>`;
     });
 
@@ -1584,6 +2059,7 @@ window.editMember = async function (userId) {
             }
 
             await showAlert('Đã cập nhật thành công!', 'success', 'Hoàn thành');
+            invalidateMembersCache();
             loadMembers();
         } catch (e) {
             await showAlert('Lỗi cập nhật!', 'error', 'Lỗi');
@@ -1709,6 +2185,7 @@ window.deleteSelectedMembers = async function () {
             }
 
             await showAlert(`Đã xóa ${selectedMembers.size} thành viên!`, 'success', 'Hoàn thành');
+            invalidateMembersCache(); // Invalidate cache to force reload
             loadMembers();
         } catch (e) {
             await showAlert('Lỗi xóa!', 'error', 'Lỗi');
@@ -1799,7 +2276,7 @@ async function handleQuestionForm(e) {
         loadQuestions();
     } catch (e) {
         console.error('Save question error:', e);
-        showToast('Lỗi lưu!', 'error');
+        showToast('Lỗi khi lưu câu hỏi!', 'error');
     }
 }
 
@@ -1833,7 +2310,7 @@ window.deleteQuestion = async function (qId) {
         loadQuestions();
     } catch (e) {
         console.error('Delete question error:', e);
-        showToast('Lỗi xóa!', 'error');
+        showToast('Lỗi khi xóa câu hỏi!', 'error');
     }
 };
 
@@ -1869,7 +2346,7 @@ window.deleteSelectedQuestions = async function () {
         loadQuestions();
     } catch (e) {
         console.error('Bulk delete questions error:', e);
-        showToast('Lỗi xóa hàng loạt!', 'error');
+        showToast('Lỗi khi xóa hàng loạt!', 'error');
     }
 };
 
@@ -2074,20 +2551,53 @@ function showImportPreview(result) {
     pendingImportData = result.validData;
 
     let html = `
-        <div class="import-summary" style="margin-bottom:20px;">
-            <p><strong>Tổng số dòng:</strong> ${result.totalRows}</p>
-            <p style="color:#16a34a;"><strong>Hợp lệ:</strong> ${result.validData.length}</p>
-            ${result.errors.length > 0 ? `<p style="color:#dc2626;"><strong>Lỗi:</strong> ${result.errors.length}</p>` : ''}
+        <div class="import-summary" style="margin-bottom:20px; padding:15px; background:#f9fafb; border-radius:12px;">
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                <div style="flex:1; text-align:center; padding:10px; background:#fff; border-radius:8px; border:1px solid #e5e7eb;">
+                    <div style="font-size:24px; font-weight:bold; color:#374151;">${result.totalRows}</div>
+                    <div style="font-size:12px; color:#6b7280;">Tổng dòng</div>
+                </div>
+                <div style="flex:1; text-align:center; padding:10px; background:#dcfce7; border-radius:8px; border:1px solid #16a34a;">
+                    <div style="font-size:24px; font-weight:bold; color:#16a34a;">${result.validData.length}</div>
+                    <div style="font-size:12px; color:#16a34a;">Hợp lệ ✓</div>
+                </div>
+                ${result.errors.length > 0 ? `
+                <div style="flex:1; text-align:center; padding:10px; background:#fee2e2; border-radius:8px; border:1px solid #dc2626;">
+                    <div style="font-size:24px; font-weight:bold; color:#dc2626;">${result.errors.length}</div>
+                    <div style="font-size:12px; color:#dc2626;">Bị bỏ qua ✗</div>
+                </div>
+                ` : ''}
+            </div>
         </div>
     `;
 
     if (result.errors.length > 0) {
         html += `
-            <div class="import-errors" style="margin-bottom:20px; max-height:150px; overflow-y:auto; background:#fee; padding:10px; border-radius:8px;">
-                <h4 style="color:#dc2626; margin-bottom:10px;">Các dòng lỗi:</h4>
-                <ul style="margin:0; padding-left:20px;">
-                    ${result.errors.map(e => `<li>Dòng ${e.row}: ${e.errors.join(', ')}</li>`).join('')}
-                </ul>
+            <div class="import-errors" style="margin-bottom:20px; max-height:200px; overflow-y:auto; background:#fef2f2; padding:15px; border-radius:12px; border:2px solid #fca5a5;">
+                <h4 style="color:#dc2626; margin:0 0 12px 0; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 
+                    ${result.errors.length} dòng bị bỏ qua (thiếu thông tin):
+                </h4>
+                <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#fecaca;">
+                            <th style="padding:8px; text-align:left; border-bottom:1px solid #fca5a5;">Dòng Excel</th>
+                            <th style="padding:8px; text-align:left; border-bottom:1px solid #fca5a5;">Lý do</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${result.errors.map(e => `
+                            <tr style="background:#fff;">
+                                <td style="padding:6px 8px; border-bottom:1px solid #fecaca; font-weight:bold;">Dòng ${e.row}</td>
+                                <td style="padding:6px 8px; border-bottom:1px solid #fecaca; color:#b91c1c;">${e.errors.join(', ')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <p style="margin:10px 0 0; font-size:12px; color:#991b1b;">
+                    <i class="fa-solid fa-lightbulb"></i> 
+                    <strong>Gợi ý:</strong> Kiểm tra lại file Excel, đảm bảo các dòng trên có đầy đủ "Họ và tên" và "Email"
+                </p>
             </div>
         `;
     }
@@ -2204,37 +2714,20 @@ async function confirmImport() {
                     console.log('[Import] Team mapping:', row.team_id, '->', actualTeamId || '(not found)');
                 }
 
-                // Check if email exists in xtn_users
-                const existing = await getDocs(
-                    query(collection(db, 'xtn_users'), where('email', '==', row.email))
-                );
-
+                // FORCE MODE: Không check trùng, ghi đè tất cả
                 const userData = {
                     ...row,
-                    team_id: actualTeamId, // Ghi đè bằng team_id đúng
+                    team_id: actualTeamId,
                     role: 'member',
                     status: 'active',
-                    imported: true
+                    imported: true,
+                    created_at: serverTimestamp()
                 };
 
-                if (existing.empty) {
-                    // Tạo mới
-                    const emailDocId = row.email.replace(/[.#$[\]]/g, '_');
-                    await setDoc(doc(db, 'xtn_users', emailDocId), {
-                        ...userData,
-                        created_at: serverTimestamp()
-                    });
-                    successCount++;
-                } else {
-                    // UPDATE người đã tồn tại (không đè created_at, uid, photoURL)
-                    const existingDoc = existing.docs[0];
-                    await setDoc(doc(db, 'xtn_users', existingDoc.id), {
-                        ...userData,
-                        updated_at: serverTimestamp()
-                    }, { merge: true });
-                    console.log('[Import] Updated (exists):', row.email);
-                    skippedCount++; // Đếm là "updated"
-                }
+                // Tạo doc ID từ email (thay ký tự đặc biệt)
+                const emailDocId = row.email.replace(/[.#$[\]]/g, '_');
+                await setDoc(doc(db, 'xtn_users', emailDocId), userData);
+                successCount++;
             } catch (err) {
                 console.error('[Import] Error adding:', row.email, err);
                 errorCount++;
@@ -2261,9 +2754,19 @@ async function confirmImport() {
         // Xóa progress modal
         document.body.removeChild(progressModal);
 
-        let resultMsg = `Import hoàn tất!\n✅ Mới thêm: ${successCount}`;
-        if (skippedCount > 0) resultMsg += `\n🔄 Đã cập nhật: ${skippedCount}`;
+        const totalProcessed = successCount + skippedCount + errorCount;
+        console.log('[Import] FINAL RESULT:', {
+            total: pendingImportData.length,
+            processed: totalProcessed,
+            new: successCount,
+            updated: skippedCount,
+            errors: errorCount
+        });
+
+        let resultMsg = `Import hoàn tất!\n\n📊 Tổng xử lý: ${totalProcessed}/${pendingImportData.length}\n✅ Mới thêm: ${successCount}`;
+        if (skippedCount > 0) resultMsg += `\n🔄 Đã cập nhật (email có sẵn): ${skippedCount}`;
         if (errorCount > 0) resultMsg += `\n❌ Lỗi: ${errorCount}`;
+        resultMsg += `\n\n💡 Tổng chiến sĩ trong hệ thống: ${successCount + skippedCount} người`;
 
         await showAlert(
             resultMsg,
@@ -2275,12 +2778,141 @@ async function confirmImport() {
         pendingImportData = [];
 
         // Reload members list
+        invalidateMembersCache();
         loadMembers();
 
     } catch (error) {
         console.error('[Import] Error:', error);
         await showAlert('Lỗi import: ' + error.message, 'error', 'Lỗi');
     }
+}
+
+// ============================================================
+// IMPORT JSON HANDLER
+// ============================================================
+async function handleImportJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        const jsonData = JSON.parse(text);
+
+        if (!Array.isArray(jsonData)) {
+            await showAlert('File JSON không hợp lệ! Cần là mảng dữ liệu.', 'error', 'Lỗi');
+            return;
+        }
+
+        if (jsonData.length === 0) {
+            await showAlert('File JSON trống!', 'warning', 'Cảnh báo');
+            return;
+        }
+
+        // Lấy danh sách teams để mapping team_id -> team_name
+        const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
+        const teamIdToName = {};
+        teamsSnap.forEach(doc => {
+            const d = doc.data();
+            teamIdToName[doc.id] = d.team_name || d.name || doc.id;
+        });
+
+        // Hiển thị xác nhận
+        const confirmed = await Swal.fire({
+            title: '📥 Import từ JSON',
+            html: `
+                <p>Tìm thấy <strong>${jsonData.length}</strong> chiến sĩ trong file.</p>
+                <p style="margin-top:10px; color:#f97316;">⚠️ Dữ liệu sẽ được GHI ĐÈ nếu email đã tồn tại.</p>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Import ngay',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#f97316'
+        });
+
+        if (!confirmed.isConfirmed) {
+            e.target.value = '';
+            return;
+        }
+
+        // Progress modal
+        const progressModal = document.createElement('div');
+        progressModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:99999;';
+        progressModal.innerHTML = `
+            <div style="background:white;padding:30px;border-radius:12px;max-width:400px;width:90%;text-align:center;">
+                <h3 style="margin-bottom:20px;">⏳ Đang import JSON...</h3>
+                <div style="background:#e5e7eb;border-radius:8px;height:20px;overflow:hidden;margin-bottom:10px;">
+                    <div id="json-progress-bar" style="background:linear-gradient(90deg,#f97316,#ea580c);height:100%;width:0%;transition:width 0.3s;"></div>
+                </div>
+                <p id="json-progress-text">0 / ${jsonData.length}</p>
+            </div>
+        `;
+        document.body.appendChild(progressModal);
+
+        const progressBar = document.getElementById('json-progress-bar');
+        const progressText = document.getElementById('json-progress-text');
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (let i = 0; i < jsonData.length; i++) {
+            const person = jsonData[i];
+            try {
+                const email = (person.email || '').toLowerCase().trim();
+                if (!email) {
+                    errorCount++;
+                    continue;
+                }
+
+                const emailDocId = email.replace(/[.#$[\]]/g, '_');
+
+                // Mapping team_id sang team_name
+                const teamId = person.team_id || '';
+                const teamName = teamIdToName[teamId] || person.team_name || teamId;
+
+                await setDoc(doc(db, 'xtn_users', emailDocId), {
+                    name: person.name || '',
+                    email: email,
+                    mssv: person.mssv || '',
+                    phone: person.phone || '',
+                    faculty: person.faculty || '',
+                    position: person.position || 'Chiến sĩ',
+                    team_id: teamId,
+                    team_name: teamName,
+                    role: person.role || 'member',
+                    status: person.status || 'active',
+                    imported: true,
+                    created_at: serverTimestamp()
+                });
+                successCount++;
+            } catch (err) {
+                console.error('JSON Import error:', person.email, err);
+                errorCount++;
+            }
+
+            // Update progress
+            const percent = Math.round(((i + 1) / jsonData.length) * 100);
+            progressBar.style.width = percent + '%';
+            progressText.textContent = `${i + 1} / ${jsonData.length}`;
+        }
+
+        document.body.removeChild(progressModal);
+
+        await showAlert(
+            `🎉 Import hoàn tất!\n\n✅ Thành công: ${successCount}\n❌ Lỗi: ${errorCount}\n\nTổng: ${jsonData.length}`,
+            successCount > 0 ? 'success' : 'warning',
+            'Kết quả Import JSON'
+        );
+
+        // Reload members
+        loadMembers();
+
+    } catch (error) {
+        console.error('[JSON Import] Error:', error);
+        await showAlert('Lỗi đọc file JSON: ' + error.message, 'error', 'Lỗi');
+    }
+
+    e.target.value = '';
 }
 
 // ============================================================
@@ -2537,20 +3169,29 @@ async function openAddMemberModal() {
     const modal = document.getElementById('modal-add-member');
     if (!modal) return;
 
-    // Load teams vào dropdown
+    // Load teams vào dropdown - DÙNG STATIC LIST
     const teamSelect = document.getElementById('new-member-team');
     if (teamSelect) {
-        try {
-            const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
-            teamSelect.innerHTML = '<option value="">-- Chọn đội hình --</option>';
-            teamsSnap.forEach(docSnap => {
-                const team = docSnap.data();
-                const teamName = team.team_name || docSnap.id;
-                teamSelect.innerHTML += `<option value="${docSnap.id}">${teamName}</option>`;
-            });
-        } catch (e) {
-            console.error('[AddMember] Load teams error:', e);
-        }
+        // Static 12 đội hình cố định - đúng thứ tự
+        const STATIC_TEAMS = [
+            { id: 'ban-chi-huy-chien-dich', name: 'Ban Chỉ huy Chiến dịch' },
+            { id: 'xuan-tu-hao', name: 'Đội hình Xuân tự hào' },
+            { id: 'xuan-ban-sac', name: 'Đội hình Xuân bản sắc' },
+            { id: 'xuan-se-chia', name: 'Đội hình Xuân sẻ chia' },
+            { id: 'xuan-gan-ket', name: 'Đội hình Xuân gắn kết' },
+            { id: 'xuan-chien-si', name: 'Đội hình Xuân chiến sĩ' },
+            { id: 'tet-van-minh', name: 'Đội hình Tết văn minh' },
+            { id: 'tu-van-giang-day-phap-luat', name: 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng' },
+            { id: 'giai-dieu-mua-xuan', name: 'Đội hình Giai điệu mùa xuân' },
+            { id: 'vien-chuc-tre', name: 'Đội hình Viên chức trẻ' },
+            { id: 'hau-can', name: 'Đội hình Hậu cần' },
+            { id: 'ky-su-tet', name: 'Đội hình Ký sự Tết' }
+        ];
+
+        teamSelect.innerHTML = '<option value="">-- Chọn đội hình --</option>';
+        STATIC_TEAMS.forEach(team => {
+            teamSelect.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+        });
     }
 
     // Reset form
@@ -2572,6 +3213,7 @@ async function handleAddMember(e) {
     const mssv = document.getElementById('new-member-mssv')?.value?.trim();
     const email = document.getElementById('new-member-email')?.value?.trim();
     const phone = document.getElementById('new-member-phone')?.value?.trim();
+    const faculty = document.getElementById('new-member-faculty')?.value || '';
     const teamId = document.getElementById('new-member-team')?.value;
     const roleSelect = document.getElementById('new-member-role');
     const role = roleSelect?.value || 'member';
@@ -2631,12 +3273,14 @@ async function handleAddMember(e) {
         }
 
         // Add new member vào XTN_USERS
-        const emailDocId = email.replace(/[.#$[\]]/g, '_');
+        const normalizedEmail = email.toLowerCase().trim();
+        const emailDocId = normalizedEmail.replace(/[.#$[\]]/g, '_');
         await setDoc(doc(db, 'xtn_users', emailDocId), {
             name,
             mssv: mssv || '',
-            email,
+            email: normalizedEmail,  // Lưu email lowercase để query dễ dàng
             phone: phone || '',
+            faculty: faculty || '',
             team_id: teamId || '',
             role,
             position,
@@ -2647,6 +3291,9 @@ async function handleAddMember(e) {
 
         closeAddMemberModal();
         showAlert(`Đã thêm chiến sĩ "${name}" thành công!`, 'success', 'Thành công');
+
+        // Clear cache để reload fresh data
+        localStorage.removeItem('xtn_members_cache');
 
         // Reload members list
         loadMembers();
@@ -2972,7 +3619,7 @@ document.getElementById('btn-toggle-ai')?.addEventListener('click', async functi
 });
 
 // ============================================================
-// CHECK PROFILE ON FIRST LOGIN - Yêu cầu kiểm tra thông tin lần đầu
+// CHECK PROFILE ON FIRST LOGIN - Tự động xác nhận thông tin
 // ============================================================
 async function checkProfileOnFirstLogin() {
     if (!userData || !currentUser) return;
@@ -2983,101 +3630,30 @@ async function checkProfileOnFirstLogin() {
         return;
     }
 
-    // Convert name suggestion
+    // Tự động chuyển đổi tên sang tiếng Việt chuẩn
     const currentName = userData.name || '';
-    const suggestedName = convertNameToVN(currentName);
-    const needsConversion = suggestedName !== currentName;
+    const convertedName = convertNameToVN(currentName);
 
-    const { value: formResult } = await Swal.fire({
-        title: '<i class="fa-solid fa-user-check"></i> Kiểm tra thông tin',
-        html: `
-            <div style="text-align:left; font-size:14px;">
-                <p style="color:#666; margin-bottom:15px;">
-                    Vui lòng kiểm tra và cập nhật thông tin cá nhân của bạn trước khi sử dụng hệ thống.
-                </p>
-                
-                <div style="margin-bottom:12px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600;">📧 Email</label>
-                    <input type="text" value="${userData.email}" readonly 
-                           style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f3f4f6;">
-                </div>
+    try {
+        // Tự động confirm mà không hiện modal
+        await setDoc(doc(db, 'xtn_users', currentUser.uid), {
+            name: convertedName, // Tên do hệ thống tự động chuẩn hóa
+            profile_confirmed: true,
+            profile_confirmed_at: serverTimestamp()
+        }, { merge: true });
 
-                <div style="margin-bottom:12px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600;">👤 Họ và tên <span style="color:red;">*</span></label>
-                    <input type="text" id="swal-check-name" value="${needsConversion ? suggestedName : currentName}" 
-                           placeholder="Nguyễn Văn A"
-                           style="width:100%; padding:10px; border:1px solid ${needsConversion ? '#f59e0b' : '#ddd'}; border-radius:8px; background:${needsConversion ? '#fef3c7' : 'white'};">
-                    ${needsConversion ? `<small style="color:#f59e0b; display:block; margin-top:5px;">💡 Đã đổi từ "${currentName}"</small>` : ''}
-                </div>
+        // Update local data
+        userData.name = convertedName;
+        userData.profile_confirmed = true;
 
-                <div style="display:flex; gap:10px; margin-bottom:12px;">
-                    <div style="flex:1;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600;">🎓 MSSV</label>
-                        <input type="text" id="swal-check-mssv" value="${userData.mssv || ''}" 
-                               placeholder="K21000001"
-                               style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
-                    </div>
-                    <div style="flex:1;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600;">📱 SĐT</label>
-                        <input type="text" id="swal-check-phone" value="${userData.phone || ''}" 
-                               placeholder="0901234567"
-                               style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
-                    </div>
-                </div>
+        // Update sidebar
+        const userNameEl = document.getElementById('user-name');
+        if (userNameEl) userNameEl.textContent = convertedName;
 
-                <div style="background:#f0fdf4; padding:10px; border-radius:8px; border:1px solid #86efac;">
-                    <small style="color:#16a34a;">
-                        <i class="fa-solid fa-shield-check"></i> 
-                        Thông tin này sẽ được sử dụng để tạo thẻ Chiến sĩ và liên lạc khi cần.
-                    </small>
-                </div>
-            </div>
-        `,
-        width: 480,
-        showCancelButton: false,
-        confirmButtonText: '<i class="fa-solid fa-check"></i> Xác nhận thông tin',
-        confirmButtonColor: '#10b981',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        preConfirm: () => {
-            const name = document.getElementById('swal-check-name').value.trim();
-            if (!name) {
-                Swal.showValidationMessage('Vui lòng nhập họ tên!');
-                return false;
-            }
-            return {
-                name: name,
-                mssv: document.getElementById('swal-check-mssv').value.trim(),
-                phone: document.getElementById('swal-check-phone').value.trim()
-            };
-        }
-    });
+        console.log('[ProfileCheck] Auto-confirmed with name:', convertedName);
 
-    if (formResult) {
-        try {
-            await setDoc(doc(db, 'xtn_users', currentUser.uid), {
-                name: formResult.name,
-                mssv: formResult.mssv,
-                phone: formResult.phone,
-                profile_confirmed: true,
-                profile_confirmed_at: serverTimestamp()
-            }, { merge: true });
-
-            // Update local data
-            userData.name = formResult.name;
-            userData.mssv = formResult.mssv;
-            userData.phone = formResult.phone;
-            userData.profile_confirmed = true;
-
-            // Update sidebar
-            document.getElementById('user-name').textContent = formResult.name;
-
-            showAlert('Đã lưu thông tin!', 'success', 'Thành công');
-
-        } catch (error) {
-            console.error('[ProfileCheck] Save error:', error);
-            showAlert('Lỗi lưu thông tin: ' + error.message, 'error', 'Lỗi');
-        }
+    } catch (error) {
+        console.error('[ProfileCheck] Auto-confirm error:', error);
     }
 }
 
@@ -3131,15 +3707,30 @@ async function loadProfileSection() {
     document.getElementById('profile-phone').value = userData.phone || '';
     document.getElementById('profile-faculty').value = userData.faculty || '';
 
-    // Load team name
+    // Load team name - Với STATIC fallback
+    const STATIC_TEAM_MAP = {
+        'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+        'xuan-tu-hao': 'Đội hình Xuân tự hào',
+        'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+        'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+        'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+        'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+        'tet-van-minh': 'Đội hình Tết văn minh',
+        'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+        'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+        'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+        'hau-can': 'Đội hình Hậu cần',
+        'ky-su-tet': 'Đội hình Ký sự Tết'
+    };
+
     if (userData.team_id) {
         try {
             const teamDoc = await getDoc(doc(db, 'xtn_teams', userData.team_id));
             document.getElementById('profile-team').value = teamDoc.exists()
                 ? teamDoc.data().team_name
-                : 'Chưa xác định';
+                : STATIC_TEAM_MAP[userData.team_id] || 'Đội hình ' + userData.team_id;
         } catch (e) {
-            document.getElementById('profile-team').value = 'Chưa xác định';
+            document.getElementById('profile-team').value = STATIC_TEAM_MAP[userData.team_id] || 'Đội hình ' + userData.team_id;
         }
     } else {
         document.getElementById('profile-team').value = 'Chưa được phân đội';
@@ -3484,12 +4075,25 @@ window.openEditAccountModal = async function (userId) {
     const acc = accountsDataCache.find(a => a.id === userId);
     if (!acc) return;
 
-    // Load teams for dropdown
-    const teamsSnap = await getDocs(collection(db, 'xtn_teams'));
+    // Load teams từ danh sách cố định
+    const TEAM_OPTIONS_ACC = [
+        { id: 'ban-chi-huy-chien-dich', name: 'Ban Chỉ huy Chiến dịch' },
+        { id: 'xuan-tu-hao', name: 'Xuân tự hào' },
+        { id: 'xuan-ban-sac', name: 'Xuân bản sắc' },
+        { id: 'xuan-se-chia', name: 'Xuân sẻ chia' },
+        { id: 'xuan-gan-ket', name: 'Xuân gắn kết' },
+        { id: 'xuan-chien-si', name: 'Xuân chiến sĩ' },
+        { id: 'tet-van-minh', name: 'Tết văn minh' },
+        { id: 'tu-van-giang-day-phap-luat', name: 'Tư vấn và giảng dạy pháp luật cộng đồng' },
+        { id: 'giai-dieu-mua-xuan', name: 'Giai điệu mùa xuân' },
+        { id: 'vien-chuc-tre', name: 'Viên chức trẻ' },
+        { id: 'hau-can', name: 'Hậu cần' },
+        { id: 'ky-su-tet', name: 'Ký sự Tết' }
+    ];
     let teamOptions = '<option value="">-- Chưa phân đội --</option>';
-    teamsSnap.forEach(d => {
-        const isSelected = d.id === acc.team_id ? 'selected' : '';
-        teamOptions += `<option value="${d.id}" ${isSelected}>${d.data().team_name || d.id}</option>`;
+    TEAM_OPTIONS_ACC.forEach(t => {
+        const isSelected = t.id === acc.team_id ? 'selected' : '';
+        teamOptions += `<option value="${t.id}" ${isSelected}>${t.name}</option>`;
     });
 
     // Position options (chức vụ) - tự động tính role

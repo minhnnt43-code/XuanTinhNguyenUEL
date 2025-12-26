@@ -55,6 +55,22 @@ export async function initializeTeams() {
 
 // Lấy danh sách đội
 export async function getTeams() {
+    // Thứ tự đội hình chuẩn
+    const TEAM_ORDER = {
+        'ban-chi-huy-chien-dich': 0,
+        'xuan-tu-hao': 1,
+        'xuan-ban-sac': 2,
+        'xuan-se-chia': 3,
+        'xuan-gan-ket': 4,
+        'xuan-chien-si': 5,
+        'tet-van-minh': 6,
+        'tu-van-giang-day-phap-luat': 7,
+        'giai-dieu-mua-xuan': 8,
+        'vien-chuc-tre': 9,
+        'hau-can': 10,
+        'ky-su-tet': 11
+    };
+
     const snapshot = await getDocs(collection(db, 'xtn_teams'));
     const teams = [];
     snapshot.forEach(doc => {
@@ -64,19 +80,13 @@ export async function getTeams() {
         const idA = a.team_id || a.id || '';
         const idB = b.team_id || b.id || '';
 
-        // Check if both are default format "doi-X"
-        if (idA.startsWith('doi-') && idB.startsWith('doi-')) {
-            const numA = parseInt(idA.replace('doi-', '')) || 0;
-            const numB = parseInt(idB.replace('doi-', '')) || 0;
-            return numA - numB;
-        }
+        // Sắp xếp theo TEAM_ORDER chuẩn
+        const orderA = TEAM_ORDER[idA] ?? 999;
+        const orderB = TEAM_ORDER[idB] ?? 999;
+        if (orderA !== orderB) return orderA - orderB;
 
-        // Otherwise sort by created_at desc (newest first) or name
-        if (a.created_at && b.created_at) {
-            return new Date(b.created_at) - new Date(a.created_at);
-        }
-
-        return (a.team_name || '').localeCompare(b.team_name || '');
+        // Fallback: theo tên
+        return (a.team_name || '').localeCompare(b.team_name || '', 'vi');
     });
 }
 
@@ -106,15 +116,37 @@ export async function addMemberToTeam(teamId, userId) {
     });
 }
 
-// Render danh sách đội - Thiết kế mới với đầy đủ thông tin
+// Render danh sách đội - Dùng STATIC list thay vì Firebase xtn_teams
 export async function renderTeamsTable() {
     try {
-        const teams = await getTeams();
+        // STATIC 12 đội hình cố định - ĐỒNG BỘ với các file khác
+        const STATIC_TEAMS = [
+            { id: 'ban-chi-huy-chien-dich', team_name: 'Ban Chỉ huy Chiến dịch' },
+            { id: 'xuan-tu-hao', team_name: 'Đội hình Xuân tự hào' },
+            { id: 'xuan-ban-sac', team_name: 'Đội hình Xuân bản sắc' },
+            { id: 'xuan-se-chia', team_name: 'Đội hình Xuân sẻ chia' },
+            { id: 'xuan-gan-ket', team_name: 'Đội hình Xuân gắn kết' },
+            { id: 'xuan-chien-si', team_name: 'Đội hình Xuân chiến sĩ' },
+            { id: 'tet-van-minh', team_name: 'Đội hình Tết văn minh' },
+            { id: 'tu-van-giang-day-phap-luat', team_name: 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng' },
+            { id: 'giai-dieu-mua-xuan', team_name: 'Đội hình Giai điệu mùa xuân' },
+            { id: 'vien-chuc-tre', team_name: 'Đội hình Viên chức trẻ' },
+            { id: 'hau-can', team_name: 'Đội hình Hậu cần' },
+            { id: 'ky-su-tet', team_name: 'Đội hình Ký sự Tết' }
+        ];
 
         // Lấy tất cả users để tìm Đội trưởng, Đội phó và đếm số thành viên
         const usersSnap = await getDocs(collection(db, 'xtn_users'));
         const users = [];
-        usersSnap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+        usersSnap.forEach(doc => {
+            const data = doc.data();
+            // Chỉ đếm members đã approved (không pending, không deleted)
+            if (data.role !== 'pending' && !data.deleted) {
+                users.push({ id: doc.id, ...data });
+            }
+        });
+
+        console.log('[Teams] Total approved users:', users.length);
 
         // Lấy tất cả hoạt động để đếm
         const activitiesSnap = await getDocs(collection(db, 'xtn_activities'));
@@ -138,25 +170,41 @@ export async function renderTeamsTable() {
                 <tbody>
         `;
 
-        for (const team of teams) {
-            // Tìm Đội trưởng và Đội phó từ users
-            const teamMembers = users.filter(u => u.team_id === team.id);
+        for (const team of STATIC_TEAMS) {
+            // team.id là slug như 'ky-su-tet'
+            const teamId = team.id;
+            const teamName = team.team_name || '';
+
+            // Tìm Đội trưởng và Đội phó từ users 
+            const teamMembers = users.filter(u => u.team_id === teamId);
             const doiTruong = teamMembers.find(u => u.position === 'Đội trưởng');
             const doiPhoList = teamMembers.filter(u => u.position === 'Đội phó');
             const chienSiCount = teamMembers.length;
 
-            // Đếm hoạt động của đội này
-            const activityCount = activities.filter(a => a.team === team.team_name).length;
+            // Đếm hoạt động của đội này - check cả team_id VÀ team_name
+            const activityCount = activities.filter(a =>
+                a.team === teamName ||
+                a.team === teamId ||
+                a.team_id === teamId ||
+                (teamName && a.team && a.team.includes(teamName.replace('Đội hình ', '')))
+            ).length;
 
-            // Format đội phó (có thể nhiều)
-            const doiPhoNames = doiPhoList.map(u => u.name).join(', ') || '<span style="color:#999;">-</span>';
+            // Format đội trưởng với badge đẹp
+            const doiTruongHtml = doiTruong
+                ? `<span class="leader-badge truong">${doiTruong.name}</span>`
+                : '<span style="color:#ccc;">-</span>';
+
+            // Format đội phó (có thể nhiều) với badge
+            const doiPhoHtml = doiPhoList.length > 0
+                ? doiPhoList.map(u => `<span class="leader-badge pho">${u.name}</span>`).join(' ')
+                : '<span style="color:#ccc;">-</span>';
 
             html += `
                 <tr data-id="${team.id}">
                     <td><input type="checkbox" class="team-checkbox" data-id="${team.id}" onchange="toggleTeamSelection('${team.id}')"></td>
                     <td><strong>${team.team_name}</strong></td>
-                    <td>${doiTruong ? `<span style="color:#16a34a; font-weight:500;">${doiTruong.name}</span>` : '<span style="color:#999;">-</span>'}</td>
-                    <td>${doiPhoNames}</td>
+                    <td>${doiTruongHtml}</td>
+                    <td>${doiPhoHtml}</td>
                     <td style="text-align:center;"><span class="badge-count">${chienSiCount}</span></td>
                     <td style="text-align:center;"><span class="badge-count activity">${activityCount}</span></td>
                     <td>
@@ -174,7 +222,7 @@ export async function renderTeamsTable() {
         }
 
         html += '</tbody></table></div>';
-        html += `<p style="margin-top:10px; color:#666; font-size:13px;">Tổng: <strong>${teams.length}</strong> đội hình</p>`;
+        html += `<p style="margin-top:10px; color:#666; font-size:13px;">Tổng: <strong>${STATIC_TEAMS.length}</strong> đội hình</p>`;
 
         // Add CSS for badges
         html += `
@@ -191,6 +239,28 @@ export async function renderTeamsTable() {
                 }
                 .badge-count.activity {
                     background: linear-gradient(135deg, #f59e0b, #fbbf24);
+                }
+                .leader-badge {
+                    display: inline-block;
+                    padding: 6px 14px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                    margin: 3px 4px 3px 0;
+                    white-space: nowrap;
+                }
+                .leader-badge.truong {
+                    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+                    color: #065f46;
+                    border: 1.5px solid #6ee7b7;
+                    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+                }
+                .leader-badge.pho {
+                    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+                    color: #3730a3;
+                    border: 1.5px solid #a5b4fc;
+                    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.15);
                 }
             </style>
         `;

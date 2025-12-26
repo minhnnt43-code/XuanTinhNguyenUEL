@@ -384,7 +384,7 @@ window.approveRegistration = async function (regId, userId) {
         loadPendingRegistrations();
     } catch (error) {
         console.error(error);
-        showToast('Có lỗi xảy ra!', 'error');
+        showToast('Có lỗi khi duyệt chiến sĩ!', 'error');
     }
 };
 
@@ -404,7 +404,7 @@ window.rejectRegistration = async function (regId) {
         loadPendingRegistrations();
     } catch (error) {
         console.error(error);
-        showToast('Có lỗi xảy ra!', 'error');
+        showToast('Có lỗi khi từ chối đơn!', 'error');
     }
 };
 

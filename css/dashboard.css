@@ -1683,18 +1683,27 @@ input[type="range"]::-moz-range-track {
     font-size: 0.85rem;
 }
 
-/* Export Report Section */
+/* Export Report Section - Clean design */
 .export-report-section {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border: 2px solid #FFFF33;
-    border-radius: 15px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .export-report-section h4 {
+    color: #374151;
+    margin: 0 0 15px 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.export-report-section h4 i {
     color: #16a34a;
-    margin-bottom: 15px;
 }
 
 .export-report-section .form-row {
@@ -1702,6 +1711,35 @@ input[type="range"]::-moz-range-track {
     gap: 15px;
     flex-wrap: wrap;
     align-items: flex-end;
+}
+
+.export-report-section .form-group {
+    flex: 1;
+    min-width: 120px;
+}
+
+.export-report-section .form-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.export-report-section input,
+.export-report-section select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.export-report-section input:focus,
+.export-report-section select:focus {
+    border-color: #16a34a;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
 }
 
 /* ===== CUSTOM FIELDS SECTION (BCH Cấp trường tạo mục mới) ===== */

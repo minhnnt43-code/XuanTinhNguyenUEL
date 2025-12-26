@@ -688,7 +688,7 @@ async function handleDeleteMedia(e) {
 
         await loadAllMedia();
         renderTabContent();
-        if (window.showToast) showToast('Đã xóa!', 'success');
+        if (window.showToast) showToast('Đã xóa hình ảnh!', 'success');
     } catch (error) {
         console.error('Delete error:', error);
         if (window.showToast) showToast('Lỗi: ' + error.message, 'error');
@@ -722,7 +722,7 @@ async function handleToggleMedia(e) {
 
         await loadAllMedia();
         renderTabContent();
-        if (window.showToast) showToast('Đã cập nhật!', 'success');
+        if (window.showToast) showToast('Đã cập nhật hình ảnh!', 'success');
     } catch (error) {
         console.error('Toggle error:', error);
         if (window.showToast) showToast('Lỗi: ' + error.message, 'error');

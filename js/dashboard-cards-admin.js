@@ -112,13 +112,57 @@ async function loadCardsData() {
             teamsMap[d.id] = d.data().team_name || d.id;
         });
 
-        // Load team filter options
+        // Static mapping fallback (nếu xtn_teams rỗng hoặc thiếu)
+        const STATIC_TEAM_MAP = {
+            'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+            'xuan-tu-hao': 'Đội hình Xuân tự hào',
+            'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+            'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+            'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+            'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+            'tet-van-minh': 'Đội hình Tết văn minh',
+            'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+            'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+            'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+            'hau-can': 'Đội hình Hậu cần',
+            'ky-su-tet': 'Đội hình Ký sự Tết'
+        };
+
+
+        // Merge static vào teamsMap nếu chưa có
+        Object.keys(STATIC_TEAM_MAP).forEach(id => {
+            if (!teamsMap[id]) {
+                teamsMap[id] = STATIC_TEAM_MAP[id];
+            }
+        });
+
+        // Thứ tự đội hình chuẩn (same as dashboard-core.js)
+        const TEAM_ORDER = {
+            'ban-chi-huy-chien-dich': 0,
+            'xuan-tu-hao': 1,
+            'xuan-ban-sac': 2,
+            'xuan-se-chia': 3,
+            'xuan-gan-ket': 4,
+            'xuan-chien-si': 5,
+            'tet-van-minh': 6,
+            'tu-van-giang-day-phap-luat': 7,
+            'giai-dieu-mua-xuan': 8,
+            'vien-chuc-tre': 9,
+            'hau-can': 10,
+            'ky-su-tet': 11
+        };
+
+        // Load team filter options - CHỈ DÙNG STATIC LIST để tránh duplicate
         const filterSelect = document.getElementById('cards-filter-team');
         if (filterSelect) {
             filterSelect.innerHTML = '<option value="">-- Tất cả đội --</option>';
-            Object.entries(teamsMap).forEach(([id, name]) => {
-                filterSelect.innerHTML += `<option value="${id}">${name}</option>`;
-            });
+
+            // Dùng STATIC_TEAM_MAP đã sắp xếp theo TEAM_ORDER
+            Object.entries(STATIC_TEAM_MAP)
+                .sort((a, b) => (TEAM_ORDER[a[0]] ?? 999) - (TEAM_ORDER[b[0]] ?? 999))
+                .forEach(([id, name]) => {
+                    filterSelect.innerHTML += `<option value="${id}">${name}</option>`;
+                });
         }
 
         // Load registrations (để lấy preferred_team nếu team_id trống)
@@ -145,15 +189,43 @@ async function loadCardsData() {
                 mssv: data.mssv || '',
                 email: data.email || '',
                 team_id: teamId,
-                team_name: teamsMap[teamId] || 'Chưa phân đội',
+                team_name: teamsMap[teamId] || STATIC_TEAM_MAP[teamId] || 'Chưa phân đội',
                 city_card_link: data.city_card_link || '',
                 role: data.role || 'member',
                 position: data.position || 'Chiến sĩ'
             });
         });
 
+        // Sắp xếp theo thứ tự đội hình + chức vụ (giống Danh sách Chiến sĩ)
+        const positionOrder = {
+            'Chỉ huy Trưởng': 1,
+            'Chỉ huy Phó Thường trực': 2,
+            'Chỉ huy Phó': 3,
+            'Thành viên Thường trực Ban Chỉ huy': 4,
+            'Thành viên Ban Chỉ huy': 5,
+            'Đội trưởng': 6,
+            'Đội phó': 7,
+            'Chiến sĩ': 8
+        };
+
+        allMembers.sort((a, b) => {
+            // 1. Theo đội hình
+            const orderA = TEAM_ORDER[a.team_id] ?? 999;
+            const orderB = TEAM_ORDER[b.team_id] ?? 999;
+            if (orderA !== orderB) return orderA - orderB;
+
+            // 2. Theo chức vụ
+            const posA = positionOrder[a.position] ?? 99;
+            const posB = positionOrder[b.position] ?? 99;
+            if (posA !== posB) return posA - posB;
+
+            // 3. Theo tên
+            return (a.name || '').localeCompare(b.name || '', 'vi');
+        });
+
         console.log('[CardsAdmin] Members loaded:', allMembers.length);
         console.log('[CardsAdmin] TeamsMap:', teamsMap);
+        console.log('[CardsAdmin] Sample member team_id:', allMembers[0]?.team_id);
 
         // DEBUG: Dump chi tiết để so sánh
         window.debugCardsData = function () {

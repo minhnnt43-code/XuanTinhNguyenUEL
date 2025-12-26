@@ -251,3 +251,14 @@ h6 {
 .toast.error {
     background: var(--danger);
 }
+
+.toast.warning {
+    background: #ea580c;
+    /* Orange 600 - cam đậm */
+    color: var(--white);
+}
+
+.toast.info {
+    background: var(--info);
+    color: var(--white);
+}

@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- SheetJS for Excel Import/Export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- QR Code Styling for Card QR -->
     <script src="https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
@@ -530,7 +530,7 @@
                             </div>
                             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                                 <button id="btn-card-download" class="btn btn-success" style="flex:1;" disabled>
-                                    <i class="fa-solid fa-download"></i> Tải về
+                                    <i class="fa-brands fa-google-drive"></i> Tạo và Nộp thẻ
                                 </button>
                                 <button id="btn-card-confirm" class="btn btn-primary" style="flex:1;" disabled>
                                     <i class="fa-solid fa-check-circle"></i> Đã tạo thẻ
@@ -603,9 +603,8 @@
                                 <option value="Kế toán - Kiểm toán">Kế toán - Kiểm toán</option>
                                 <option value="Luật">Luật</option>
                                 <option value="Luật Kinh tế">Luật Kinh tế</option>
-                                <option value="Kinh doanh quốc tế">Kinh doanh quốc tế</option>
-                                <option value="Marketing - Truyền thông">Marketing - Truyền thông</option>
-                                <option value="Khác">Khác</option>
+                                <option value="Toán Kinh tế">Toán Kinh tế</option>
+                                <option value="Sinh viên liên kết Quốc tế">Sinh viên liên kết Quốc tế</option>
                             </select>
                         </div>
 
@@ -834,7 +833,12 @@
                         <button id="btn-download-template" class="btn btn-info">
                             <i class="fa-solid fa-download"></i> Tải mẫu Import
                         </button>
+                        <button id="btn-import-json" class="btn"
+                            style="background:linear-gradient(135deg,#f97316,#ea580c);color:white;">
+                            <i class="fa-solid fa-code"></i> Nhập từ JSON
+                        </button>
                         <input type="file" id="excel-import-file" accept=".xlsx,.xls" style="display:none;">
+                        <input type="file" id="json-import-file" accept=".json" style="display:none;">
                     </div>
                 </div>
 
@@ -935,11 +939,26 @@
                                 <input type="tel" id="new-member-phone" placeholder="0901234567">
                             </div>
                             <div class="form-group">
-                                <label>Đội hình <span class="required">*</span></label>
-                                <select id="new-member-team" required>
-                                    <option value="">-- Chọn đội hình --</option>
+                                <label>Khoa / Viện</label>
+                                <select id="new-member-faculty">
+                                    <option value="">-- Chọn Khoa/Viện --</option>
+                                    <option value="Kinh tế">Kinh tế</option>
+                                    <option value="Quản trị">Quản trị</option>
+                                    <option value="Hệ thống thông tin">Hệ thống thông tin</option>
+                                    <option value="Tài chính - Ngân hàng">Tài chính - Ngân hàng</option>
+                                    <option value="Kế toán - Kiểm toán">Kế toán - Kiểm toán</option>
+                                    <option value="Luật">Luật</option>
+                                    <option value="Luật Kinh tế">Luật Kinh tế</option>
+                                    <option value="Toán Kinh tế">Toán Kinh tế</option>
+                                    <option value="Sinh viên liên kết Quốc tế">Sinh viên liên kết Quốc tế</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Đội hình <span class="required">*</span></label>
+                            <select id="new-member-team" required>
+                                <option value="">-- Chọn đội hình --</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Chức vụ</label>
@@ -1215,7 +1234,7 @@
                             </button>
                         </div>
                         <button id="btn-export-csv" class="btn btn-success btn-sm">
-                            <i class="fa-solid fa-file-csv"></i> Xuất CSV
+                            <i class="fa-solid fa-file-excel"></i> Xuất Excel
                         </button>
                     </div>
                     <div class="stats-summary">
@@ -1239,10 +1258,12 @@
                                     <th>STT</th>
                                     <th>Ngày</th>
                                     <th>Thời gian</th>
+                                    <th>Tên hoạt động</th>
                                     <th>Đội hình</th>
                                     <th>Địa điểm</th>
                                     <th>Nội dung</th>
                                     <th>Đề xuất BCH</th>
+                                    <th>Đề xuất KST</th>
                                     <th>TG Cập nhật</th>
                                     <th>Người cập nhật</th>
                                     <th>Thao tác</th>
@@ -1277,7 +1298,7 @@
                                 </select>
                             </div>
                             <button id="btn-export-report" class="btn btn-success">
-                                <i class="fa-solid fa-download"></i> Xuất File
+                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
                             </button>
                         </div>
                     </div>
@@ -1294,12 +1315,17 @@
                         <button id="btn-new-report" class="btn btn-success">
                             <i class="fa-solid fa-plus"></i> Thêm báo cáo mới
                         </button>
-                        <!-- AI DISABLED
-                        <button id="btn-ai-auto-report" class="btn btn-primary"
-                            title="AI tự động tạo báo cáo từ dữ liệu hoạt động">
-                            <i class="fa-solid fa-robot"></i> AI Tạo báo cáo
-                        </button>
-                        -->
+                    </div>
+
+                    <!-- Activities Overview - Trạng thái báo cáo -->
+                    <div class="activities-overview-section" style="margin-bottom:25px;">
+                        <h4 style="margin-bottom:15px; color:#374151; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-list-check" style="color:#16a34a;"></i>
+                            Tổng quan Hoạt động
+                        </h4>
+                        <div id="activities-report-status" class="activities-status-grid">
+                            <!-- Generated by JS -->
+                        </div>
                     </div>
 
                     <!-- Reports List -->
@@ -1379,27 +1405,7 @@
                 </div>
 
 
-                <!-- AI Toggle - OWNER ONLY -->
-                <div class="card owner-only" style="margin-top:20px;">
-                    <h3><i class="fa-solid fa-robot" style="color:#8b5cf6;"></i> Quản lý AI</h3>
-                    <p style="color:#666; margin-bottom:15px;">Bật/tắt tính năng AI trên toàn hệ thống để tránh lạm
-                        dụng.</p>
-
-                    <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
-                        <div id="ai-status-badge"
-                            style="padding:8px 16px; border-radius:20px; background:#dcfce7; color:#16a34a; font-weight:600;">
-                            <i class="fa-solid fa-check-circle"></i> AI đang BẬT
-                        </div>
-                        <button id="btn-toggle-ai" class="btn btn-warning">
-                            <i class="fa-solid fa-power-off"></i> Tắt AI
-                        </button>
-                    </div>
-                    <small style="margin-top:10px; display:block; color:#888;">
-                        <i class="fa-solid fa-info-circle"></i> Khi tắt, tất cả users sẽ không thể sử dụng AI (tạo
-                        báo
-                        cáo, insights, phân tích).
-                    </small>
-                </div>
+                <!-- AI REMOVED -->
 
                 <div class="card" style="margin-top:20px;">
                     <h3><i class="fa-solid fa-exclamation-triangle" style="color:#dc2626;"></i> Vùng nguy hiểm</h3>
@@ -1465,6 +1471,109 @@
                 </div>
             </section>
 
+            <!-- Section: Tạo Avatar -->
+            <section id="section-avatar" class="section">
+                <!-- Content will be rendered by JS -->
+            </section>
+
+            <!-- Section: Tạo Thẻ Chiến sĩ -->
+            <section id="section-card" class="section">
+                <div class="section-header">
+                    <h1><i class="fa-solid fa-id-card"></i> Tạo Thẻ Chiến sĩ</h1>
+                </div>
+
+                <div class="card-creator-container" style="display:flex; gap:30px; flex-wrap:wrap;">
+                    <!-- Preview Canvas -->
+                    <div class="card-preview" style="flex:1; min-width:300px; text-align:center;">
+                        <canvas id="card-canvas"
+                            style="max-width:100%; height:auto; border:2px solid #e5e7eb; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1);"></canvas>
+
+                        <!-- Zoom Controls -->
+                        <div id="card-zoom-group" style="margin-top:15px; display:none;">
+                            <label style="font-size:0.9rem; color:#666;">
+                                <i class="fa-solid fa-magnifying-glass"></i> Zoom ảnh:
+                            </label>
+                            <input type="range" id="card-zoom" min="0.5" max="3" step="0.1" value="1"
+                                style="width:150px; vertical-align:middle;">
+                            <small style="color:#888; display:block; margin-top:5px;">
+                                <i class="fa-solid fa-hand-pointer"></i> Kéo thả ảnh để điều chỉnh vị trí
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="card-form" style="flex:1; min-width:300px;">
+                        <form id="card-form">
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; color:#374151;">
+                                    <i class="fa-solid fa-user"></i> Họ và tên
+                                </label>
+                                <input type="text" id="card-name" class="form-control" readonly
+                                    style="background:#f3f4f6; cursor:not-allowed;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; color:#374151;">
+                                    <i class="fa-solid fa-id-badge"></i> MSSV
+                                </label>
+                                <input type="text" id="card-mssv" class="form-control" readonly
+                                    style="background:#f3f4f6; cursor:not-allowed;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; color:#374151;">
+                                    <i class="fa-solid fa-user-tag"></i> Vai trò
+                                </label>
+                                <input type="text" id="card-role" class="form-control" placeholder="Chiến sĩ">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; color:#374151;">
+                                    <i class="fa-solid fa-users"></i> Đội hình
+                                </label>
+                                <input type="text" id="card-team" class="form-control" readonly
+                                    style="background:#f3f4f6; cursor:not-allowed;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:20px;">
+                                <label id="card-photo-label" for="card-photo"
+                                    style="display:block; padding:20px; border:2px dashed #16a34a; border-radius:12px; text-align:center; cursor:pointer; background:#f0fdf4; transition:all 0.2s;">
+                                    <i class="fa-solid fa-cloud-upload-alt" style="font-size:2rem; color:#16a34a;"></i>
+                                    <p style="margin:10px 0 0; color:#16a34a;">Tải ảnh chân dung</p>
+                                    <small style="color:#666;">Nhấn hoặc kéo thả ảnh vào đây</small>
+                                </label>
+                                <input type="file" id="card-photo" accept="image/*" style="display:none;">
+                            </div>
+
+                            <div class="form-actions" style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <button type="button" id="btn-card-download" class="btn btn-success" style="flex:1;">
+                                    <i class="fa-solid fa-download"></i> Tạo thẻ và Nộp thẻ
+                                </button>
+                                <button type="button" id="btn-card-confirm" class="btn btn-primary" disabled
+                                    style="flex:1;">
+                                    <i class="fa-solid fa-check"></i> Xác nhận
+                                </button>
+                            </div>
+
+                            <div id="card-confirm-status" style="margin-top:15px; text-align:center;"></div>
+                        </form>
+
+                        <!-- City Card Link (cho BCH) -->
+                        <div class="city-card-section"
+                            style="margin-top:25px; padding:15px; background:#fef3c7; border-radius:12px; display:none;">
+                            <h4 style="margin:0 0 10px; color:#b45309;">
+                                <i class="fa-solid fa-city"></i> Thẻ cấp Thành phố
+                            </h4>
+                            <input type="text" id="card-city-link" class="form-control"
+                                placeholder="Dán link Google Drive thẻ cấp TP...">
+                            <button id="btn-save-city-card" class="btn btn-warning" style="margin-top:10px;">
+                                <i class="fa-solid fa-save"></i> Lưu link thẻ TP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Section: Media Manager - kysutet_admin -->
             <section id="section-media-manager" class="section">
                 <!-- Content will be rendered by JS -->
@@ -1518,7 +1627,9 @@
     </a>
 
     <!-- SCRIPTS -->
+    <script src="js/loading-overlay.js"></script>
     <script src="js/offline-cache.js"></script>
+    <script src="js/member-edit.js"></script>
     <script type="module" src="js/dashboard-core.js"></script>
 </body>
 

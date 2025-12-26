@@ -116,15 +116,36 @@ export async function initCardCanvas() {
 
         // Lấy team_name từ xtn_teams dựa vào team_id
         let teamName = 'Chưa phân đội';
+
+        // Static mapping fallback
+        const TEAM_ID_TO_NAME = {
+            'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+            'xuan-tu-hao': 'Đội hình Xuân tự hào',
+            'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+            'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+            'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+            'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+            'tet-van-minh': 'Đội hình Tết văn minh',
+            'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+            'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+            'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+            'hau-can': 'Đội hình Hậu cần',
+            'ky-su-tet': 'Đội hình Ký sự Tết'
+        };
+
         if (userData.team_id) {
             try {
                 const teamDoc = await getDoc(doc(db, 'xtn_teams', userData.team_id));
                 if (teamDoc.exists()) {
-                    teamName = teamDoc.data().team_name || userData.team_id;
+                    teamName = teamDoc.data().team_name || TEAM_ID_TO_NAME[userData.team_id] || 'Đội hình ' + userData.team_id;
+                } else {
+                    // Fallback to static mapping
+                    teamName = TEAM_ID_TO_NAME[userData.team_id] || 'Đội hình ' + userData.team_id;
                 }
             } catch (e) {
                 console.warn('[Card] Could not load team:', e);
-                teamName = userData.team_id; // Fallback to ID
+                // Fallback to static mapping
+                teamName = TEAM_ID_TO_NAME[userData.team_id] || 'Đội hình ' + userData.team_id;
             }
         }
         if (teamInput) teamInput.value = teamName;
@@ -348,6 +369,18 @@ function setupEventListeners() {
     const confirmBtn = document.getElementById('btn-card-confirm');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', confirmCard);
+    }
+
+    // Download + Submit to Drive button (Tạo và Nộp thẻ)
+    const downloadBtn = document.getElementById('btn-card-download');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', createAndSubmitCard);
+    }
+
+    // Submit to Drive button
+    const submitDriveBtn = document.getElementById('btn-submit-drive');
+    if (submitDriveBtn) {
+        submitDriveBtn.addEventListener('click', submitCardToDrive);
     }
 
     // Save city card link button
@@ -639,8 +672,14 @@ function removeVietnameseDiacritics(str) {
     return str.split('').map(char => map[char] || char).join('');
 }
 
-export function downloadCard() {
-    if (!cardCanvas) return;
+// ============================================================
+// TẠO THẺ VÀ NỘP THẺ - Kết hợp tải về + mở folder Drive
+// ============================================================
+export function createAndSubmitCard() {
+    if (!cardCanvas) {
+        showToast('Vui lòng tạo thẻ trước!', 'warning');
+        return;
+    }
 
     // Get values and remove spaces + Vietnamese diacritics
     const rawName = document.getElementById('card-name')?.value || 'ChienSi';
@@ -657,6 +696,7 @@ export function downloadCard() {
     // Format: Ten_MSSV_Doihinh.png
     const fileName = `${name}_${mssv}_${team}.png`;
 
+    // 1. Tải thẻ về máy
     const link = document.createElement('a');
     link.download = fileName;
     link.href = cardCanvas.toDataURL('image/png');
@@ -664,10 +704,42 @@ export function downloadCard() {
 
     console.log('[Card] Downloaded:', fileName);
 
+    // 2. Copy tên file vào clipboard
+    navigator.clipboard.writeText(fileName).then(() => {
+        console.log('[Card] Copied filename to clipboard:', fileName);
+    }).catch(err => {
+        console.warn('[Card] Could not copy filename:', err);
+    });
+
+    // 3. Mở folder Drive theo đội hình (nếu có)
+    console.log('[Card] Full userData:', JSON.stringify(userData, null, 2));
+    console.log('[Card] User team_id:', userData?.team_id);
+
+    // Fallback test: nếu không có team_id, dùng ky-su-tet để test
+    const teamId = userData?.team_id || 'ky-su-tet';
+    console.log('[Card] Using team_id:', teamId);
+
+    const folderLink = TEAM_DRIVE_FOLDERS[teamId];
+    console.log('[Card] Folder link for team:', folderLink);
+
+    if (folderLink) {
+        setTimeout(() => {
+            console.log('[Card] Opening:', folderLink);
+            window.open(folderLink, '_blank');
+            showToast(`Đã tải thẻ! Hãy kéo thả file "${fileName}" vào folder vừa mở.`, 'success', 5000);
+        }, 1000);
+        console.log('[Card] Opening Drive folder for team:', teamId);
+    } else {
+        showToast(`Đã tải thẻ thành công! (Folder Drive chưa được cấu hình)`, 'success');
+    }
+
     // Enable confirm button after download
     const confirmBtn = document.getElementById('btn-card-confirm');
     if (confirmBtn) confirmBtn.disabled = false;
 }
+
+// Alias cũ để không break code
+export const downloadCard = createAndSubmitCard;
 
 // ============================================================
 // CARD STATUS - Xác nhận đã tạo thẻ
@@ -798,3 +870,22 @@ export async function saveCityCardLink() {
     }
 }
 
+// ============================================================
+// NỘP THẺ LÊN GOOGLE DRIVE - Theo đội hình
+// ============================================================
+// TODO: Điền link folder Drive cho mỗi đội hình
+const TEAM_DRIVE_FOLDERS = {
+    // Format: 'team_id': 'https://drive.google.com/drive/folders/FOLDER_ID'
+    'ban-chi-huy-chien-dich': '',        // Ban Chỉ huy Chiến dịch
+    'xuan-tu-hao': '',                   // Đội hình Xuân tự hào
+    'xuan-ban-sac': '',                  // Đội hình Xuân bản sắc
+    'xuan-se-chia': '',                  // Đội hình Xuân sẻ chia
+    'xuan-gan-ket': '',                  // Đội hình Xuân gắn kết
+    'xuan-chien-si': '',                 // Đội hình Xuân chiến sĩ
+    'tet-van-minh': '',                  // Đội hình Tết văn minh
+    'tu-van-phap-luat': '',              // Đội hình Tư vấn và giảng dạy pháp luật cộng đồng
+    'giai-dieu-mua-xuan': '',            // Đội hình Giai điệu mùa xuân
+    'vien-chuc-tre': '',                 // Đội hình Viên chức trẻ
+    'ky-su-tet': 'https://drive.google.com/drive/my-drive',  // Đội hình Ký sự Tết - TEST
+    'hau-can': '',                       // Đội hình Hậu cần
+};
