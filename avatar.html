@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Avatar XTN 2026 | Xuân Tình nguyện UEL</title>
+    <meta name="description" content="Tạo avatar chiến dịch Xuân Tình nguyện UEL 2026">
+
+    <!-- Favicon -->
+    <link rel="icon" href="images/logo.png" type="image/png">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        @font-face {
+            font-family: 'UTM Avo';
+            src: url('fonts/UTM%20Avo.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'UTM Avo';
+            src: url('fonts/UTM%20AvoBold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            font-family: 'UTM Avo', 'Montserrat', sans-serif;
+        }
+    </style>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Toast Notification System -->
+    <script src="js/toast.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/animations.css">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #FFFDE7 0%, #FFF9C4 50%, #FFEB3B 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .avatar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #00723F;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="avatar-container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fa-solid fa-image"></i> Tạo Avatar XTN 2026</h1>
+            <p>Tải ảnh chân dung lên, điều chỉnh và tải về avatar chiến dịch!</p>
+        </div>
+
+        <!-- Main content -->
+        <div class="two-column">
+            <!-- Cột điều khiển -->
+            <div class="left-col">
+                <div class="card">
+                    <h3><i class="fa-solid fa-upload"></i> 1. Tải ảnh lên</h3>
+                    <div id="avatar-upload-area">
+                        <!-- Desktop: Label for drag/drop -->
+                        <label for="avatar-upload" class="upload-label" id="avatar-upload-label">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Nhấn hoặc kéo ảnh vào đây</p>
+                            <small>Hỗ trợ: JPG, PNG, WEBP</small>
+                        </label>
+                        <!-- Mobile: Native file input -->
+                        <input type="file" id="avatar-upload" accept="image/*">
+                        <p id="avatar-upload-status"></p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 15px;">
+                    <h3><i class="fa-solid fa-sliders"></i> 2. Điều chỉnh</h3>
+                    <div class="form-group">
+                        <label>Phóng to / Thu nhỏ</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <button type="button" class="btn btn-secondary"
+                                onclick="var s=document.getElementById('avatar-zoom'); s.value=Math.max(0.5, parseFloat(s.value)-0.1); s.dispatchEvent(new Event('input'));"
+                                style="width:50px; height:50px; font-size:1.5rem; touch-action:manipulation;">
+                                −
+                            </button>
+                            <input type="range" id="avatar-zoom" class="zoom-slider" min="0.5" max="3" step="0.1"
+                                value="1" style="flex:1; touch-action:pan-x; height:40px;">
+                            <button type="button" class="btn btn-secondary"
+                                onclick="var s=document.getElementById('avatar-zoom'); s.value=Math.min(3, parseFloat(s.value)+0.1); s.dispatchEvent(new Event('input'));"
+                                style="width:50px; height:50px; font-size:1.5rem; touch-action:manipulation;">
+                                +
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tip-box">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <strong>Mẹo:</strong> Dùng nút + / − hoặc kéo ảnh trên khung xem trước.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột xem trước -->
+            <div class="right-col">
+                <div class="card preview-card">
+                    <h3><i class="fa-solid fa-eye"></i> 3. Xem trước & Tải về</h3>
+                    <div class="canvas-wrapper avatar-wrapper">
+                        <canvas id="avatar-canvas" width="1000" height="1000"></canvas>
+                    </div>
+                    <button id="btn-avatar-download" class="btn btn-success btn-block" disabled>
+                        <i class="fa-solid fa-download"></i> Tải Avatar về máy
+                    </button>
+                    <button id="btn-avatar-reset" class="btn btn-secondary btn-block"
+                        style="margin-top: 10px; display: none;">
+                        <i class="fa-solid fa-rotate-left"></i> Tạo lại từ đầu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { auth } from './js/firebase.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { initAvatarCanvas, handleAvatarUpload, resetAvatarFull, downloadAvatar } from './js/dashboard-avatar.js';
+
+        // Check auth
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Init avatar canvas
+            initAvatarCanvas();
+        });
+
+        // Event listeners
+        document.getElementById('avatar-upload').addEventListener('change', handleAvatarUpload);
+        document.getElementById('btn-avatar-download').addEventListener('click', downloadAvatar);
+        document.getElementById('btn-avatar-reset').addEventListener('click', resetAvatarFull);
+    </script>
+</body>
+
+</html>

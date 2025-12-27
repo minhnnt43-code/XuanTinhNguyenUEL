@@ -150,7 +150,6 @@
         <a class="menu-item" onclick="showSection('section-dashboard')">🏠 Tổng quan</a>
 
         <div class="menu-section-title">🛠️ Công cụ</div>
-        <a class="menu-item" onclick="showSection('section-avatar')">🖼️ Tạo Avatar</a>
         <a class="menu-item" onclick="showSection('section-card')">🪪 Tạo Thẻ Chiến sĩ</a>
 
         <div class="menu-section-title">👥 Quản lý</div>
@@ -230,9 +229,6 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="menu-submenu">
-                        <div class="menu-item" data-section="section-avatar">
-                            <i class="fa-solid fa-image"></i> Tạo Avatar
-                        </div>
                         <div class="menu-item" data-section="section-card">
                             <i class="fa-solid fa-id-card"></i> Tạo Thẻ Chiến sĩ
                         </div>
@@ -383,76 +379,7 @@
 
             <!-- ĐÃ XÓA: Section Đăng ký Chiến sĩ và Section Chờ duyệt (chuyển sang Google Form) -->
 
-
-            <!-- Section: Tạo Avatar -->
-            <section id="section-avatar" class="section">
-                <div class="section-header">
-                    <h1><i class="fa-solid fa-image"></i> Tạo Avatar XTN 2026</h1>
-                    <p>Tải ảnh chân dung lên, điều chỉnh và tải về avatar chiến dịch!</p>
-                </div>
-
-                <div class="two-column">
-                    <!-- Cột điều khiển -->
-                    <div class="left-col">
-                        <div class="card">
-                            <h3><i class="fa-solid fa-upload"></i> 1. Tải ảnh lên</h3>
-                            <div id="avatar-upload-area">
-                                <!-- Desktop: Label for drag/drop -->
-                                <label for="avatar-upload" class="upload-label" id="avatar-upload-label">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                                    <p>Nhấn hoặc kéo ảnh vào đây</p>
-                                    <small>Hỗ trợ: JPG, PNG, WEBP</small>
-                                </label>
-                                <!-- Mobile: Native file input -->
-                                <input type="file" id="avatar-upload" accept="image/*">
-                                <p id="avatar-upload-status"></p>
-                            </div>
-                        </div>
-
-                        <div class="card" style="margin-top: 15px;">
-                            <h3><i class="fa-solid fa-sliders"></i> 2. Điều chỉnh</h3>
-                            <div class="form-group">
-                                <label>Phóng to / Thu nhỏ</label>
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    <button type="button" class="btn btn-secondary"
-                                        onclick="var s=document.getElementById('avatar-zoom'); s.value=Math.max(0.5, parseFloat(s.value)-0.1); s.dispatchEvent(new Event('input'));"
-                                        style="width:50px; height:50px; font-size:1.5rem; touch-action:manipulation;">
-                                        −
-                                    </button>
-                                    <input type="range" id="avatar-zoom" class="zoom-slider" min="0.5" max="3"
-                                        step="0.1" value="1" style="flex:1; touch-action:pan-x; height:40px;">
-                                    <button type="button" class="btn btn-secondary"
-                                        onclick="var s=document.getElementById('avatar-zoom'); s.value=Math.min(3, parseFloat(s.value)+0.1); s.dispatchEvent(new Event('input'));"
-                                        style="width:50px; height:50px; font-size:1.5rem; touch-action:manipulation;">
-                                        +
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="tip-box">
-                                <i class="fa-solid fa-lightbulb"></i>
-                                <strong>Mẹo:</strong> Dùng nút + / − hoặc kéo ảnh trên khung xem trước.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cột xem trước -->
-                    <div class="right-col">
-                        <div class="card preview-card">
-                            <h3><i class="fa-solid fa-eye"></i> 3. Xem trước & Tải về</h3>
-                            <div class="canvas-wrapper avatar-wrapper">
-                                <canvas id="avatar-canvas" width="1000" height="1000"></canvas>
-                            </div>
-                            <button id="btn-avatar-download" class="btn btn-success btn-block" disabled>
-                                <i class="fa-solid fa-download"></i> Tải Avatar về máy
-                            </button>
-                            <button id="btn-avatar-reset" class="btn btn-secondary btn-block"
-                                style="margin-top: 10px; display: none;">
-                                <i class="fa-solid fa-rotate-left"></i> Tạo lại từ đầu
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <!-- Section: Tạo Avatar - MOVED to avatar.html -->
 
             <!-- Section: Tạo Thẻ Chiến sĩ -->
             <section id="section-card" class="section">

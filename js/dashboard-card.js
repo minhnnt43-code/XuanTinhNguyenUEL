@@ -887,16 +887,16 @@ export async function saveCityCardLink() {
 // TODO: Điền link folder Drive cho mỗi đội hình
 const TEAM_DRIVE_FOLDERS = {
     // Format: 'team_id': 'https://drive.google.com/drive/folders/FOLDER_ID'
-    'ban-chi-huy-chien-dich': '',        // Ban Chỉ huy Chiến dịch
-    'xuan-tu-hao': '',                   // Đội hình Xuân tự hào
-    'xuan-ban-sac': '',                  // Đội hình Xuân bản sắc
-    'xuan-se-chia': '',                  // Đội hình Xuân sẻ chia
-    'xuan-gan-ket': '',                  // Đội hình Xuân gắn kết
-    'xuan-chien-si': '',                 // Đội hình Xuân chiến sĩ
-    'tet-van-minh': '',                  // Đội hình Tết văn minh
-    'tu-van-phap-luat': '',              // Đội hình Tư vấn và giảng dạy pháp luật cộng đồng
-    'giai-dieu-mua-xuan': '',            // Đội hình Giai điệu mùa xuân
-    'vien-chuc-tre': '',                 // Đội hình Viên chức trẻ
-    'ky-su-tet': 'https://drive.google.com/drive/my-drive',  // Đội hình Ký sự Tết - TEST
-    'hau-can': '',                       // Đội hình Hậu cần
+    'ban-chi-huy-chien-dich': 'https://drive.google.com/drive/folders/15RZ5yVit5bT-9pqRvyVidEpMynHOM3_u?usp=drive_link',        // Ban Chỉ huy Chiến dịch
+    'xuan-tu-hao': 'https://drive.google.com/drive/folders/1ABHp32MTgC0n9KuAt4QmsGE3PKEagzqj?usp=drive_link',                   // Đội hình Xuân tự hào
+    'xuan-ban-sac': 'https://drive.google.com/drive/folders/1HN86i9iP_VDpBkf8X9tJdXQsIBUBVlw0?usp=sharing',                  // Đội hình Xuân bản sắc
+    'xuan-se-chia': 'https://drive.google.com/drive/folders/1vn0nIeXi0QqjaoMqIeNvyOjS8faEfl1p?usp=drive_link',                  // Đội hình Xuân sẻ chia
+    'xuan-gan-ket': 'https://drive.google.com/drive/folders/19wcheLmz2FxxCUvyulmdeNPUOQMvyc_N?usp=sharing',                  // Đội hình Xuân gắn kết
+    'xuan-chien-si': 'https://drive.google.com/drive/folders/1HROXFRAFA17kRP4P1VsJrdtJQBlb7NHf?usp=drive_link',                 // Đội hình Xuân chiến sĩ
+    'tet-van-minh': 'https://drive.google.com/drive/folders/1xrKAcPRAZJ-amIqNDEKt7ARZFONhpGIT?usp=drive_link',                  // Đội hình Tết văn minh
+    'tu-van-giang-day-phap-luat': 'https://drive.google.com/drive/folders/16Aca-AF3i9epFEt_pFD59Pqo_AlRumAB?usp=drive_link',   // Đội hình Tư vấn và giảng dạy pháp luật cộng đồng - FIXED KEY
+    'giai-dieu-mua-xuan': 'https://drive.google.com/drive/folders/1_H69b3P16TmIV3xIiMyaKIpl-zdVlpbj?usp=drive_link',            // Đội hình Giai điệu mùa xuân
+    'vien-chuc-tre': 'https://drive.google.com/drive/folders/1tgY3MC7wM5ZAdzhdYW5TilxcLoL6U6UY?usp=drive_link',                 // Đội hình Viên chức trẻ
+    'hau-can': 'https://drive.google.com/drive/folders/1iL1C-NLtCSUo1CD9KbbwNn-e9R4GYwQ5?usp=drive_link',                       // Đội hình Hậu cần
+    'ky-su-tet': 'https://drive.google.com/drive/folders/14RTGgXSSppvF3MBORgrinSDNQif9yqHq?usp=drive_link',                     // Đội hình Ký sự Tết
 };

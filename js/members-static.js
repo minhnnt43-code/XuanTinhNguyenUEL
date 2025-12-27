@@ -3281,7 +3281,7 @@ const STATIC_MEMBERS = [
   {
     "name": "Diệp Thanh Nhã",
     "mssv": "K235042531",
-    "email": "nhadt23405b@st.uel.edu.vn",
+    "email": "nhadt23504b@st.uel.edu.vn",
     "phone": "",
     "faculty": "",
     "position": "Đội phó",

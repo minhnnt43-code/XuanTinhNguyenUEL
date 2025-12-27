@@ -433,7 +433,25 @@ function renderTable() {
 
         // Team color badge giống Danh sách Chiến sĩ
         const teamColor = getTeamColor(item.team_id);
-        const teamBadge = `<span class="badge" style="background:${teamColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">${item.team_name}</span>`;
+
+        // BACKUP: Map team_id to name if team_name is missing or still showing ID
+        const TEAM_ID_TO_NAME = {
+            'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+            'xuan-tu-hao': 'Đội hình Xuân tự hào',
+            'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+            'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+            'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+            'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+            'tet-van-minh': 'Đội hình Tết văn minh',
+            'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật cộng đồng',
+            'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+            'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+            'hau-can': 'Đội hình Hậu cần',
+            'ky-su-tet': 'Đội hình Ký sự Tết'
+        };
+
+        const displayTeamName = TEAM_ID_TO_NAME[item.team_id] || item.team_name || 'Chưa phân đội';
+        const teamBadge = `<span class="badge" style="background:${teamColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">${displayTeamName}</span>`;
 
         return `<tr>
             <td>${stt}</td>
