@@ -25,7 +25,10 @@ import {
 // import { aiCreateActivity, aiGenerateReport } from './ai-features.js';
 import './admin-teams.js'; // Import to register window functions
 import { renderTeamsTable } from './admin-teams.js';
-// REMOVED: Static members data - Now loading from Firebase xtn_users
+// Static members data - Use as base (363 members), merge with Firebase updates
+import STATIC_MEMBERS from './members-static.js';
+// Ghost member finder
+import { findGhostMembers, deleteGhostMembers } from './find-ghost-members.js';
 // Activity Logging
 import { log as activityLog } from './activity-logger.js';
 import { initActivityLogs, renderActivityLogsSection } from './dashboard-activity-logs.js';
@@ -51,6 +54,10 @@ function emailToDocId(email) {
 }
 // Export cho các module khác dùng
 window.emailToDocId = emailToDocId;
+
+// Export ghost finder functions
+window.findGhostMembers = findGhostMembers;
+window.deleteGhostMembers = deleteGhostMembers;
 
 // Danh sách email được phép xem Quản lý Tài khoản và Lịch sử hoạt động
 const SUPER_OWNER_EMAILS = [
@@ -1372,19 +1379,69 @@ async function loadMembers() {
         // Load from Firebase if no valid cache
         if (!useCache) {
             try {
+                // START WITH STATIC_MEMBERS as base (363 members)
+                console.log('[Members] 📋 Loading base from STATIC_MEMBERS:', STATIC_MEMBERS.length, 'records');
+
+                // Create map for quick lookup by email
+                const staticMap = new Map();
+                STATIC_MEMBERS.forEach(member => {
+                    if (member.email) {
+                        staticMap.set(member.email.toLowerCase().trim(), { ...member });
+                    }
+                });
+
+                // Fetch Firebase updates/additions/deletions
                 const usersSnap = await getDocs(collection(db, 'xtn_users'));
-                membersDataCache = [];
+                const firebaseUpdates = new Map();
+                const firebaseDeletes = new Set();
 
                 usersSnap.forEach(doc => {
                     const data = doc.data();
-                    // Chỉ load members đã approved (role !== 'pending')
-                    // Bỏ qua người bị deleted
-                    if (data.role !== 'pending' && !data.deleted) {
-                        membersDataCache.push({
-                            id: doc.id,
-                            ...data
-                        });
+                    const email = data.email?.toLowerCase().trim();
+
+                    if (!email) return;
+
+                    // Track deletions
+                    if (data.deleted) {
+                        firebaseDeletes.add(email);
+                        return;
                     }
+
+                    // Skip pending
+                    if (data.role === 'pending') return;
+
+                    // Track updates/additions
+                    firebaseUpdates.set(email, { id: doc.id, ...data });
+                });
+
+                // MERGE: Static + Firebase updates - Firebase deletions
+                membersDataCache = [];
+
+                // Add static members (updated by Firebase if exists)
+                STATIC_MEMBERS.forEach(member => {
+                    const email = member.email?.toLowerCase().trim();
+                    if (!email || firebaseDeletes.has(email)) return;
+
+                    if (firebaseUpdates.has(email)) {
+                        // Use Firebase version (updated)
+                        membersDataCache.push(firebaseUpdates.get(email));
+                        firebaseUpdates.delete(email); // Mark as processed
+                    } else {
+                        // Use static version
+                        membersDataCache.push(member);
+                    }
+                });
+
+                // Add new members from Firebase (not in static)
+                firebaseUpdates.forEach(member => {
+                    membersDataCache.push(member);
+                });
+
+                console.log('[Members] ✅ Merged:', {
+                    static: STATIC_MEMBERS.length,
+                    firebaseUpdates: usersSnap.size,
+                    deleted: firebaseDeletes.size,
+                    final: membersDataCache.length
                 });
 
                 // Save to cache
@@ -1393,11 +1450,11 @@ async function loadMembers() {
                     timestamp: Date.now()
                 }));
 
-                console.log('[Members] 🔥 Loaded from Firebase:', membersDataCache.length, 'records (cached for 24h)');
             } catch (fbErr) {
                 console.error('[Members] ❌ Firebase load failed:', fbErr.message);
-                showToast('Không thể tải danh sách chiến sĩ. Vui lòng thử lại.', 'error');
-                return;
+                // Fallback to STATIC_MEMBERS only
+                membersDataCache = [...STATIC_MEMBERS];
+                console.log('[Members] ⚠️ Using STATIC_MEMBERS fallback:', membersDataCache.length);
             }
         }
 
@@ -1522,6 +1579,9 @@ async function loadMembers() {
                     ${teamFilterOptions}
                 </select>
                 <input type="text" id="members-search" placeholder="Tìm kiếm..." oninput="filterMembers()" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; width:180px;">
+                <span id="members-count-display" style="background:#16a34a; color:white; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600;">
+                    Tổng: <strong id="visible-members-count">${membersDataCache.length}</strong> Chiến sĩ
+                </span>
             </div>
             <div style="overflow-x:auto;">
             <table class="data-table" id="members-table">
@@ -1601,7 +1661,6 @@ async function loadMembers() {
         });
 
         html += '</tbody></table></div>';
-        html += `<p id="members-count-display" style="margin-top:10px; color:#666; font-size:13px;">Tổng: <strong id="visible-members-count">${membersDataCache.length}</strong> Chiến sĩ</p>`;
         list.innerHTML = html;
     } catch (e) {
         console.error('Load members error:', e);
