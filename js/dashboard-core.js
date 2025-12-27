@@ -90,6 +90,12 @@ async function checkMandatoryProfile(user, userData) {
         return true; // Cho pending qua, họ sẽ bị chặn bởi role check
     }
 
+    // Skip if already confirmed profile (prevent loop)
+    if (userData.profile_confirmed === true) {
+        console.log('[Profile] ✅ Profile already confirmed, skipping');
+        return true;
+    }
+
     // Kiểm tra các trường bắt buộc
     const hasMSSV = userData.mssv && userData.mssv.trim() !== '';
     const hasPhone = userData.phone && userData.phone.trim() !== '';
@@ -240,11 +246,13 @@ async function checkMandatoryProfile(user, userData) {
                 const actualDocId = emailQuery.docs[0].id;
                 console.log('[Profile] Tìm thấy hồ sơ:', actualDocId);
 
-                // Update đúng hồ sơ đó
+                // Update đúng hồ sơ đó - THÊM profile_confirmed để tránh loop
                 await updateDoc(doc(db, 'xtn_users', actualDocId), {
                     mssv: mssv,
                     phone: phone,
                     faculty: faculty,
+                    profile_confirmed: true,
+                    profile_confirmed_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 });
                 console.log('[Profile] Đã cập nhật hồ sơ:', actualDocId);
