@@ -53,8 +53,8 @@ export function initAvatarCanvas() {
         const touch = e.touches[0];
         avatarDragging = true;
         const rect = avatarCanvas.getBoundingClientRect();
-        avatarStartX = (touch.clientX - rect.left) * (1000 / rect.width) - avatarX;
-        avatarStartY = (touch.clientY - rect.top) * (1000 / rect.height) - avatarY;
+        avatarStartX = (touch.clientX - rect.left) * (2000 / rect.width) - avatarX;
+        avatarStartY = (touch.clientY - rect.top) * (2000 / rect.height) - avatarY;
     });
 
     avatarCanvas.addEventListener('touchmove', (e) => {
@@ -62,8 +62,8 @@ export function initAvatarCanvas() {
         e.preventDefault();
         const touch = e.touches[0];
         const rect = avatarCanvas.getBoundingClientRect();
-        avatarX = (touch.clientX - rect.left) * (1000 / rect.width) - avatarStartX;
-        avatarY = (touch.clientY - rect.top) * (1000 / rect.height) - avatarStartY;
+        avatarX = (touch.clientX - rect.left) * (2000 / rect.width) - avatarStartX;
+        avatarY = (touch.clientY - rect.top) * (2000 / rect.height) - avatarStartY;
         drawAvatarCanvas();
     });
 
@@ -159,10 +159,10 @@ function handleAvatarFile(file) {
     reader.onload = (event) => {
         avatarUserImage = new Image();
         avatarUserImage.onload = () => {
-            avatarBaseScale = Math.max(1000 / avatarUserImage.width, 1000 / avatarUserImage.height);
+            avatarBaseScale = Math.max(2000 / avatarUserImage.width, 2000 / avatarUserImage.height);
             avatarScale = avatarBaseScale;
-            avatarX = (1000 - avatarUserImage.width * avatarScale) / 2;
-            avatarY = (1000 - avatarUserImage.height * avatarScale) / 2;
+            avatarX = (2000 - avatarUserImage.width * avatarScale) / 2;
+            avatarY = (2000 - avatarUserImage.height * avatarScale) / 2;
 
             if (avatarZoomSlider) avatarZoomSlider.value = 1;
             if (avatarResetBtn) avatarResetBtn.style.display = 'block';
@@ -184,9 +184,9 @@ function handleAvatarFile(file) {
 
 function drawAvatarCanvas() {
     if (!avatarCtx) return;
-    avatarCtx.clearRect(0, 0, 1000, 1000);
+    avatarCtx.clearRect(0, 0, 2000, 2000);
     avatarCtx.fillStyle = '#ffffff';
-    avatarCtx.fillRect(0, 0, 1000, 1000);
+    avatarCtx.fillRect(0, 0, 2000, 2000);
 
     if (avatarUserImage) {
         avatarCtx.drawImage(avatarUserImage, avatarX, avatarY,
@@ -194,7 +194,7 @@ function drawAvatarCanvas() {
     }
 
     if (avatarFrame && avatarFrame.complete) {
-        avatarCtx.drawImage(avatarFrame, 0, 0, 1000, 1000);
+        avatarCtx.drawImage(avatarFrame, 0, 0, 2000, 2000);
     }
 }
 
@@ -202,8 +202,8 @@ function startAvatarDrag(e) {
     if (!avatarUserImage) return;
     avatarDragging = true;
     const rect = avatarCanvas.getBoundingClientRect();
-    const scaleX = 1000 / rect.width;
-    const scaleY = 1000 / rect.height;
+    const scaleX = 2000 / rect.width;
+    const scaleY = 2000 / rect.height;
     avatarStartX = (e.clientX - rect.left) * scaleX - avatarX;
     avatarStartY = (e.clientY - rect.top) * scaleY - avatarY;
 }
@@ -211,8 +211,8 @@ function startAvatarDrag(e) {
 function dragAvatar(e) {
     if (!avatarDragging) return;
     const rect = avatarCanvas.getBoundingClientRect();
-    const scaleX = 1000 / rect.width;
-    const scaleY = 1000 / rect.height;
+    const scaleX = 2000 / rect.width;
+    const scaleY = 2000 / rect.height;
     avatarX = (e.clientX - rect.left) * scaleX - avatarStartX;
     avatarY = (e.clientY - rect.top) * scaleY - avatarStartY;
     drawAvatarCanvas();

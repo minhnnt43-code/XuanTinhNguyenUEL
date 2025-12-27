@@ -74,13 +74,77 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
             .two-column {
                 flex-direction: column;
             }
 
             .header h1 {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
             }
+
+            .header p {
+                font-size: 0.9rem;
+            }
+
+            .card {
+                padding: 15px !important;
+            }
+
+            .canvas-wrapper {
+                max-width: 100%;
+            }
+
+            #avatar-canvas {
+                max-width: 100%;
+                height: auto;
+                touch-action: none;
+            }
+
+            .btn-block {
+                padding: 16px !important;
+                font-size: 1.1rem !important;
+            }
+
+            .zoom-slider {
+                height: 50px !important;
+            }
+
+            /* Counter badge */
+            .counter-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: linear-gradient(135deg, #00723F, #00a758);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                margin-top: 10px;
+            }
+        }
+
+        /* Counter badge cho cả desktop */
+        .counter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #00723F, #00a758);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 114, 63, 0.3);
+        }
+
+        .counter-badge i {
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -91,6 +155,10 @@
         <div class="header">
             <h1><i class="fa-solid fa-image"></i> Tạo Avatar XTN 2026</h1>
             <p>Tải ảnh chân dung lên, điều chỉnh và tải về avatar chiến dịch!</p>
+            <div class="counter-badge" id="avatar-counter">
+                <i class="fa-solid fa-download"></i>
+                <span id="counter-number">0</span> avatar đã được tạo
+            </div>
         </div>
 
         <!-- Main content -->
@@ -143,7 +211,7 @@
                 <div class="card preview-card">
                     <h3><i class="fa-solid fa-eye"></i> 3. Xem trước & Tải về</h3>
                     <div class="canvas-wrapper avatar-wrapper">
-                        <canvas id="avatar-canvas" width="1000" height="1000"></canvas>
+                        <canvas id="avatar-canvas" width="2000" height="2000"></canvas>
                     </div>
                     <button id="btn-avatar-download" class="btn btn-success btn-block" disabled>
                         <i class="fa-solid fa-download"></i> Tải Avatar về máy
@@ -159,9 +227,52 @@
 
     <!-- Firebase -->
     <script type="module">
-        import { auth } from './js/firebase.js';
+        import { db, auth } from './js/firebase.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { initAvatarCanvas, handleAvatarUpload, resetAvatarFull, downloadAvatar } from './js/dashboard-avatar.js';
+        import { doc, getDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initAvatarCanvas, handleAvatarUpload, resetAvatarFull } from './js/dashboard-avatar.js';
+
+        // Counter document reference
+        const counterRef = doc(db, 'xtn_settings', 'avatar_counter');
+
+        // Load counter on page load
+        async function loadCounter() {
+            try {
+                const counterDoc = await getDoc(counterRef);
+                const count = counterDoc.exists() ? (counterDoc.data().count || 0) : 0;
+                document.getElementById('counter-number').textContent = count.toLocaleString('vi-VN');
+            } catch (e) {
+                console.warn('[Avatar] Counter load failed:', e);
+            }
+        }
+
+        // Increment counter on download
+        async function incrementCounter() {
+            try {
+                await setDoc(counterRef, { count: increment(1) }, { merge: true });
+                // Update UI immediately
+                const el = document.getElementById('counter-number');
+                const current = parseInt(el.textContent.replace(/\./g, '')) || 0;
+                el.textContent = (current + 1).toLocaleString('vi-VN');
+            } catch (e) {
+                console.warn('[Avatar] Counter increment failed:', e);
+            }
+        }
+
+        // HD Download with counter
+        function downloadAvatarHD() {
+            const canvas = document.getElementById('avatar-canvas');
+            if (!canvas) return;
+
+            // Export with maximum quality
+            const link = document.createElement('a');
+            link.download = 'AvatarXTN2026.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+
+            // Increment counter
+            incrementCounter();
+        }
 
         // Check auth
         onAuthStateChanged(auth, (user) => {
@@ -172,11 +283,14 @@
 
             // Init avatar canvas
             initAvatarCanvas();
+
+            // Load counter
+            loadCounter();
         });
 
         // Event listeners
         document.getElementById('avatar-upload').addEventListener('change', handleAvatarUpload);
-        document.getElementById('btn-avatar-download').addEventListener('click', downloadAvatar);
+        document.getElementById('btn-avatar-download').addEventListener('click', downloadAvatarHD);
         document.getElementById('btn-avatar-reset').addEventListener('click', resetAvatarFull);
     </script>
 </body>
