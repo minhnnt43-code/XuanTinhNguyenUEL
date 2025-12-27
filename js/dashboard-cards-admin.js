@@ -5,6 +5,7 @@
 
 import { db } from './firebase.js';
 import { collection, getDocs, query, where, deleteDoc, doc, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import STATIC_MEMBERS from './members-static.js';
 // google-drive.js đã bị xóa
 
 // ============================================================
@@ -22,6 +23,7 @@ let filterStatus = '';
 let filterCityCard = '';
 let showAlertFn = null;
 let showConfirmFn = null;
+let selectedForMark = new Set(); // Track selected members for bulk marking
 
 // ============================================================
 // INIT
@@ -173,28 +175,99 @@ async function loadCardsData() {
             regsMap[r.user_id] = r;
         });
 
-        // ⚠️ QUAN TRỌNG: Load members TRƯỚC khi setup onSnapshot
-        // Vì onSnapshot sẽ gọi render() ngay lập tức
+        // ⚠️ QUAN TRỌNG: Dùng STATIC_MEMBERS làm base, merge với Firebase
+        // Giống hệt logic của dashboard-core.js để đảm bảo team_id được lấy từ static list
+        console.log('[CardsAdmin] 📋 Loading from STATIC_MEMBERS:', STATIC_MEMBERS.length, 'records');
+
+        // Create static map by email
+        const staticMap = new Map();
+        STATIC_MEMBERS.forEach(member => {
+            if (member.email) {
+                staticMap.set(member.email.toLowerCase().trim(), { ...member });
+            }
+        });
+
+        // Get Firebase data for updates/deletions
         const allUsersSnap = await getDocs(collection(db, 'xtn_users'));
-        allMembers = [];
+        const firebaseMap = new Map();
+        const firebaseDeletes = new Set();
+
         allUsersSnap.forEach(d => {
             const data = d.data();
-            const reg = regsMap[d.id] || {};
-            // Giống hệt Danh sách Chiến sĩ: fallback team_id từ registrations
+            const email = data.email?.toLowerCase().trim();
+            if (!email) return;
 
-            const teamId = data.team_id || reg.preferred_team || '';
+            if (data.deleted) {
+                firebaseDeletes.add(email);
+                return;
+            }
+
+            // Skip pending
+            if (data.role === 'pending') return;
+
+            firebaseMap.set(email, { id: d.id, ...data });
+        });
+
+        // MERGE: Static base + Firebase updates - Firebase deletions
+        allMembers = [];
+
+        // Add static members (with Firebase updates if available)
+        STATIC_MEMBERS.forEach(member => {
+            const email = member.email?.toLowerCase().trim();
+            if (!email || firebaseDeletes.has(email)) return;
+
+            let finalMember;
+            if (firebaseMap.has(email)) {
+                // Use Firebase version (has updates)
+                const fbData = firebaseMap.get(email);
+                // Merge: Firebase data priority, but fallback to static for missing fields
+                finalMember = {
+                    id: fbData.id,
+                    name: fbData.name || member.name || '',
+                    mssv: fbData.mssv || member.mssv || '',
+                    email: email,
+                    team_id: fbData.team_id || member.team_id || '',
+                    team_name: STATIC_TEAM_MAP[fbData.team_id || member.team_id] || teamsMap[fbData.team_id || member.team_id] || 'Chưa phân đội',
+                    city_card_link: fbData.city_card_link || '',
+                    role: fbData.role || member.role || 'member',
+                    position: fbData.position || member.position || 'Chiến sĩ'
+                };
+                firebaseMap.delete(email); // Mark as processed
+            } else {
+                // Use static version
+                finalMember = {
+                    id: member.email, // Use email as ID for static-only members
+                    name: member.name || '',
+                    mssv: member.mssv || '',
+                    email: email,
+                    team_id: member.team_id || '',
+                    team_name: STATIC_TEAM_MAP[member.team_id] || teamsMap[member.team_id] || 'Chưa phân đội',
+                    city_card_link: '',
+                    role: member.role || 'member',
+                    position: member.position || 'Chiến sĩ'
+                };
+            }
+
+            allMembers.push(finalMember);
+        });
+
+        // Add new members from Firebase only (not in static)
+        firebaseMap.forEach((fbData, email) => {
+            const teamId = fbData.team_id || '';
             allMembers.push({
-                id: d.id,
-                name: data.name || '',
-                mssv: data.mssv || '',
-                email: data.email || '',
+                id: fbData.id,
+                name: fbData.name || '',
+                mssv: fbData.mssv || '',
+                email: email,
                 team_id: teamId,
-                team_name: teamsMap[teamId] || STATIC_TEAM_MAP[teamId] || 'Chưa phân đội',
-                city_card_link: data.city_card_link || '',
-                role: data.role || 'member',
-                position: data.position || 'Chiến sĩ'
+                team_name: STATIC_TEAM_MAP[teamId] || teamsMap[teamId] || 'Chưa phân đội',
+                city_card_link: fbData.city_card_link || '',
+                role: fbData.role || 'member',
+                position: fbData.position || 'Chiến sĩ'
             });
         });
+
+        console.log('[CardsAdmin] ✅ Merged members:', allMembers.length);
 
         // Sắp xếp theo thứ tự đội hình + chức vụ (giống Danh sách Chiến sĩ)
         const positionOrder = {
@@ -426,10 +499,23 @@ function renderTable() {
             ? `<a href="${item.city_card_link}" target="_blank" class="badge badge-info" title="Xem Thẻ Cấp Thành"><i class="fa-solid fa-external-link"></i> Có</a>`
             : '<span class="badge badge-secondary">Chưa có</span>';
         const createdAt = item.card ? formatDate(item.card.created_at) : '-';
-        const actions = item.hasCard
-            ? `<a href="${item.card.drive_link || '#'}" target="_blank" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eye"></i></a>
-               <button class="btn btn-sm btn-danger" onclick="deleteCard('${item.card.id}', '${item.card.drive_file_id}')"><i class="fa-solid fa-trash"></i></button>`
-            : '-';
+
+        // Checkbox for bulk selection (only for those without card)
+        const checkboxCell = !item.hasCard
+            ? `<input type="checkbox" class="bulk-mark-checkbox" data-id="${item.id}" data-name="${item.name}" data-email="${item.email || ''}" data-team="${item.team_id || ''}" onchange="toggleBulkMarkSelection(this)" ${selectedForMark.has(item.id) ? 'checked' : ''}>`
+            : '';
+
+        // Actions with manual mark button for those without card
+        let actions = '';
+        if (item.hasCard) {
+            actions = `<a href="${item.card.drive_link || '#'}" target="_blank" class="btn btn-sm btn-secondary" title="Xem thẻ"><i class="fa-solid fa-eye"></i></a>
+               <button class="btn btn-sm btn-danger" onclick="deleteCard('${item.card.id}', '${item.card.drive_file_id}')" title="Xóa thẻ"><i class="fa-solid fa-trash"></i></button>`;
+        } else {
+            // Button to manually mark as created
+            actions = `<button class="btn btn-sm btn-success" onclick="manualMarkCardCreated('${item.id}', '${item.name}', '${item.email}', '${item.team_id}')" title="Đánh dấu đã tạo thẻ">
+                <i class="fa-solid fa-check"></i>
+            </button>`;
+        }
 
         // Team color badge giống Danh sách Chiến sĩ
         const teamColor = getTeamColor(item.team_id);
@@ -454,7 +540,7 @@ function renderTable() {
         const teamBadge = `<span class="badge" style="background:${teamColor}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; white-space:nowrap;">${displayTeamName}</span>`;
 
         return `<tr>
-            <td>${stt}</td>
+            <td>${checkboxCell} ${stt}</td>
             <td><strong>${item.name}</strong></td>
             <td>${item.mssv || '-'}</td>
             <td>${teamBadge}</td>
@@ -473,6 +559,169 @@ function updatePagination() {
     document.getElementById('cards-page-info').textContent = `Trang ${currentPage} / ${totalPages}`;
     document.getElementById('cards-prev-page').disabled = currentPage <= 1;
     document.getElementById('cards-next-page').disabled = currentPage >= totalPages;
+}
+
+// ============================================================
+// MANUAL MARK CARD CREATED
+// ============================================================
+window.manualMarkCardCreated = async function (userId, name, email, teamId) {
+    const confirmed = showConfirmFn
+        ? await showConfirmFn(`Đánh dấu "${name}" đã tạo thẻ?`, 'Xác nhận')
+        : confirm(`Đánh dấu "${name}" đã tạo thẻ?`);
+
+    if (!confirmed) return;
+
+    try {
+        // Create card record in xtn_cards
+        const { setDoc, doc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+        await setDoc(doc(db, 'xtn_cards', userId), {
+            user_id: userId,
+            email: email || '',
+            name: name || '',
+            team_id: teamId || '',
+            confirmed: true,
+            confirmed_at: serverTimestamp(),
+            manual_mark: true,  // Flag to indicate this was manually marked
+            created_at: serverTimestamp(),
+            source: 'manual_admin_mark'
+        });
+
+        console.log('[CardsAdmin] Manually marked as created:', userId, name);
+
+        if (showAlertFn) {
+            await showAlertFn(`Đã đánh dấu "${name}" tạo thẻ thành công!`, 'success', 'Hoàn thành');
+        } else if (window.showToast) {
+            window.showToast(`Đã đánh dấu "${name}" tạo thẻ!`, 'success');
+        }
+
+        // Refresh data
+        await loadCardsData();
+    } catch (error) {
+        console.error('[CardsAdmin] Manual mark error:', error);
+        if (showAlertFn) {
+            await showAlertFn('Có lỗi xảy ra: ' + error.message, 'error', 'Lỗi');
+        } else if (window.showToast) {
+            window.showToast('Lỗi: ' + error.message, 'error');
+        }
+    }
+};
+
+// ============================================================
+// BULK MARK FUNCTIONS
+// ============================================================
+window.toggleBulkMarkSelection = function (checkbox) {
+    const id = checkbox.dataset.id;
+    const name = checkbox.dataset.name;
+    const email = checkbox.dataset.email;
+    const team = checkbox.dataset.team;
+
+    if (checkbox.checked) {
+        selectedForMark.add(id);
+    } else {
+        selectedForMark.delete(id);
+    }
+
+    // Update bulk action button visibility
+    updateBulkActionButton();
+};
+
+window.selectAllForMark = function (selectAll) {
+    const checkboxes = document.querySelectorAll('.bulk-mark-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll;
+        if (selectAll) {
+            selectedForMark.add(cb.dataset.id);
+        } else {
+            selectedForMark.delete(cb.dataset.id);
+        }
+    });
+    updateBulkActionButton();
+};
+
+function updateBulkActionButton() {
+    let btn = document.getElementById('btn-bulk-mark');
+    if (!btn) {
+        // Create button if not exists
+        const toolbar = document.querySelector('#section-cards-admin .section-header');
+        if (toolbar) {
+            btn = document.createElement('button');
+            btn.id = 'btn-bulk-mark';
+            btn.className = 'btn btn-success';
+            btn.style.cssText = 'margin-left: 10px; display: none;';
+            btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Đánh dấu đã chọn (<span id="bulk-mark-count">0</span>)';
+            btn.onclick = bulkMarkCardsCreated;
+            toolbar.appendChild(btn);
+        }
+    }
+
+    if (btn) {
+        const count = selectedForMark.size;
+        btn.style.display = count > 0 ? 'inline-block' : 'none';
+        const countSpan = document.getElementById('bulk-mark-count');
+        if (countSpan) countSpan.textContent = count;
+    }
+}
+
+async function bulkMarkCardsCreated() {
+    if (selectedForMark.size === 0) return;
+
+    const count = selectedForMark.size;
+    const confirmed = showConfirmFn
+        ? await showConfirmFn(`Đánh dấu ${count} người đã tạo thẻ?`, 'Xác nhận')
+        : confirm(`Đánh dấu ${count} người đã tạo thẻ?`);
+
+    if (!confirmed) return;
+
+    try {
+        const { setDoc, doc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+        // Get all checkbox data
+        const checkboxes = document.querySelectorAll('.bulk-mark-checkbox:checked');
+        let successCount = 0;
+
+        for (const cb of checkboxes) {
+            const userId = cb.dataset.id;
+            const name = cb.dataset.name;
+            const email = cb.dataset.email;
+            const teamId = cb.dataset.team;
+
+            try {
+                await setDoc(doc(db, 'xtn_cards', userId), {
+                    user_id: userId,
+                    email: email || '',
+                    name: name || '',
+                    team_id: teamId || '',
+                    confirmed: true,
+                    confirmed_at: serverTimestamp(),
+                    manual_mark: true,
+                    created_at: serverTimestamp(),
+                    source: 'bulk_admin_mark'
+                });
+                successCount++;
+                console.log(`✅ Marked: ${name}`);
+            } catch (err) {
+                console.error(`❌ Error marking ${name}:`, err);
+            }
+        }
+
+        // Clear selection
+        selectedForMark.clear();
+
+        if (showAlertFn) {
+            await showAlertFn(`Đã đánh dấu ${successCount}/${count} người thành công!`, 'success', 'Hoàn thành');
+        } else if (window.showToast) {
+            window.showToast(`Đã đánh dấu ${successCount} người!`, 'success');
+        }
+
+        // Refresh data
+        await loadCardsData();
+    } catch (error) {
+        console.error('[CardsAdmin] Bulk mark error:', error);
+        if (showAlertFn) {
+            await showAlertFn('Có lỗi xảy ra: ' + error.message, 'error', 'Lỗi');
+        }
+    }
 }
 
 // ============================================================

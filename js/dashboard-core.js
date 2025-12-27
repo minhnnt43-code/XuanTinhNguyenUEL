@@ -29,6 +29,8 @@ import { renderTeamsTable } from './admin-teams.js';
 import STATIC_MEMBERS from './members-static.js';
 // Ghost member finder
 import { findGhostMembers, deleteGhostMembers } from './find-ghost-members.js';
+// Team ID sync utility
+import './sync-team-ids.js';
 // Activity Logging
 import { log as activityLog } from './activity-logger.js';
 import { initActivityLogs, renderActivityLogsSection } from './dashboard-activity-logs.js';
@@ -417,11 +419,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('📝 [Auth] Updated uid/last_login for doc:', memberDoc.id);
 
                 userData = existingData;
+
+                // AUTO-FIX: Nếu role undefined, tìm trong STATIC_MEMBERS và update
+                if (!userData.role || userData.role === 'undefined') {
+                    const normalizedEmail = user.email.toLowerCase().trim();
+                    const staticMember = STATIC_MEMBERS.find(m =>
+                        m.email && m.email.toLowerCase().trim() === normalizedEmail
+                    );
+
+                    const fixedRole = staticMember?.role || 'member';
+                    console.log('🔧 [Auth] Role undefined, fixing to:', fixedRole);
+
+                    await updateDoc(doc(db, 'xtn_users', memberDoc.id), {
+                        role: fixedRole,
+                        team_id: staticMember?.team_id || userData.team_id || '',
+                        team_name: staticMember?.team_name || userData.team_name || '',
+                        position: staticMember?.position || userData.position || 'Chiến sĩ'
+                    });
+                    userData.role = fixedRole;
+                }
             } else {
-                // Không tìm thấy trong danh sách chiến sĩ - từ chối truy cập
-                userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
-                console.log('⛔ [Auth] User not in member list, role: guest');
-                console.log('⛔ [Auth] Tried email:', user.email, '→ Doc ID:', emailDocId);
+                // Không tìm thấy trong Firebase - thử tìm trong STATIC_MEMBERS
+                console.log('🔍 [Auth] Not found in Firebase, checking STATIC_MEMBERS...');
+                const normalizedEmail = user.email.toLowerCase().trim();
+                const staticMember = STATIC_MEMBERS.find(m =>
+                    m.email && m.email.toLowerCase().trim() === normalizedEmail
+                );
+
+                if (staticMember) {
+                    // Tìm thấy trong static list → tạo mới doc trong Firebase với data từ static
+                    console.log('✅ [Auth] Found in STATIC_MEMBERS! Creating Firebase doc...');
+                    const newDocId = emailToDocId(user.email);
+
+                    const newUserData = {
+                        uid: user.uid,
+                        email: normalizedEmail,
+                        name: staticMember.name || user.displayName || '',
+                        mssv: staticMember.mssv || '',
+                        phone: staticMember.phone || '',
+                        faculty: staticMember.faculty || '',
+                        position: staticMember.position || 'Chiến sĩ',
+                        team_id: staticMember.team_id || '',
+                        team_name: staticMember.team_name || '',
+                        role: staticMember.role || 'member',
+                        status: staticMember.status || 'active',
+                        photoURL: user.photoURL || null,
+                        created_at: new Date().toISOString(),
+                        last_login: new Date().toISOString(),
+                        source: 'static_member_auto_create'
+                    };
+
+                    await setDoc(doc(db, 'xtn_users', newDocId), newUserData);
+                    userData = newUserData;
+                    console.log('✅ [Auth] Created Firebase doc from static member:', newDocId, '| Role:', userData.role);
+                } else {
+                    // Không tìm thấy trong danh sách chiến sĩ - từ chối truy cập
+                    userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
+                    console.log('⛔ [Auth] User not in member list (Firebase & STATIC), role: guest');
+                    console.log('⛔ [Auth] Tried email:', user.email);
+                }
             }
 
             // Check và auto-upgrade Super Admin
