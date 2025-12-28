@@ -25,11 +25,43 @@ let showAlertFn = null;
 let showConfirmFn = null;
 let selectedForMark = new Set(); // Track selected members for bulk marking
 
+// Google Drive folders for each team
+const TEAM_DRIVE_FOLDERS = {
+    'ban-chi-huy-chien-dich': 'https://drive.google.com/drive/folders/15RZ5yVit5bT-9pqRvyVidEpMynHOM3_u?usp=drive_link',
+    'xuan-tu-hao': 'https://drive.google.com/drive/folders/1ABHp32MTgC0n9KuAt4QmsGE3PKEagzqj?usp=drive_link',
+    'xuan-ban-sac': 'https://drive.google.com/drive/folders/1HN86i9iP_VDpBkf8X9tJdXQsIBUBVlw0?usp=sharing',
+    'xuan-se-chia': 'https://drive.google.com/drive/folders/1vn0nIeXi0QqjaoMqIeNvyOjS8faEfl1p?usp=drive_link',
+    'xuan-gan-ket': 'https://drive.google.com/drive/folders/19wcheLmz2FxxCUvyulmdeNPUOQMvyc_N?usp=sharing',
+    'xuan-chien-si': 'https://drive.google.com/drive/folders/1HROXFRAFA17kRP4P1VsJrdtJQBlb7NHf?usp=drive_link',
+    'tet-van-minh': 'https://drive.google.com/drive/folders/1xrKAcPRAZJ-amIqNDEKt7ARZFONhpGIT?usp=drive_link',
+    'tu-van-giang-day-phap-luat': 'https://drive.google.com/drive/folders/16Aca-AF3i9epFEt_pFD59Pqo_AlRumAB?usp=drive_link',
+    'giai-dieu-mua-xuan': 'https://drive.google.com/drive/folders/1_H69b3P16TmIV3xIiMyaKIpl-zdVlpbj?usp=drive_link',
+    'vien-chuc-tre': 'https://drive.google.com/drive/folders/1tgY3MC7wM5ZAdzhdYW5TilxcLoL6U6UY?usp=drive_link',
+    'hau-can': 'https://drive.google.com/drive/folders/1iL1C-NLtCSUo1CD9KbbwNn-e9R4GYwQ5?usp=drive_link',
+    'ky-su-tet': 'https://drive.google.com/drive/folders/14RTGgXSSppvF3MBORgrinSDNQif9yqHq?usp=drive_link'
+};
+
+// Current user data (passed from dashboard-core)
+let currentUserData = null;
+
 // ============================================================
 // INIT
 // ============================================================
 export function initCardsAdmin() {
     console.log('[CardsAdmin] Initializing...');
+
+    // Auto-filter for doihinh_admin - chỉ thấy đội của họ
+    if (currentUserData && currentUserData.role === 'doihinh_admin' && currentUserData.team_id) {
+        filterTeam = currentUserData.team_id;
+        console.log('[CardsAdmin] Auto-filter for doihinh_admin:', filterTeam);
+
+        // Ẩn dropdown chọn đội
+        const teamFilter = document.getElementById('cards-filter-team');
+        if (teamFilter) {
+            teamFilter.style.display = 'none';
+        }
+    }
+
     loadCardsData();
     setupEventListeners();
 }
@@ -37,6 +69,12 @@ export function initCardsAdmin() {
 export function setHelpers(alertFn, confirmFn) {
     showAlertFn = alertFn;
     showConfirmFn = confirmFn;
+}
+
+// Set current user data (called from dashboard-core)
+export function setCurrentUser(userData) {
+    currentUserData = userData;
+    console.log('[CardsAdmin] User set:', userData?.name, '| Role:', userData?.role, '| Team:', userData?.team_id);
 }
 
 function setupEventListeners() {
@@ -405,9 +443,92 @@ function getFilteredData() {
 // RENDER
 // ============================================================
 function render() {
+    // Render team header if filtering by team
+    renderTeamHeader();
     // Chỉ dùng table view (grid view đã bị xóa)
     renderTable();
     updatePagination();
+}
+
+// Render team-specific header with progress and Drive button
+function renderTeamHeader() {
+    const headerContainer = document.getElementById('team-cards-header');
+
+    // Nếu không có container hoặc không lọc theo đội thì ẩn/xóa
+    if (!headerContainer) return;
+
+    if (!filterTeam) {
+        headerContainer.innerHTML = '';
+        headerContainer.style.display = 'none';
+        return;
+    }
+
+    // Lấy data của team đang filter
+    const allData = getFilteredData();
+    const totalMembers = allData.length;
+    const createdCards = allData.filter(d => d.hasCard).length;
+    const pendingCards = totalMembers - createdCards;
+    const progress = totalMembers > 0 ? Math.round((createdCards / totalMembers) * 100) : 0;
+
+    // Team name mapping
+    const TEAM_ID_TO_NAME = {
+        'ban-chi-huy-chien-dich': 'Ban Chỉ huy Chiến dịch',
+        'xuan-tu-hao': 'Đội hình Xuân tự hào',
+        'xuan-ban-sac': 'Đội hình Xuân bản sắc',
+        'xuan-se-chia': 'Đội hình Xuân sẻ chia',
+        'xuan-gan-ket': 'Đội hình Xuân gắn kết',
+        'xuan-chien-si': 'Đội hình Xuân chiến sĩ',
+        'tet-van-minh': 'Đội hình Tết văn minh',
+        'tu-van-giang-day-phap-luat': 'Đội hình Tư vấn và giảng dạy pháp luật',
+        'giai-dieu-mua-xuan': 'Đội hình Giai điệu mùa xuân',
+        'vien-chuc-tre': 'Đội hình Viên chức trẻ',
+        'hau-can': 'Đội hình Hậu cần',
+        'ky-su-tet': 'Đội hình Ký sự Tết'
+    };
+
+    const teamName = TEAM_ID_TO_NAME[filterTeam] || filterTeam;
+    const driveLink = TEAM_DRIVE_FOLDERS[filterTeam] || '#';
+
+    headerContainer.style.display = 'block';
+    headerContainer.innerHTML = `
+        <div class="team-cards-header">
+            <h2><i class="fa-solid fa-users"></i> ${teamName}</h2>
+            <p class="team-subtitle">Quản lý tiến độ tạo thẻ chiến sĩ</p>
+            
+            <div class="team-progress-wrapper">
+                <div class="team-progress-info">
+                    <span class="team-progress-label">Tiến độ tạo thẻ</span>
+                    <span class="team-progress-count">${createdCards}/${totalMembers} (${progress}%)</span>
+                </div>
+                <div class="team-progress-bar">
+                    <div class="team-progress-fill" style="width: ${progress}%"></div>
+                </div>
+            </div>
+            
+            <a href="${driveLink}" target="_blank" class="team-drive-btn">
+                <i class="fa-brands fa-google-drive"></i>
+                Mở thư mục Drive của đội
+            </a>
+        </div>
+        
+        <div class="team-stats-grid">
+            <div class="team-stat-card">
+                <div class="team-stat-icon total"><i class="fa-solid fa-users"></i></div>
+                <div class="team-stat-number">${totalMembers}</div>
+                <div class="team-stat-label">Tổng thành viên</div>
+            </div>
+            <div class="team-stat-card">
+                <div class="team-stat-icon done"><i class="fa-solid fa-check-circle"></i></div>
+                <div class="team-stat-number">${createdCards}</div>
+                <div class="team-stat-label">Đã tạo thẻ</div>
+            </div>
+            <div class="team-stat-card">
+                <div class="team-stat-icon pending"><i class="fa-solid fa-clock"></i></div>
+                <div class="team-stat-number">${pendingCards}</div>
+                <div class="team-stat-label">Chưa tạo</div>
+            </div>
+        </div>
+    `;
 }
 
 function renderGrid() {
@@ -565,11 +686,32 @@ function updatePagination() {
 // MANUAL MARK CARD CREATED
 // ============================================================
 window.manualMarkCardCreated = async function (userId, name, email, teamId) {
-    const confirmed = showConfirmFn
-        ? await showConfirmFn(`Đánh dấu "${name}" đã tạo thẻ?`, 'Xác nhận')
-        : confirm(`Đánh dấu "${name}" đã tạo thẻ?`);
+    // Custom styled confirm dialog
+    const result = await Swal.fire({
+        title: 'Xác nhận',
+        html: `<div style="font-size: 1.1rem; color: #374151; margin: 16px 0;">
+                 Đánh dấu <strong style="color: #00723F;">${name}</strong> đã tạo thẻ?
+               </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-check"></i> Đồng ý',
+        cancelButtonText: '<i class="fa-solid fa-times"></i> Hủy',
+        confirmButtonColor: '#00723F',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        customClass: {
+            popup: 'swal-custom-popup',
+            title: 'swal-custom-title',
+            htmlContainer: 'swal-custom-html',
+            confirmButton: 'swal-custom-confirm',
+            cancelButton: 'swal-custom-cancel'
+        },
+        buttonsStyling: true,
+        width: '450px',
+        padding: '2rem'
+    });
 
-    if (!confirmed) return;
+    if (!result.isConfirmed) return;
 
     try {
         // Create card record in xtn_cards
@@ -667,11 +809,33 @@ async function bulkMarkCardsCreated() {
     if (selectedForMark.size === 0) return;
 
     const count = selectedForMark.size;
-    const confirmed = showConfirmFn
-        ? await showConfirmFn(`Đánh dấu ${count} người đã tạo thẻ?`, 'Xác nhận')
-        : confirm(`Đánh dấu ${count} người đã tạo thẻ?`);
 
-    if (!confirmed) return;
+    // Custom styled confirm dialog for bulk mark
+    const result = await Swal.fire({
+        title: 'Xác nhận',
+        html: `<div style="font-size: 1.1rem; color: #374151; margin: 16px 0;">
+                 Đánh dấu <strong style="color: #00723F;">${count} người</strong> đã tạo thẻ?
+               </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: `<i class="fa-solid fa-check-double"></i> Đồng ý (${count})`,
+        cancelButtonText: '<i class="fa-solid fa-times"></i> Hủy',
+        confirmButtonColor: '#00723F',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        customClass: {
+            popup: 'swal-custom-popup',
+            title: 'swal-custom-title',
+            htmlContainer: 'swal-custom-html',
+            confirmButton: 'swal-custom-confirm',
+            cancelButton: 'swal-custom-cancel'
+        },
+        buttonsStyling: true,
+        width: '450px',
+        padding: '2rem'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
         const { setDoc, doc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");

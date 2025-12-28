@@ -14,7 +14,7 @@ import {
     deleteRegistration, setHelpers as setRegHelpers, setCurrentUser as setRegCurrentUser
 } from './dashboard-registrations.js';
 import { initActivityModule } from './activity.js';
-import { initCardsAdmin, setHelpers as setCardsAdminHelpers } from './dashboard-cards-admin.js';
+import { initCardsAdmin, setHelpers as setCardsAdminHelpers, setCurrentUser as setCardsCurrentUser } from './dashboard-cards-admin.js';
 import { exportChienSi, importFromExcel, validateImportData, downloadImportTemplate } from './excel-utils.js';
 import {
     backupAllJSON, backupUsersJSON, backupActivitiesJSON,
@@ -85,9 +85,9 @@ const FACULTIES_LIST = [
 // MANDATORY PROFILE CHECK - Bắt buộc điền thông tin khi đăng nhập lần đầu
 // ============================================================
 async function checkMandatoryProfile(user, userData) {
-    // Skip check cho super_admin hoặc pending users
-    if (userData.role === 'pending' || userData.role === 'guest') {
-        return true; // Cho pending qua, họ sẽ bị chặn bởi role check
+    // Skip check nếu không có role (sẽ bị reject ở ALLOWED_ROLES)
+    if (!userData.role) {
+        return true;
     }
 
     // Skip if already confirmed profile (prevent loop)
@@ -482,9 +482,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('✅ [Auth] Created Firebase doc from static member:', newDocId, '| Role:', userData.role);
                 } else {
                     // Không tìm thấy trong danh sách chiến sĩ - từ chối truy cập
-                    userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
-                    console.log('⛔ [Auth] User not in member list (Firebase & STATIC), role: guest');
-                    console.log('⛔ [Auth] Tried email:', user.email);
+                    userData = { role: null, name: user.displayName || user.email.split('@')[0] };
+                    console.log('⛔ [Auth] User not in member list - REJECTED');
                 }
             }
 
@@ -504,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Role do super_admin phân sẽ được tôn trọng
         } catch (e) {
             console.error('Error loading user data:', e);
-            userData = { role: 'guest', name: user.displayName || user.email.split('@')[0] };
+            userData = { role: null, name: user.displayName || user.email.split('@')[0] };
         }
 
         // ============================================================
@@ -562,8 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Hiển thị chức danh cụ thể (position) thay vì role
             // Position: Chỉ huy Trưởng, Chỉ huy Phó Thường trực, Chỉ huy Phó, 
             //           Thành viên Ban Chỉ huy, Đội trưởng, Đội phó, Chiến sĩ
-            const displayPosition = userData.position ||
-                (userData.role === 'pending' ? 'Sinh viên' : 'Chiến sĩ');
+            const displayPosition = userData.position || 'Chiến sĩ';
             positionEl.textContent = displayPosition;
 
             // Map position to CSS class cho màu badge
@@ -976,7 +974,7 @@ function updateClock() {
 // MENU
 // ============================================================
 function setupMenuByRole() {
-    const role = userData.role || 'pending';
+    const role = userData.role || 'member'; // Fallback to member nếu thiếu role
     const email = userData.email || '';
 
     // Xóa các admin class
@@ -1035,10 +1033,8 @@ function setupMenuByRole() {
     // Check if user is super owner (can see accounts + activity logs)
     const isSuperOwner = SUPER_OWNER_EMAILS.includes(email);
 
-    if (role === 'guest') {
-        // Guest = không có trong danh sách chiến sĩ → không show gì, sẽ redirect về trang từ chối
-        console.log('[Menu] Guest user - access denied');
-    } else if (role === 'member') {
+    // Unauthorized users đã bị reject trước khi tới đây (ALLOWED_ROLES check)
+    if (role === 'member') {
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
         // Show media manager for Ký sự Tết members
@@ -1103,7 +1099,10 @@ function showSection(sectionId) {
     if (sectionId === 'section-activity') initActivityModule(userData.team_name, userData.role);
     if (sectionId === 'section-teams') loadTeams();
     if (sectionId === 'section-questions') loadQuestions();
-    if (sectionId === 'section-cards-admin') initCardsAdmin();
+    if (sectionId === 'section-cards-admin') {
+        setCardsCurrentUser(userData); // Pass user data for role-based filtering
+        initCardsAdmin();
+    }
     if (sectionId === 'section-profile') loadProfileSection();
     if (sectionId === 'section-settings') initSettings();
     if (sectionId === 'section-activity-logs') {
@@ -1143,7 +1142,7 @@ async function loadTeams() {
 }
 
 async function showDefaultSection() {
-    const role = userData.role || 'pending';
+    const role = userData.role || 'member';
     console.log('� showDefaultSection, role:', role);
 
     // Check localStorage for last section
@@ -1172,20 +1171,8 @@ async function showDefaultSection() {
     }
 
     // Fallback to role-based defaults
-    if (role === 'guest') {
-        // Guest = không có trong danh sách chiến sĩ → hiện thông báo và logout
-        showSection('section-dashboard'); // Tạm hiện dashboard, sẽ bị chặn bởi alert
-        setTimeout(async () => {
-            await showAlert(
-                'Bạn không có trong danh sách Chiến sĩ Xuân tình nguyện 2026.\\n\\nHãy đăng nhập lại lần nữa, nếu bạn cho rằng bạn là Chiến sĩ Xuân tình nguyện 2026, nếu không được hãy liên hệ:\\n\\n👤 Lâm Quốc Minh\\n📞 0899.012.608 (Zalo)\\n🔗 fb.com/lamquocminh18',
-                'error',
-                'Từ chối truy cập'
-            );
-            // Logout
-            await auth.signOut();
-            window.location.reload();
-        }, 500);
-    } else if (role === 'member') {
+    // Unauthorized users đã bị reject, chỉ còn member/doihinh_admin/super_admin/kysutet_admin
+    if (role === 'member') {
         showSection('section-dashboard');
     } else {
         showSection('section-dashboard');
