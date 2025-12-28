@@ -1046,6 +1046,8 @@ function setupMenuByRole() {
         document.getElementById('menu-dashboard')?.classList.remove('hidden');
         document.getElementById('menu-tools')?.classList.remove('hidden');
         document.getElementById('menu-activity')?.classList.remove('hidden');
+        // Thêm quyền xem Quản trị Thẻ cho đội trưởng/đội phó
+        document.getElementById('menu-cards-admin')?.classList.remove('hidden');
         // Show media manager for Ký sự Tết team leaders
         if (isKySuTetTeam) {
             document.querySelectorAll('.kysutet-team-only').forEach(el => el.classList.remove('hidden'));
