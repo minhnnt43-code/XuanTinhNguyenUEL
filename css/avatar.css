@@ -1,0 +1,95 @@
+/**
+ * avatar.css - Tạo avatar
+ */
+
+.avatar-page {
+    background: var(--gray-50);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.avatar-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.avatar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+}
+
+.avatar-header h1 {
+    color: var(--primary);
+    margin: 0;
+}
+
+.avatar-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.upload-section,
+.preview-section {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+}
+
+.upload-area {
+    border: 3px dashed var(--gray-300);
+    border-radius: var(--radius-md);
+    padding: 60px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background: var(--gray-50);
+}
+
+.upload-area i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+    display: block;
+}
+
+#avatar-canvas {
+    width: 100%;
+    max-width: 500px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    cursor: move;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.instructions {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+}
+
+.instructions h4 {
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+    .avatar-content {
+        grid-template-columns: 1fr;
+    }
+}

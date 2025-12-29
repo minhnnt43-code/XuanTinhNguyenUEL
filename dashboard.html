@@ -231,13 +231,15 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="menu-submenu">
-                        <div class="menu-item" data-section="section-card">
-                            <i class="fa-solid fa-id-card"></i> Tạo Thẻ Chiến sĩ
-                        </div>
                         <div class="menu-item" data-section="section-profile">
                             <i class="fa-solid fa-user-pen"></i> Thông tin cá nhân
                         </div>
                     </div>
+                </div>
+
+                <!-- Danh sách Ban Chỉ huy - cho admin -->
+                <div class="menu-item admin-only" id="menu-members" data-section="section-members">
+                    <i class="fa-solid fa-user-tie"></i> Ban Chỉ huy các cấp
                 </div>
 
                 <!-- BCH Đội+ (Admin only) -->
@@ -245,34 +247,34 @@
                     <i class="fa-solid fa-calendar-check"></i> Quản lý Hoạt động
                 </div>
 
-                <!-- Quản trị Thẻ - cho doihinh_admin -->
+                <!-- ĐÃ ẨN - Không còn cần thiết sau chiến dịch
                 <div class="menu-item admin-only" id="menu-cards-admin" data-section="section-cards-admin">
                     <i class="fa-solid fa-id-card"></i> Quản trị Thẻ
                 </div>
 
-                <!-- Danh sách Chiến sĩ - cho doihinh_admin -->
                 <div class="menu-item admin-only" id="menu-members" data-section="section-members">
                     <i class="fa-solid fa-users"></i> Danh sách Chiến sĩ
                 </div>
+                -->
 
-                <!-- Super Admin -->
+                <!-- Super Admin - Cài đặt -->
                 <div class="menu-section admin-only" id="menu-system">
                     <div class="menu-section-title">
-                        <i class="fa-solid fa-users-gear"></i> Quản lý Chiến sĩ
+                        <i class="fa-solid fa-gear"></i> Hệ thống
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                     <div class="menu-submenu">
-
-                        <div class="menu-item" data-section="section-teams">
-                            <i class="fa-solid fa-people-group"></i> Đội hình
-                        </div>
-
                         <div class="menu-item" data-section="section-settings">
                             <i class="fa-solid fa-gear"></i> Cài đặt
                         </div>
                         <div class="menu-item owner-only" data-section="section-activity-logs">
                             <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử hoạt động
                         </div>
+                        <!-- ĐÃ ẨN - Đội hình
+                        <div class="menu-item" data-section="section-teams">
+                            <i class="fa-solid fa-people-group"></i> Đội hình
+                        </div>
+                        -->
                     </div>
                 </div>
 
@@ -580,30 +582,7 @@
                     <h1><i class="fa-solid fa-calendar-check"></i> Quản lý Hoạt động</h1>
                 </div>
 
-                <!-- AI Toolbar - TẠM TẮT, LÀM SAU
-                <div class="card"
-                    style="margin-bottom:15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white;">
-                    <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
-                        <div style="flex:1;">
-                            <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
-                                <i class="fa-solid fa-robot"></i> AI Assistant
-                            </h3>
-                            <p style="margin:5px 0 0; opacity:0.9; font-size:14px;">Sử dụng AI để tạo hoạt động và báo
-                                cáo nhanh chóng</p>
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <button id="btn-ai-create-activity" class="btn"
-                                style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.3);">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo hoạt động AI
-                            </button>
-                            <button id="btn-ai-report" class="btn"
-                                style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.3);">
-                                <i class="fa-solid fa-file-lines"></i> Báo cáo AI
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                -->
+
 
                 <div class="card">
                     <div id="activities-list">
@@ -1206,6 +1185,7 @@
                             <p>Đội tham gia</p>
                         </div>
                     </div>
+
                     <div class="card">
                         <table class="data-table" id="stats-table">
                             <thead>
@@ -1564,6 +1544,7 @@
     <script src="js/loading-overlay.js"></script>
     <script src="js/offline-cache.js"></script>
     <script src="js/member-edit.js"></script>
+    <!-- AI modules removed -->
     <script type="module" src="js/dashboard-core.js"></script>
 </body>
 

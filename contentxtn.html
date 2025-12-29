@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Writer - XTN 2026</title>
+    <link rel="icon" type="image/png" href="images/logoxtn.png">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Toast -->
+    <script src="js/toast.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .page-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            color: #1f2937;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: #667eea;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .back-btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: #1f2937;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .template-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .template-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .template-btn {
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .template-btn:hover {
+            border-color: #667eea;
+            background: #f8f7ff;
+        }
+
+        .template-btn.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+        }
+
+        .template-btn .icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .template-btn .name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Output area */
+        .output-area {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 300px;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: #1f2937;
+            border: 2px solid #e5e7eb;
+        }
+
+        .output-placeholder {
+            color: #9ca3af;
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .output-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        /* API Key modal */
+        .api-key-banner {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .api-key-banner i {
+            color: #f59e0b;
+            font-size: 1.5rem;
+        }
+
+        .api-key-banner .text {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .api-key-banner input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+
+        .api-key-banner button {
+            padding: 10px 20px;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .api-key-saved {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-color: #22c55e;
+        }
+
+        .api-key-saved i {
+            color: #22c55e;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .loading-content i {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .loading-content p {
+            color: #1f2937;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Về trang chủ
+    </a>
+
+    <div class="page-container">
+        <header class="page-header">
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> AI Content Writer</h1>
+            <p>Tạo nội dung bài viết cho Xuân Tình Nguyện 2026 bằng AI</p>
+        </header>
+
+        <!-- API Key Banner -->
+        <div class="api-key-banner" id="api-key-banner">
+            <i class="fa-solid fa-key"></i>
+            <div class="text">
+                <strong>Nhập Groq API Key:</strong>
+            </div>
+            <input type="password" id="api-key-input" placeholder="gsk_xxxxxxxxxxxxx">
+            <button onclick="saveApiKey()">Lưu Key</button>
+        </div>
+
+        <div class="main-content">
+            <!-- Left: Input -->
+            <div class="card">
+                <h3><i class="fa-solid fa-pen-to-square"></i> Nhập thông tin</h3>
+
+                <!-- Template Selector -->
+                <div class="template-selector">
+                    <button class="template-btn active" data-template="fanpage" onclick="selectTemplate('fanpage')">
+                        <span class="icon">📱</span>
+                        <span class="name">Bài Fanpage</span>
+                    </button>
+                    <button class="template-btn" data-template="recap" onclick="selectTemplate('recap')">
+                        <span class="icon">📝</span>
+                        <span class="name">Recap</span>
+                    </button>
+                    <button class="template-btn" data-template="announcement" onclick="selectTemplate('announcement')">
+                        <span class="icon">📢</span>
+                        <span class="name">Thông báo</span>
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <form id="content-form">
+                    <div class="form-group">
+                        <label>Tên hoạt động <span style="color:#e31837">*</span></label>
+                        <input type="text" id="activity-name" placeholder="VD: Dọn vệ sinh công viên" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Thời gian</label>
+                        <input type="text" id="activity-time" placeholder="VD: 8h00 - 11h00, Thứ 7, 15/01/2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Địa điểm</label>
+                        <input type="text" id="activity-location" placeholder="VD: Công viên Tao Đàn, Q.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Đội hình</label>
+                        <select id="activity-team">
+                            <option value="">-- Chọn đội hình --</option>
+                            <option value="Ban Chỉ huy Chiến dịch">Ban Chỉ huy Chiến dịch</option>
+                            <option value="Đội hình Xuân tự hào">Đội hình Xuân tự hào</option>
+                            <option value="Đội hình Xuân bản sắc">Đội hình Xuân bản sắc</option>
+                            <option value="Đội hình Xuân sẻ chia">Đội hình Xuân sẻ chia</option>
+                            <option value="Đội hình Xuân gắn kết">Đội hình Xuân gắn kết</option>
+                            <option value="Đội hình Xuân chiến sĩ">Đội hình Xuân chiến sĩ</option>
+                            <option value="Đội hình Tết văn minh">Đội hình Tết văn minh</option>
+                            <option value="Đội hình Tư vấn pháp luật">Đội hình Tư vấn pháp luật</option>
+                            <option value="Đội hình Giai điệu mùa xuân">Đội hình Giai điệu mùa xuân</option>
+                            <option value="Đội hình Viên chức trẻ">Đội hình Viên chức trẻ</option>
+                            <option value="Đội hình Hậu cần">Đội hình Hậu cần</option>
+                            <option value="Đội hình Ký sự Tết">Đội hình Ký sự Tết</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Số người tham gia</label>
+                        <input type="number" id="activity-participants" placeholder="VD: 50">
+                    </div>
+                    <div class="form-group">
+                        <label>Mô tả thêm (tùy chọn)</label>
+                        <textarea id="activity-description"
+                            placeholder="Thêm chi tiết, điểm nổi bật, cảm xúc..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="btn-generate">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo nội dung với AI
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right: Output -->
+            <div class="card">
+                <h3><i class="fa-solid fa-file-lines"></i> Kết quả</h3>
+
+                <div class="output-area" id="output-area">
+                    <div class="output-placeholder">
+                        <i class="fa-solid fa-feather-pointed"></i>
+                        <p>Nội dung do AI tạo sẽ hiển thị ở đây</p>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-success" id="btn-copy" onclick="copyContent()" disabled>
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-secondary" id="btn-regenerate" onclick="regenerate()" disabled>
+                        <i class="fa-solid fa-rotate"></i> Tạo lại
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <p>AI đang viết nội dung...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { setApiKey, generateContent, CONTENT_TEMPLATES } from './js/ai-service.js';
+
+        let currentTemplate = 'fanpage';
+        let lastGeneratedContent = '';
+
+        // Check saved API key
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('groq_api_key');
+            if (savedKey) {
+                setApiKey(savedKey);
+                document.getElementById('api-key-input').value = savedKey;
+                document.getElementById('api-key-banner').classList.add('api-key-saved');
+                document.querySelector('#api-key-banner .text strong').textContent = '✅ API Key đã lưu';
+            }
+        });
+
+        // Save API key
+        window.saveApiKey = function () {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (!key) {
+                alert('Vui lòng nhập API Key');
+                return;
+            }
+            localStorage.setItem('groq_api_key', key);
+            setApiKey(key);
+            document.getElementById('api-key-banner').classList.add('api-key-saved');
+            document.querySelector('#api-key-banner .text strong').textContent = '✅ API Key đã lưu';
+            if (typeof showToast !== 'undefined') {
+                showToast('Đã lưu API Key!', 'success');
+            }
+        };
+
+        // Select template
+        window.selectTemplate = function (template) {
+            currentTemplate = template;
+            document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-template="${template}"]`).classList.add('active');
+        };
+
+        // Form submit
+        document.getElementById('content-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await generateAIContent();
+        });
+
+        async function generateAIContent() {
+            const savedKey = localStorage.getItem('groq_api_key');
+            if (!savedKey) {
+                alert('Vui lòng nhập Groq API Key trước!');
+                return;
+            }
+
+            const data = {
+                activityName: document.getElementById('activity-name').value,
+                time: document.getElementById('activity-time').value,
+                location: document.getElementById('activity-location').value,
+                team: document.getElementById('activity-team').value,
+                participants: document.getElementById('activity-participants').value,
+                description: document.getElementById('activity-description').value
+            };
+
+            // Show loading
+            document.getElementById('loading-overlay').classList.add('show');
+            document.getElementById('btn-generate').disabled = true;
+
+            try {
+                const content = await generateContent(data, currentTemplate);
+                lastGeneratedContent = content;
+
+                document.getElementById('output-area').textContent = content;
+                document.getElementById('btn-copy').disabled = false;
+                document.getElementById('btn-regenerate').disabled = false;
+
+                if (typeof showToast !== 'undefined') {
+                    showToast('Đã tạo nội dung thành công!', 'success');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('output-area').innerHTML = `
+                    <div class="output-placeholder" style="color: #dc2626;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <p>Lỗi: ${error.message}</p>
+                    </div>
+                `;
+                if (typeof showToast !== 'undefined') {
+                    showToast('Lỗi: ' + error.message, 'error');
+                }
+            } finally {
+                document.getElementById('loading-overlay').classList.remove('show');
+                document.getElementById('btn-generate').disabled = false;
+            }
+        }
+
+        // Copy content
+        window.copyContent = function () {
+            const content = document.getElementById('output-area').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                if (typeof showToast !== 'undefined') {
+                    showToast('Đã copy nội dung!', 'success');
+                } else {
+                    alert('Đã copy!');
+                }
+            });
+        };
+
+        // Regenerate
+        window.regenerate = async function () {
+            await generateAIContent();
+        };
+    </script>
+</body>
+
+</html>
