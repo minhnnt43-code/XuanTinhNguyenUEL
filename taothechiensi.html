@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Thẻ Chiến sĩ XTN 2026</title>
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+
+    <!-- Meta SEO -->
+    <meta name="description" content="Công cụ tạo thẻ chiến sĩ Xuân Tình Nguyện UEL 2026">
+    <meta property="og:title" content="Tạo Thẻ Chiến sĩ XTN 2026">
+    <meta property="og:image" content="images/social-share.png">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- QR Code Styling -->
+    <script src="https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Toast -->
+    <script src="js/toast.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/card.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #FFFDE7 0%, #FFF9C4 50%, #FFECB3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #00723F 0%, #009951 100%);
+            border-radius: 20px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(0, 114, 63, 0.3);
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: #00723F;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: #00723F;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00723F;
+            box-shadow: 0 0 0 3px rgba(0, 114, 63, 0.1);
+        }
+
+        .required {
+            color: #E31837;
+        }
+
+        .upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            border: 3px dashed #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #888;
+        }
+
+        .upload-label:hover,
+        .upload-label.dragging {
+            border-color: #00723F;
+            background: #f0fdf4;
+            color: #00723F;
+        }
+
+        .upload-label i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-label p {
+            margin: 5px 0;
+            font-weight: 500;
+        }
+
+        .upload-label small {
+            color: #aaa;
+        }
+
+        #card-photo {
+            display: none;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00723F, #009951);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 114, 63, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(22, 163, 74, 0.3);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .preview-card {
+            position: sticky;
+            top: 20px;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        #card-canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .zoom-controls {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .zoom-controls.show {
+            display: block;
+        }
+
+        .zoom-slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zoom-slider-wrapper button {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: #f3f4f6;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zoom-slider-wrapper button:hover {
+            background: #e5e7eb;
+        }
+
+        .zoom-slider {
+            flex: 1;
+            height: 40px;
+        }
+
+        .tip-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tip-box i {
+            color: #f59e0b;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        /* Note box */
+        .note-box {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 1px solid #86efac;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .note-box h4 {
+            color: #16a34a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .note-box ul {
+            margin-left: 20px;
+            color: #166534;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Về trang chủ
+    </a>
+
+    <div class="page-container">
+        <header class="page-header">
+            <h1><i class="fa-solid fa-id-card"></i> Tạo Thẻ Chiến sĩ XTN 2026</h1>
+            <p>Điền thông tin và tải ảnh để tạo thẻ chiến sĩ tình nguyện</p>
+        </header>
+
+        <div class="two-column">
+            <!-- Left Column: Form -->
+            <div class="left-col">
+                <div class="card">
+                    <h3><i class="fa-solid fa-file-pen"></i> Nhập thông tin</h3>
+                    <form id="card-form">
+                        <div class="form-group">
+                            <label>Họ và tên <span class="required">*</span></label>
+                            <input type="text" id="card-name" placeholder="Nguyễn Văn A" required>
+                        </div>
+                        <div class="form-group">
+                            <label>MSSV / MSCB</label>
+                            <input type="text" id="card-mssv" placeholder="Nhập mã số sinh viên">
+                        </div>
+                        <div class="form-group">
+                            <label>Vai trò <span class="required">*</span></label>
+                            <select id="card-role">
+                                <option value="Chiến sĩ">Chiến sĩ</option>
+                                <option value="Đội trưởng">Đội trưởng</option>
+                                <option value="Đội phó">Đội phó</option>
+                                <option value="Thành viên Ban Chỉ huy">Thành viên Ban Chỉ huy</option>
+                                <option value="Chỉ huy Phó">Chỉ huy Phó</option>
+                                <option value="Chỉ huy Trưởng">Chỉ huy Trưởng</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Đội hình <span class="required">*</span></label>
+                            <select id="card-team">
+                                <option value="">-- Chọn đội hình --</option>
+                                <option value="Ban Chỉ huy Chiến dịch">Ban Chỉ huy Chiến dịch</option>
+                                <option value="Đội hình Xuân tự hào">Đội hình Xuân tự hào</option>
+                                <option value="Đội hình Xuân bản sắc">Đội hình Xuân bản sắc</option>
+                                <option value="Đội hình Xuân sẻ chia">Đội hình Xuân sẻ chia</option>
+                                <option value="Đội hình Xuân gắn kết">Đội hình Xuân gắn kết</option>
+                                <option value="Đội hình Xuân chiến sĩ">Đội hình Xuân chiến sĩ</option>
+                                <option value="Đội hình Tết văn minh">Đội hình Tết văn minh</option>
+                                <option value="Đội hình Tư vấn và giảng dạy pháp luật cộng đồng">Đội hình Tư vấn và
+                                    giảng dạy pháp luật cộng đồng</option>
+                                <option value="Đội hình Giai điệu mùa xuân">Đội hình Giai điệu mùa xuân</option>
+                                <option value="Đội hình Viên chức trẻ">Đội hình Viên chức trẻ</option>
+                                <option value="Đội hình Hậu cần">Đội hình Hậu cần</option>
+                                <option value="Đội hình Ký sự Tết">Đội hình Ký sự Tết</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ảnh chân dung</label>
+                            <div id="card-photo-area">
+                                <label for="card-photo" class="upload-label" id="card-photo-label">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <p>Nhấn hoặc kéo ảnh vào đây</p>
+                                    <small>Hỗ trợ: JPG, PNG</small>
+                                </label>
+                                <input type="file" id="card-photo" accept="image/*">
+                                <p id="card-photo-status"></p>
+                            </div>
+                        </div>
+                        <div class="form-group zoom-controls" id="card-zoom-group">
+                            <label>Phóng to / Thu nhỏ</label>
+                            <div class="zoom-slider-wrapper">
+                                <button type="button" onclick="adjustZoom(-0.1)">−</button>
+                                <input type="range" id="card-zoom" class="zoom-slider" min="0.5" max="3" step="0.1"
+                                    value="1">
+                                <button type="button" onclick="adjustZoom(0.1)">+</button>
+                            </div>
+                            <div class="tip-box">
+                                <i class="fa-solid fa-lightbulb"></i>
+                                <span><strong>Mẹo:</strong> Dùng nút +/− hoặc kéo thả ảnh trên thẻ để điều chỉnh vị
+                                    trí.</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa-solid fa-rotate"></i> Cập nhật thẻ
+                        </button>
+                    </form>
+                </div>
+
+                <div class="note-box">
+                    <h4><i class="fa-solid fa-circle-info"></i> Hướng dẫn</h4>
+                    <ul>
+                        <li>Điền đầy đủ thông tin và tải ảnh chân dung</li>
+                        <li>Kéo thả để điều chỉnh vị trí ảnh trong khung tròn</li>
+                        <li>Dùng thanh trượt hoặc nút +/− để zoom ảnh</li>
+                        <li>Nhấn "Tải về thẻ" khi hoàn tất</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Column: Preview -->
+            <div class="right-col">
+                <div class="card preview-card">
+                    <h3><i class="fa-solid fa-eye"></i> Xem trước thẻ</h3>
+                    <div class="canvas-wrapper">
+                        <canvas id="card-canvas" width="1375" height="2125"></canvas>
+                    </div>
+                    <div class="btn-row">
+                        <button id="btn-card-download" class="btn btn-success" disabled>
+                            <i class="fa-solid fa-download"></i> Tải về thẻ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // ============================================================
+        // STANDALONE CARD CREATOR - Không cần Firebase
+        // ============================================================
+
+        // State
+        let cardCanvas, cardCtx;
+        let templateImg = new Image();
+        templateImg.crossOrigin = "Anonymous";
+
+        let userPhoto = new Image();
+        let userPhotoLoaded = false;
+
+        let scale = 1;
+        let offsetX = 0, offsetY = 0;
+        let isDragging = false;
+        let lastX, lastY;
+
+        let qrCodeImage = null;
+
+        // Config
+        const SCALE_FACTOR = 2.5;
+        const CANVAS_WIDTH = 550 * SCALE_FACTOR;
+        const CANVAS_HEIGHT = 850 * SCALE_FACTOR;
+
+        const AVATAR_X = 275 * SCALE_FACTOR;
+        const AVATAR_Y = 415 * SCALE_FACTOR;
+        const AVATAR_RADIUS = 160 * SCALE_FACTOR;
+
+        const NAME_Y = 630 * SCALE_FACTOR;
+        const TEAM_Y = 675 * SCALE_FACTOR;
+        const ROLE_Y = 730 * SCALE_FACTOR;
+
+        const QR_X = 15 * SCALE_FACTOR;
+        const QR_Y = 770 * SCALE_FACTOR;
+        const QR_SIZE = 65 * SCALE_FACTOR;
+
+        const COLOR_RED = '#E31837';
+        const COLOR_GREEN = '#00723F';
+        const COLOR_YELLOW = '#FFE500';
+        const COLOR_ORANGE = '#FF6B00';
+        const FONT_IMPACT = '"UTM Impact"';
+
+        // Default logo image
+        let defaultLogo = new Image();
+        defaultLogo.crossOrigin = "Anonymous";
+
+        // Init
+        async function init() {
+            cardCanvas = document.getElementById('card-canvas');
+            if (!cardCanvas) return;
+
+            cardCtx = cardCanvas.getContext('2d');
+            cardCanvas.width = CANVAS_WIDTH;
+            cardCanvas.height = CANVAS_HEIGHT;
+
+            // Load font
+            try {
+                const utmImpact = new FontFace('UTM Impact', 'url(fonts/UTM%20Impact.ttf)');
+                await utmImpact.load();
+                document.fonts.add(utmImpact);
+                console.log('[Card] UTM Impact font loaded');
+            } catch (e) {
+                console.warn('[Card] Font fallback:', e);
+            }
+
+            // Load template
+            templateImg.src = 'images/thechiensi.png?v=' + Date.now();
+            templateImg.onload = () => {
+                console.log('[Card] Template loaded');
+                drawCard();
+            };
+            templateImg.onerror = () => {
+                console.warn('[Card] Template not found');
+                drawCard();
+            };
+
+            // Load default logo image
+            defaultLogo.src = 'images/logoxtn.png?v=' + Date.now();
+            defaultLogo.onload = () => {
+                console.log('[Card] Default logo loaded');
+                // Set as default userPhoto if not uploaded yet
+                if (!userPhotoLoaded) {
+                    userPhoto = defaultLogo;
+                    userPhotoLoaded = true;
+                    scale = getBaseScale();
+                    offsetX = 0;
+                    offsetY = 0;
+                    drawCard();
+                    // Enable download button
+                    const btn = document.getElementById('btn-card-download');
+                    if (btn) btn.disabled = false;
+                }
+            };
+
+            setupEventListeners();
+            drawCard();
+
+            // Enable download button by default
+            const btn = document.getElementById('btn-card-download');
+            if (btn) btn.disabled = false;
+        }
+
+        function setupEventListeners() {
+            // Form inputs
+            ['card-name', 'card-mssv', 'card-role', 'card-team'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', drawCard);
+                    el.addEventListener('change', drawCard);
+                }
+            });
+
+            // Photo upload
+            const photoInput = document.getElementById('card-photo');
+            if (photoInput) {
+                photoInput.addEventListener('change', handlePhotoUpload);
+            }
+
+            // Drag & Drop
+            const uploadLabel = document.getElementById('card-photo-label');
+            if (uploadLabel) {
+                uploadLabel.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadLabel.classList.add('dragging');
+                });
+                uploadLabel.addEventListener('dragleave', () => {
+                    uploadLabel.classList.remove('dragging');
+                });
+                uploadLabel.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadLabel.classList.remove('dragging');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        handlePhotoFile(file);
+                    }
+                });
+            }
+
+            // Zoom slider
+            const zoomSlider = document.getElementById('card-zoom');
+            if (zoomSlider) {
+                zoomSlider.addEventListener('input', (e) => {
+                    if (!userPhotoLoaded) return;
+                    const baseScale = getBaseScale();
+                    scale = baseScale * e.target.value;
+                    drawCard();
+                });
+            }
+
+            // Canvas drag
+            if (cardCanvas) {
+                cardCanvas.addEventListener('wheel', (e) => {
+                    if (!userPhotoLoaded) return;
+                    e.preventDefault();
+                    const wheel = e.deltaY < 0 ? 1 : -1;
+                    const zoom = Math.exp(wheel * 0.1);
+                    const newScale = scale * zoom;
+                    const baseScale = getBaseScale();
+                    if (newScale >= baseScale * 0.5 && newScale <= baseScale * 3) {
+                        scale = newScale;
+                        const slider = document.getElementById('card-zoom');
+                        if (slider) slider.value = scale / baseScale;
+                        drawCard();
+                    }
+                });
+
+                cardCanvas.addEventListener('mousedown', (e) => {
+                    if (userPhotoLoaded && e.button === 0) {
+                        isDragging = true;
+                        lastX = e.clientX;
+                        lastY = e.clientY;
+                        cardCanvas.style.cursor = 'grabbing';
+                    }
+                });
+
+                cardCanvas.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const dx = e.clientX - lastX;
+                        const dy = e.clientY - lastY;
+                        const rect = cardCanvas.getBoundingClientRect();
+                        const ratio = cardCanvas.width / rect.width;
+                        offsetX += dx * ratio;
+                        offsetY += dy * ratio;
+                        lastX = e.clientX;
+                        lastY = e.clientY;
+                        drawCard();
+                    }
+                });
+
+                cardCanvas.addEventListener('mouseup', stopDrag);
+                cardCanvas.addEventListener('mouseleave', stopDrag);
+
+                // Touch events for mobile
+                cardCanvas.addEventListener('touchstart', (e) => {
+                    if (userPhotoLoaded && e.touches.length === 1) {
+                        isDragging = true;
+                        lastX = e.touches[0].clientX;
+                        lastY = e.touches[0].clientY;
+                    }
+                });
+
+                cardCanvas.addEventListener('touchmove', (e) => {
+                    if (isDragging && e.touches.length === 1) {
+                        e.preventDefault();
+                        const dx = e.touches[0].clientX - lastX;
+                        const dy = e.touches[0].clientY - lastY;
+                        const rect = cardCanvas.getBoundingClientRect();
+                        const ratio = cardCanvas.width / rect.width;
+                        offsetX += dx * ratio;
+                        offsetY += dy * ratio;
+                        lastX = e.touches[0].clientX;
+                        lastY = e.touches[0].clientY;
+                        drawCard();
+                    }
+                });
+
+                cardCanvas.addEventListener('touchend', stopDrag);
+            }
+
+            // Form submit
+            const form = document.getElementById('card-form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    drawCard();
+                    if (userPhotoLoaded) {
+                        document.getElementById('btn-card-download').disabled = false;
+                    }
+                });
+            }
+
+            // Download button
+            const downloadBtn = document.getElementById('btn-card-download');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', downloadCard);
+            }
+
+            // MSSV -> QR
+            const mssvInput = document.getElementById('card-mssv');
+            if (mssvInput) {
+                mssvInput.addEventListener('input', debounce(async (e) => {
+                    await updateQRCode(e.target.value);
+                    drawCard();
+                }, 300));
+            }
+        }
+
+        function stopDrag() {
+            if (isDragging) {
+                isDragging = false;
+                if (cardCanvas) cardCanvas.style.cursor = userPhotoLoaded ? 'grab' : 'default';
+            }
+        }
+
+        function getBaseScale() {
+            if (!userPhoto.width) return 1;
+            return Math.max((AVATAR_RADIUS * 2) / userPhoto.width, (AVATAR_RADIUS * 2) / userPhoto.height);
+        }
+
+        function debounce(func, delay) {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        function handlePhotoUpload(e) {
+            const file = e.target.files[0];
+            if (file) handlePhotoFile(file);
+        }
+
+        function handlePhotoFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                userPhoto.src = e.target.result;
+                userPhoto.onload = () => {
+                    userPhotoLoaded = true;
+                    scale = getBaseScale();
+                    offsetX = 0;
+                    offsetY = 0;
+
+                    const zoomGroup = document.getElementById('card-zoom-group');
+                    if (zoomGroup) zoomGroup.classList.add('show');
+
+                    const zoomSlider = document.getElementById('card-zoom');
+                    if (zoomSlider) zoomSlider.value = 1;
+
+                    if (cardCanvas) cardCanvas.style.cursor = 'grab';
+
+                    drawCard();
+
+                    document.getElementById('btn-card-download').disabled = false;
+
+                    // Update label
+                    const label = document.getElementById('card-photo-label');
+                    if (label) {
+                        label.innerHTML = `
+                            <span style="color:#22c55e;"><i class="fa-solid fa-check-circle"></i> Đã tải ảnh</span><br>
+                            <small>Nhấn để thay đổi</small>
+                        `;
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function updateQRCode(data) {
+            if (!data || !data.trim()) {
+                qrCodeImage = null;
+                return;
+            }
+
+            if (typeof QRCodeStyling === 'undefined') return;
+
+            try {
+                const qr = new QRCodeStyling({
+                    width: QR_SIZE * 2,
+                    height: QR_SIZE * 2,
+                    type: 'canvas',
+                    margin: 5,
+                    data: data.trim(),
+                    dotsOptions: { color: COLOR_GREEN, type: "square" },
+                    backgroundOptions: { color: "#ffffff" },
+                    cornersSquareOptions: { type: "square", color: COLOR_ORANGE },
+                    cornersDotOptions: { type: "square", color: COLOR_GREEN },
+                    qrOptions: { errorCorrectionLevel: 'H' }
+                });
+
+                const blob = await qr.getRawData('png');
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    qrCodeImage = new Image();
+                    qrCodeImage.onload = () => {
+                        URL.revokeObjectURL(url);
+                        drawCard();
+                    };
+                    qrCodeImage.src = url;
+                }
+            } catch (e) {
+                console.warn('[Card] QR error:', e);
+            }
+        }
+
+        function drawCard() {
+            if (!cardCtx) return;
+
+            cardCtx.fillStyle = '#f0f0f0';
+            cardCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            if (templateImg.complete && templateImg.naturalWidth > 0) {
+                cardCtx.drawImage(templateImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else {
+                drawFallbackCard();
+            }
+
+            drawUserPhoto();
+
+            if (qrCodeImage && qrCodeImage.complete) {
+                cardCtx.drawImage(qrCodeImage, QR_X, QR_Y, QR_SIZE, QR_SIZE);
+            }
+
+            drawTexts();
+        }
+
+        function drawFallbackCard() {
+            const gradient = cardCtx.createLinearGradient(0, 0, CANVAS_WIDTH, 0);
+            gradient.addColorStop(0, COLOR_GREEN);
+            gradient.addColorStop(1, '#00964F');
+            cardCtx.fillStyle = gradient;
+            cardCtx.fillRect(0, 0, CANVAS_WIDTH, 120);
+
+            cardCtx.fillStyle = '#fff';
+            cardCtx.font = 'bold 32px Montserrat, sans-serif';
+            cardCtx.textAlign = 'center';
+            cardCtx.fillText('THẺ CHIẾN SĨ', CANVAS_WIDTH / 2, 55);
+            cardCtx.font = '18px Montserrat, sans-serif';
+            cardCtx.fillText('XUÂN TÌNH NGUYỆN UEL 2026', CANVAS_WIDTH / 2, 90);
+
+            cardCtx.fillStyle = COLOR_YELLOW;
+            cardCtx.fillRect(0, 120, CANVAS_WIDTH, CANVAS_HEIGHT - 120);
+
+            cardCtx.fillStyle = COLOR_GREEN;
+            cardCtx.fillRect(0, CANVAS_HEIGHT - 60, CANVAS_WIDTH, 60);
+            cardCtx.fillStyle = '#fff';
+            cardCtx.font = 'bold 14px Montserrat, sans-serif';
+            cardCtx.fillText('HỘI SINH VIÊN ĐH KINH TẾ - LUẬT', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 25);
+        }
+
+        function drawUserPhoto() {
+            cardCtx.save();
+            cardCtx.beginPath();
+            cardCtx.arc(AVATAR_X, AVATAR_Y, AVATAR_RADIUS, 0, Math.PI * 2);
+            cardCtx.clip();
+
+            if (userPhotoLoaded && userPhoto.complete) {
+                const imgWidth = userPhoto.width * scale;
+                const imgHeight = userPhoto.height * scale;
+                const drawX = AVATAR_X - imgWidth / 2 + offsetX;
+                const drawY = AVATAR_Y - imgHeight / 2 + offsetY;
+                cardCtx.drawImage(userPhoto, drawX, drawY, imgWidth, imgHeight);
+            }
+
+            cardCtx.restore();
+        }
+
+        function drawTexts() {
+            const name = document.getElementById('card-name')?.value || 'Họ và Tên';
+            const team = document.getElementById('card-team')?.value || 'Đội hình';
+            const role = document.getElementById('card-role')?.value || 'Chiến sĩ';
+
+            cardCtx.textAlign = 'center';
+
+            // Name - Red
+            cardCtx.fillStyle = COLOR_RED;
+            cardCtx.font = `bold ${40 * SCALE_FACTOR}px ${FONT_IMPACT}`;
+            drawTextWithSpacing(cardCtx, name.toUpperCase(), CANVAS_WIDTH / 2, NAME_Y, 1 * SCALE_FACTOR);
+
+            // Team - Green
+            cardCtx.fillStyle = COLOR_GREEN;
+            cardCtx.font = `${23 * SCALE_FACTOR}px ${FONT_IMPACT}`;
+            cardCtx.fillText(team.toUpperCase(), CANVAS_WIDTH / 2, TEAM_Y);
+
+            // Role - White
+            cardCtx.fillStyle = '#ffffff';
+            cardCtx.font = `bold ${20 * SCALE_FACTOR}px ${FONT_IMPACT}`;
+            cardCtx.fillText(role.toUpperCase(), CANVAS_WIDTH / 2, ROLE_Y);
+        }
+
+        function drawTextWithSpacing(ctx, text, x, y, spacing) {
+            const chars = text.split('');
+            let totalWidth = 0;
+            chars.forEach(char => {
+                totalWidth += ctx.measureText(char).width + spacing;
+            });
+            totalWidth -= spacing;
+
+            let currentX = x - totalWidth / 2;
+            chars.forEach(char => {
+                ctx.textAlign = 'left';
+                ctx.fillText(char, currentX, y);
+                currentX += ctx.measureText(char).width + spacing;
+            });
+            ctx.textAlign = 'center';
+        }
+
+        function removeVietnameseDiacritics(str) {
+            const map = {
+                'à': 'a', 'á': 'a', 'ạ': 'a', 'ả': 'a', 'ã': 'a',
+                'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ậ': 'a', 'ẩ': 'a', 'ẫ': 'a',
+                'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ặ': 'a', 'ẳ': 'a', 'ẵ': 'a',
+                'è': 'e', 'é': 'e', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e',
+                'ê': 'e', 'ề': 'e', 'ế': 'e', 'ệ': 'e', 'ể': 'e', 'ễ': 'e',
+                'ì': 'i', 'í': 'i', 'ị': 'i', 'ỉ': 'i', 'ĩ': 'i',
+                'ò': 'o', 'ó': 'o', 'ọ': 'o', 'ỏ': 'o', 'õ': 'o',
+                'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ộ': 'o', 'ổ': 'o', 'ỗ': 'o',
+                'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ợ': 'o', 'ở': 'o', 'ỡ': 'o',
+                'ù': 'u', 'ú': 'u', 'ụ': 'u', 'ủ': 'u', 'ũ': 'u',
+                'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ự': 'u', 'ử': 'u', 'ữ': 'u',
+                'ỳ': 'y', 'ý': 'y', 'ỵ': 'y', 'ỷ': 'y', 'ỹ': 'y',
+                'đ': 'd',
+                'À': 'A', 'Á': 'A', 'Ạ': 'A', 'Ả': 'A', 'Ã': 'A',
+                'Â': 'A', 'Ầ': 'A', 'Ấ': 'A', 'Ậ': 'A', 'Ẩ': 'A', 'Ẫ': 'A',
+                'Ă': 'A', 'Ằ': 'A', 'Ắ': 'A', 'Ặ': 'A', 'Ẳ': 'A', 'Ẵ': 'A',
+                'È': 'E', 'É': 'E', 'Ẹ': 'E', 'Ẻ': 'E', 'Ẽ': 'E',
+                'Ê': 'E', 'Ề': 'E', 'Ế': 'E', 'Ệ': 'E', 'Ể': 'E', 'Ễ': 'E',
+                'Ì': 'I', 'Í': 'I', 'Ị': 'I', 'Ỉ': 'I', 'Ĩ': 'I',
+                'Ò': 'O', 'Ó': 'O', 'Ọ': 'O', 'Ỏ': 'O', 'Õ': 'O',
+                'Ô': 'O', 'Ồ': 'O', 'Ố': 'O', 'Ộ': 'O', 'Ổ': 'O', 'Ỗ': 'O',
+                'Ơ': 'O', 'Ờ': 'O', 'Ớ': 'O', 'Ợ': 'O', 'Ở': 'O', 'Ỡ': 'O',
+                'Ù': 'U', 'Ú': 'U', 'Ụ': 'U', 'Ủ': 'U', 'Ũ': 'U',
+                'Ư': 'U', 'Ừ': 'U', 'Ứ': 'U', 'Ự': 'U', 'Ử': 'U', 'Ữ': 'U',
+                'Ỳ': 'Y', 'Ý': 'Y', 'Ỵ': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y',
+                'Đ': 'D'
+            };
+            return str.split('').map(char => map[char] || char).join('');
+        }
+
+        function downloadCard() {
+            if (!cardCanvas) {
+                alert('Vui lòng tạo thẻ trước!');
+                return;
+            }
+
+            const rawName = document.getElementById('card-name')?.value || 'ChienSi';
+            const name = removeVietnameseDiacritics(rawName).replace(/\s+/g, '');
+            const mssv = document.getElementById('card-mssv')?.value || 'MSSV';
+            const rawTeam = document.getElementById('card-team')?.value || 'DoiHinh';
+            const team = 'Doihinh' + removeVietnameseDiacritics(
+                rawTeam.replace(/^Đội hình\s*/i, '').replace(/\s+/g, '')
+            );
+
+            const fileName = `${name}_${mssv}_${team}.png`;
+
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = cardCanvas.toDataURL('image/png');
+            link.click();
+
+            // Show success
+            if (typeof showToast !== 'undefined') {
+                showToast(`Đã tải thẻ: ${fileName}`, 'success');
+            } else {
+                alert(`Đã tải thẻ: ${fileName}`);
+            }
+        }
+
+        // Expose adjustZoom to global
+        window.adjustZoom = function (delta) {
+            const slider = document.getElementById('card-zoom');
+            if (!slider || !userPhotoLoaded) return;
+            const newVal = Math.max(0.5, Math.min(3, parseFloat(slider.value) + delta));
+            slider.value = newVal;
+            slider.dispatchEvent(new Event('input'));
+        };
+
+        // Init on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
