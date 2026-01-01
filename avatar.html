@@ -435,56 +435,46 @@
             }
         }
 
-        // HD Download with counter - hỗ trợ mobile với Web Share API
+        // HD Download with counter - tối ưu cho từng thiết bị
         async function downloadAvatarHD() {
             const canvas = document.getElementById('avatar-canvas');
             if (!canvas) return;
 
-            // Kiểm tra có phải mobile không
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            // Detect iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-            if (isMobile) {
-                // Mobile: Dùng Web Share API nếu có
-                try {
-                    // Chuyển canvas thành blob
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+
+                if (isIOS) {
+                    // iOS: Dùng Web Share API - chỉ cần 1 tap "Save Image"
                     const file = new File([blob], 'AvatarXTN2026.png', { type: 'image/png' });
-
-                    // Kiểm tra Web Share API có hỗ trợ file không
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Avatar XTN 2026',
-                            text: 'Avatar Xuân tình nguyện UEL 2026'
-                        });
+                        await navigator.share({ files: [file] });
                         incrementCounter();
                         return;
                     }
-                } catch (err) {
-                    if (err.name === 'AbortError') return;
-                    console.warn('Share failed, trying blob download:', err);
                 }
 
-                // Fallback: Dùng Blob URL để download
-                try {
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-                    const blobUrl = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = 'AvatarXTN2026.png';
-                    document.body.appendChild(link);
-                    link.click();
+                // Android & Desktop: Tải tự động bằng Blob URL
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = 'AvatarXTN2026.png';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+
+                setTimeout(() => {
                     document.body.removeChild(link);
                     URL.revokeObjectURL(blobUrl);
-                    incrementCounter();
-                } catch (err) {
-                    // Fallback cuối: mở ảnh trong tab mới
-                    const dataUrl = canvas.toDataURL('image/png', 1.0);
-                    window.open(dataUrl, '_blank');
-                    incrementCounter();
-                }
-            } else {
-                // Desktop: Tải trực tiếp
+                }, 100);
+
+                incrementCounter();
+            } catch (err) {
+                if (err.name === 'AbortError') return; // User hủy share
+                console.error('Download failed:', err);
+                // Fallback cuối
                 const link = document.createElement('a');
                 link.download = 'AvatarXTN2026.png';
                 link.href = canvas.toDataURL('image/png', 1.0);
