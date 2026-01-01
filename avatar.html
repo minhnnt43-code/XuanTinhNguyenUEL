@@ -435,83 +435,62 @@
             }
         }
 
-        // HD Download with counter - hỗ trợ mobile
-        function downloadAvatarHD() {
+        // HD Download with counter - hỗ trợ mobile với Web Share API
+        async function downloadAvatarHD() {
             const canvas = document.getElementById('avatar-canvas');
             if (!canvas) return;
-
-            const dataUrl = canvas.toDataURL('image/png', 1.0);
 
             // Kiểm tra có phải mobile không
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
             if (isMobile) {
-                // Mobile: Mở ảnh trong tab mới để người dùng nhấn giữ và lưu
-                const newWindow = window.open('', '_blank');
-                if (newWindow) {
-                    newWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <title>Avatar XTN 2026</title>
-                            <style>
-                                body { 
-                                    margin: 0; 
-                                    padding: 20px; 
-                                    display: flex; 
-                                    flex-direction: column;
-                                    align-items: center; 
-                                    justify-content: center; 
-                                    min-height: 100vh; 
-                                    background: #f5f5f5;
-                                    font-family: sans-serif;
-                                }
-                                img { 
-                                    max-width: 100%; 
-                                    height: auto; 
-                                    border-radius: 12px;
-                                    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-                                }
-                                .instructions {
-                                    text-align: center;
-                                    margin-bottom: 20px;
-                                    padding: 15px;
-                                    background: #00723F;
-                                    color: white;
-                                    border-radius: 10px;
-                                    font-size: 14px;
-                                }
-                                .instructions strong {
-                                    display: block;
-                                    font-size: 16px;
-                                    margin-bottom: 8px;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="instructions">
-                                <strong>📱 Hướng dẫn lưu ảnh</strong>
-                                Nhấn giữ vào ảnh bên dưới → Chọn "Lưu hình ảnh"
-                            </div>
-                            <img src="${dataUrl}" alt="Avatar XTN 2026">
-                        </body>
-                        </html>
-                    `);
-                    newWindow.document.close();
-                } else {
-                    alert('Vui lòng cho phép popup để tải ảnh!');
+                // Mobile: Dùng Web Share API nếu có
+                try {
+                    // Chuyển canvas thành blob
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                    const file = new File([blob], 'AvatarXTN2026.png', { type: 'image/png' });
+
+                    // Kiểm tra Web Share API có hỗ trợ file không
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Avatar XTN 2026',
+                            text: 'Avatar Xuân tình nguyện UEL 2026'
+                        });
+                        incrementCounter();
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    console.warn('Share failed, trying blob download:', err);
+                }
+
+                // Fallback: Dùng Blob URL để download
+                try {
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = 'AvatarXTN2026.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                    incrementCounter();
+                } catch (err) {
+                    // Fallback cuối: mở ảnh trong tab mới
+                    const dataUrl = canvas.toDataURL('image/png', 1.0);
+                    window.open(dataUrl, '_blank');
+                    incrementCounter();
                 }
             } else {
                 // Desktop: Tải trực tiếp
                 const link = document.createElement('a');
                 link.download = 'AvatarXTN2026.png';
-                link.href = dataUrl;
+                link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
+                incrementCounter();
             }
-
-            // Increment counter
-            incrementCounter();
         }
 
         // Khởi tạo trực tiếp - KHÔNG cần đăng nhập
