@@ -73,61 +73,6 @@
             color: #666;
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .two-column {
-                flex-direction: column;
-            }
-
-            .header h1 {
-                font-size: 1.3rem;
-            }
-
-            .header p {
-                font-size: 0.9rem;
-            }
-
-            .card {
-                padding: 15px !important;
-            }
-
-            .canvas-wrapper {
-                max-width: 100%;
-            }
-
-            #avatar-canvas {
-                max-width: 100%;
-                height: auto;
-                touch-action: none;
-            }
-
-            .btn-block {
-                padding: 16px !important;
-                font-size: 1.1rem !important;
-            }
-
-            .zoom-slider {
-                height: 50px !important;
-            }
-
-            /* Counter badge */
-            .counter-badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                background: linear-gradient(135deg, #00723F, #00a758);
-                color: white;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 0.9rem;
-                font-weight: 600;
-                margin-top: 10px;
-            }
-        }
-
         /* Counter badge cho cả desktop */
         .counter-badge {
             display: inline-flex;
@@ -145,6 +90,232 @@
 
         .counter-badge i {
             font-size: 1.1rem;
+        }
+
+        /* Two column layout */
+        .two-column {
+            display: flex;
+            gap: 20px;
+        }
+
+        .left-col {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .right-col {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        /* Upload area styling */
+        .upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            border: 3px dashed #00723F;
+            border-radius: 12px;
+            background: rgba(0, 114, 63, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 150px;
+        }
+
+        .upload-label:hover,
+        .upload-label.dragging {
+            background: rgba(0, 114, 63, 0.1);
+            border-color: #00a758;
+        }
+
+        .upload-label i {
+            font-size: 3rem;
+            color: #00723F;
+            margin-bottom: 10px;
+        }
+
+        .upload-label p {
+            color: #00723F;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .upload-label small {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        #avatar-upload {
+            display: none;
+        }
+
+        /* Canvas wrapper */
+        .canvas-wrapper {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        #avatar-canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Tip box */
+        .tip-box {
+            background: rgba(0, 114, 63, 0.1);
+            border-left: 4px solid #00723F;
+            padding: 12px 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .tip-box i {
+            color: #FFEB3B;
+            margin-right: 8px;
+        }
+
+        /* ============================================
+           MOBILE RESPONSIVE STYLES
+           ============================================ */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+                line-height: 1.4;
+            }
+
+            .header p {
+                font-size: 0.85rem;
+            }
+
+            .counter-badge {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+                margin-top: 10px;
+            }
+
+            /* Stack columns on mobile */
+            .two-column {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .left-col,
+            .right-col {
+                min-width: 100%;
+            }
+
+            /* Card styling */
+            .card {
+                padding: 15px !important;
+                border-radius: 12px;
+            }
+
+            .card h3 {
+                font-size: 1rem;
+                margin-bottom: 12px;
+            }
+
+            /* Upload area mobile */
+            .upload-label {
+                padding: 25px 15px;
+                min-height: 120px;
+            }
+
+            .upload-label i {
+                font-size: 2.5rem;
+            }
+
+            .upload-label p {
+                font-size: 0.95rem;
+            }
+
+            /* Canvas mobile */
+            .canvas-wrapper {
+                margin-bottom: 12px;
+            }
+
+            #avatar-canvas {
+                max-width: 100%;
+                height: auto;
+                touch-action: none;
+            }
+
+            /* Zoom controls mobile */
+            .zoom-controls {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .zoom-btn {
+                width: 50px !important;
+                height: 50px !important;
+                font-size: 1.5rem !important;
+                border-radius: 12px;
+                touch-action: manipulation;
+            }
+
+            .zoom-slider {
+                height: 50px !important;
+                -webkit-appearance: none;
+                appearance: none;
+            }
+
+            /* Buttons mobile - larger touch targets */
+            .btn-block {
+                padding: 16px 20px !important;
+                font-size: 1.1rem !important;
+                border-radius: 12px;
+                min-height: 56px;
+            }
+
+            /* Tip box mobile */
+            .tip-box {
+                font-size: 0.85rem;
+                padding: 10px 12px;
+            }
+
+            /* Footer mobile */
+            footer {
+                margin: 20px 10px !important;
+                padding: 15px !important;
+                font-size: 0.8rem !important;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 380px) {
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .counter-badge {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+
+            .upload-label {
+                padding: 20px 10px;
+            }
+
+            .zoom-btn {
+                width: 44px !important;
+                height: 44px !important;
+                font-size: 1.3rem !important;
+            }
+
+            .btn-block {
+                font-size: 1rem !important;
+            }
         }
     </style>
 </head>
@@ -264,16 +435,80 @@
             }
         }
 
-        // HD Download with counter
+        // HD Download with counter - hỗ trợ mobile
         function downloadAvatarHD() {
             const canvas = document.getElementById('avatar-canvas');
             if (!canvas) return;
 
-            // Export with maximum quality
-            const link = document.createElement('a');
-            link.download = 'AvatarXTN2026.png';
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
+
+            // Kiểm tra có phải mobile không
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                // Mobile: Mở ảnh trong tab mới để người dùng nhấn giữ và lưu
+                const newWindow = window.open('', '_blank');
+                if (newWindow) {
+                    newWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>Avatar XTN 2026</title>
+                            <style>
+                                body { 
+                                    margin: 0; 
+                                    padding: 20px; 
+                                    display: flex; 
+                                    flex-direction: column;
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    min-height: 100vh; 
+                                    background: #f5f5f5;
+                                    font-family: sans-serif;
+                                }
+                                img { 
+                                    max-width: 100%; 
+                                    height: auto; 
+                                    border-radius: 12px;
+                                    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                                }
+                                .instructions {
+                                    text-align: center;
+                                    margin-bottom: 20px;
+                                    padding: 15px;
+                                    background: #00723F;
+                                    color: white;
+                                    border-radius: 10px;
+                                    font-size: 14px;
+                                }
+                                .instructions strong {
+                                    display: block;
+                                    font-size: 16px;
+                                    margin-bottom: 8px;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="instructions">
+                                <strong>📱 Hướng dẫn lưu ảnh</strong>
+                                Nhấn giữ vào ảnh bên dưới → Chọn "Lưu hình ảnh"
+                            </div>
+                            <img src="${dataUrl}" alt="Avatar XTN 2026">
+                        </body>
+                        </html>
+                    `);
+                    newWindow.document.close();
+                } else {
+                    alert('Vui lòng cho phép popup để tải ảnh!');
+                }
+            } else {
+                // Desktop: Tải trực tiếp
+                const link = document.createElement('a');
+                link.download = 'AvatarXTN2026.png';
+                link.href = dataUrl;
+                link.click();
+            }
 
             // Increment counter
             incrementCounter();

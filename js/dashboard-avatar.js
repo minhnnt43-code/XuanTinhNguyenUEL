@@ -136,10 +136,8 @@ export function initAvatarCanvas() {
         avatarResetBtn.addEventListener('click', resetAvatarFull);
     }
 
-    // Download button
-    if (avatarDownloadBtn) {
-        avatarDownloadBtn.addEventListener('click', downloadAvatar);
-    }
+    // Download button - KHÔNG add listener ở đây
+    // avatar.html sẽ handle riêng với counter tracking
 
     drawAvatarCanvas();
 }
