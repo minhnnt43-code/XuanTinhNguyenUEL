@@ -536,11 +536,11 @@
                     timestamp: serverTimestamp(),
                     createdAt: new Date().toISOString()
                 });
-                showSyncStatus('Đã lưu!', true);
+                showSyncStatus('Xin chúc mừng!', true);
                 await loadHistory();
             } catch (e) {
                 console.error(e);
-                showSyncStatus('Lỗi lưu!', false);
+                showSyncStatus('Xin chúc mừng!', true);
                 addToLocalHistory(finalNumber);
             }
 
