@@ -365,6 +365,87 @@
             color: #c62828;
         }
 
+        /* Congratulation Popup */
+        .congrats-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(189, 17, 17, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .congrats-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .congrats-box {
+            background: linear-gradient(135deg, #fff9c4 0%, #fff176 50%, #ffd54f 100%);
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            border: 5px solid #c62828;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            transform: scale(0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90%;
+        }
+
+        .congrats-overlay.show .congrats-box {
+            transform: scale(1);
+        }
+
+        .congrats-title {
+            font-family: 'UTM Avo', Arial, sans-serif;
+            font-size: 2rem;
+            color: #c62828;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .congrats-number {
+            font-family: 'UTM Avo', Arial, sans-serif;
+            font-size: 5rem;
+            font-weight: bold;
+            color: #c62828;
+            text-shadow:
+                -3px -3px 0 #fff,
+                3px -3px 0 #fff,
+                -3px 3px 0 #fff,
+                3px 3px 0 #fff,
+                -4px -4px 0 #333,
+                4px -4px 0 #333,
+                -4px 4px 0 #333,
+                4px 4px 0 #333;
+            letter-spacing: 10px;
+            margin: 20px 0;
+        }
+
+        .congrats-close {
+            margin-top: 20px;
+            padding: 12px 40px;
+            font-family: 'UTM Avo', Arial, sans-serif;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+            transition: all 0.3s;
+        }
+
+        .congrats-close:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.5);
+        }
+
         /* Responsive for smaller screens */
         @media (max-height: 600px) {
             .main-container {
@@ -438,6 +519,15 @@
         </div>
     </div>
 
+    <!-- Congratulation Popup -->
+    <div class="congrats-overlay" id="congratsOverlay" onclick="closeCongrats(event)">
+        <div class="congrats-box">
+            <div class="congrats-title">🎉 XIN CHÚC MỪNG 🎉</div>
+            <div class="congrats-number" id="congratsNumber">000</div>
+            <button class="congrats-close" onclick="closeCongrats()">Đóng</button>
+        </div>
+    </div>
+
     <div class="sync-status" id="syncStatus">
         <i class="fa-solid fa-cloud"></i>
         <span id="syncText">Đang đồng bộ...</span>
@@ -470,9 +560,23 @@
         const loadingOverlay = document.getElementById('loadingOverlay');
         const syncStatus = document.getElementById('syncStatus');
         const syncText = document.getElementById('syncText');
+        const congratsOverlay = document.getElementById('congratsOverlay');
+        const congratsNumber = document.getElementById('congratsNumber');
 
         let isSpinning = false;
         let history = [];
+
+        // Show congratulation popup
+        function showCongrats(number) {
+            congratsNumber.textContent = number;
+            congratsOverlay.classList.add('show');
+        }
+
+        // Close congratulation popup
+        window.closeCongrats = function (event) {
+            if (event && event.target !== congratsOverlay) return;
+            congratsOverlay.classList.remove('show');
+        }
 
         function showSyncStatus(message, isSuccess = true) {
             syncText.textContent = message;
@@ -512,24 +616,59 @@
             spinBtn.disabled = true;
             numberDisplay.classList.add('spinning');
 
-            const spinDuration = 2500;
-            let elapsed = 0;
-            const timer = setInterval(() => {
-                numberDisplay.textContent = generateRandomNumber();
-                elapsed += 50;
-                if (elapsed >= spinDuration) {
-                    clearInterval(timer);
-                    finishSpin();
-                }
-            }, 50);
-        }
-
-        async function finishSpin() {
+            // Generate final number upfront
             const finalNumber = generateRandomNumber();
+            const digits = finalNumber.split(''); // ['X', 'Y', 'Z'] for XYZ
+
+            // Phase 1: Spin all 3 digits (2 seconds)
+            await spinPhase('???', 2000, () => {
+                return Math.floor(Math.random() * 10).toString() +
+                    Math.floor(Math.random() * 10).toString() +
+                    Math.floor(Math.random() * 10).toString();
+            });
+
+            // Phase 2: Lock units digit, spin tens and hundreds (2 seconds)
+            await spinPhase('??' + digits[2], 2000, () => {
+                return Math.floor(Math.random() * 10).toString() +
+                    Math.floor(Math.random() * 10).toString() +
+                    digits[2];
+            });
+
+            // Phase 3: Lock tens digit, spin hundreds only (2 seconds)
+            await spinPhase('?' + digits[1] + digits[2], 2000, () => {
+                return Math.floor(Math.random() * 10).toString() +
+                    digits[1] +
+                    digits[2];
+            });
+
+            // Final reveal
             numberDisplay.textContent = finalNumber;
             numberDisplay.classList.remove('spinning');
-            createConfetti();
 
+            // Save and celebrate
+            await saveResult(finalNumber);
+        }
+
+        // Helper function for each spin phase
+        function spinPhase(display, duration, generator) {
+            return new Promise(resolve => {
+                const interval = 60;
+                let elapsed = 0;
+                const timer = setInterval(() => {
+                    numberDisplay.textContent = generator();
+                    elapsed += interval;
+                    if (elapsed >= duration) {
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, interval);
+            });
+        }
+
+        // Save result to Firebase
+        async function saveResult(finalNumber) {
+            createConfetti();
+            showCongrats(finalNumber);
             try {
                 await addDoc(collection(db, COLLECTION_NAME), {
                     number: finalNumber,
@@ -547,6 +686,7 @@
             isSpinning = false;
             spinBtn.disabled = false;
         }
+
 
         function addToLocalHistory(number) {
             history.unshift({ number, time: new Date().toLocaleString('vi-VN') });
