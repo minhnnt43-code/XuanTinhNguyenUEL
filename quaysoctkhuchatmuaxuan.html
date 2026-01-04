@@ -566,6 +566,10 @@
         let isSpinning = false;
         let history = [];
 
+        // Audio for spinning
+        const spinAudio = new Audio('images/nhacquayxoso.MP3');
+        spinAudio.loop = true;
+
         // Show congratulation popup
         function showCongrats(number) {
             congratsNumber.textContent = number;
@@ -616,26 +620,28 @@
             spinBtn.disabled = true;
             numberDisplay.classList.add('spinning');
 
-            // Generate final number upfront
+            // Play music
+            spinAudio.currentTime = 0;
+            spinAudio.play().catch(e => console.log('Audio play failed:', e));
             const finalNumber = generateRandomNumber();
             const digits = finalNumber.split(''); // ['X', 'Y', 'Z'] for XYZ
 
-            // Phase 1: Spin all 3 digits (2 seconds)
-            await spinPhase('???', 2000, () => {
+            // Phase 1: Spin all 3 digits (4 seconds)
+            await spinPhase('???', 4000, () => {
                 return Math.floor(Math.random() * 10).toString() +
                     Math.floor(Math.random() * 10).toString() +
                     Math.floor(Math.random() * 10).toString();
             });
 
-            // Phase 2: Lock units digit, spin tens and hundreds (2 seconds)
-            await spinPhase('??' + digits[2], 2000, () => {
+            // Phase 2: Lock units digit, spin tens and hundreds (4 seconds)
+            await spinPhase('??' + digits[2], 4000, () => {
                 return Math.floor(Math.random() * 10).toString() +
                     Math.floor(Math.random() * 10).toString() +
                     digits[2];
             });
 
-            // Phase 3: Lock tens digit, spin hundreds only (2 seconds)
-            await spinPhase('?' + digits[1] + digits[2], 2000, () => {
+            // Phase 3: Lock tens digit, spin hundreds only (4 seconds)
+            await spinPhase('?' + digits[1] + digits[2], 4000, () => {
                 return Math.floor(Math.random() * 10).toString() +
                     digits[1] +
                     digits[2];
@@ -644,6 +650,10 @@
             // Final reveal
             numberDisplay.textContent = finalNumber;
             numberDisplay.classList.remove('spinning');
+
+            // Stop music
+            spinAudio.pause();
+            spinAudio.currentTime = 0;
 
             // Save and celebrate
             await saveResult(finalNumber);
