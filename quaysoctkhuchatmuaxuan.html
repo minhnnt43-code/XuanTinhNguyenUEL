@@ -593,9 +593,33 @@
             loadingOverlay.classList.toggle('show', show);
         }
 
+        // Registered numbers (loaded from JSON)
+        let registeredNumbers = [];
+
+        // Load registered numbers from JSON file
+        async function loadRegisteredNumbers() {
+            try {
+                const response = await fetch('data/sodangky.json?' + Date.now());
+                const data = await response.json();
+                registeredNumbers = data.numbers || [];
+                console.log('✅ Loaded', registeredNumbers.length, 'registered numbers');
+            } catch (e) {
+                console.error('❌ Failed to load numbers:', e);
+                // Fallback to random 001-999 if file not found
+                registeredNumbers = [];
+            }
+        }
+
         function generateRandomNumber() {
-            const num = Math.floor(Math.random() * 999) + 1;
-            return String(num).padStart(3, '0');
+            if (registeredNumbers.length > 0) {
+                // Pick from registered numbers only
+                const index = Math.floor(Math.random() * registeredNumbers.length);
+                return registeredNumbers[index];
+            } else {
+                // Fallback: random 001-999
+                const num = Math.floor(Math.random() * 999) + 1;
+                return String(num).padStart(3, '0');
+            }
         }
 
         function createConfetti() {
@@ -755,6 +779,7 @@
 
         async function init() {
             showLoading(true);
+            await loadRegisteredNumbers();
             await loadHistory();
             showLoading(false);
         }
