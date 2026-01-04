@@ -126,8 +126,8 @@
 
             <!-- CTA Buttons -->
             <div class="cta-buttons">
-                <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="btn-cta btn-register">
-                    <i class="fa-solid fa-user-plus"></i> Đăng ký Chiến sĩ
+                <a href="javascript:void(0)" onclick="openWishModal()" class="btn-cta btn-register">
+                    <i class="fa-solid fa-heart"></i> Gửi lời chúc đến chiến dịch
                 </a>
                 <a href="job-description.html" class="btn-cta btn-secondary">
                     <i class="fa-solid fa-briefcase"></i> Mô tả công việc
@@ -408,7 +408,212 @@
             const scrollAmount = 320;
             track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
         }
+
+        // Wish Modal Functions
+        function openWishModal() {
+            document.getElementById('wishModal').classList.add('active');
+            document.getElementById('wishForm').style.display = 'block';
+            document.getElementById('wishThankYou').style.display = 'none';
+            document.getElementById('wishName').value = '';
+            document.getElementById('wishMessage').value = '';
+        }
+
+        function closeWishModal() {
+            document.getElementById('wishModal').classList.remove('active');
+        }
+
+        function submitWish() {
+            const name = document.getElementById('wishName').value.trim();
+            const message = document.getElementById('wishMessage').value.trim();
+
+            if (!name) {
+                alert('Vui lòng nhập tên của bạn!');
+                return;
+            }
+
+            // Show thank you message
+            document.getElementById('wishForm').style.display = 'none';
+            document.getElementById('thankYouName').textContent = name;
+            document.getElementById('wishThankYou').style.display = 'block';
+
+            // Auto close after 3 seconds
+            setTimeout(() => {
+                closeWishModal();
+            }, 4000);
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function (e) {
+            const modal = document.getElementById('wishModal');
+            if (e.target === modal) {
+                closeWishModal();
+            }
+        });
     </script>
+
+    <!-- Wish Modal -->
+    <div id="wishModal" class="wish-modal-overlay">
+        <div class="wish-modal-box">
+            <button class="wish-modal-close" onclick="closeWishModal()">&times;</button>
+
+            <!-- Form -->
+            <div id="wishForm">
+                <h2 class="wish-modal-title">
+                    <i class="fa-solid fa-heart" style="color: #e74c3c;"></i>
+                    Gửi Lời Chúc Đến Chiến Dịch
+                </h2>
+                <p class="wish-modal-desc">Gửi lời chúc tốt đẹp đến Xuân Tình Nguyện UEL 2026!</p>
+
+                <div class="wish-form-group">
+                    <label for="wishName"><i class="fa-solid fa-user"></i> Tên của bạn</label>
+                    <input type="text" id="wishName" placeholder="Nhập tên của bạn..." maxlength="50">
+                </div>
+
+                <div class="wish-form-group">
+                    <label for="wishMessage"><i class="fa-solid fa-comment"></i> Lời chúc (không bắt buộc)</label>
+                    <textarea id="wishMessage" placeholder="Nhập lời chúc của bạn..." rows="3"
+                        maxlength="200"></textarea>
+                </div>
+
+                <button class="wish-submit-btn" onclick="submitWish()">
+                    <i class="fa-solid fa-paper-plane"></i> Gửi Lời Chúc
+                </button>
+            </div>
+
+            <!-- Thank You -->
+            <div id="wishThankYou" style="display: none; text-align: center; padding: 30px 0;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🎉❤️🎉</div>
+                <h2 style="color: #27ae60; margin-bottom: 15px;">Cảm Ơn Bạn!</h2>
+                <p style="font-size: 1.1rem; color: #555;">
+                    Cảm ơn <strong id="thankYouName"></strong> đã gửi lời chúc đến<br>
+                    <strong style="color: #c0392b;">Xuân Tình Nguyện UEL 2026</strong>!
+                </p>
+                <p style="margin-top: 15px; color: #888;">"Gom nhặt yêu thương - Sẻ chia Tết ấm"</p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Wish Modal Styles */
+        .wish-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .wish-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .wish-modal-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 35px;
+            max-width: 450px;
+            width: 90%;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .wish-modal-overlay.active .wish-modal-box {
+            transform: scale(1);
+        }
+
+        .wish-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .wish-modal-close:hover {
+            color: #e74c3c;
+        }
+
+        .wish-modal-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .wish-modal-desc {
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        .wish-form-group {
+            margin-bottom: 20px;
+        }
+
+        .wish-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .wish-form-group label i {
+            margin-right: 5px;
+            color: #27ae60;
+        }
+
+        .wish-form-group input,
+        .wish-form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .wish-form-group input:focus,
+        .wish-form-group textarea:focus {
+            outline: none;
+            border-color: #27ae60;
+        }
+
+        .wish-submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .wish-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+        }
+    </style>
 </body>
 
 </html>
