@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quay Số - Khúc Hát Chào Xuân</title>
+    <link rel="icon" href="images/khuchatchaoxuan.png" type="image/png">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* UTM Avo Font */
+        @font-face {
+            font-family: 'UTM Avo';
+            src: url('fonts/UTM Avo.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'UTM Avo';
+            src: url('fonts/UTM AvoBold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'UTM Avo', Arial, sans-serif;
+            background-image: url('images/khuchatchaoxuan.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Main Container - Centered */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            max-width: 450px;
+            width: 90%;
+            margin-top: 60px;
+            /* Push down a bit to avoid top logos */
+        }
+
+        /* Title */
+        .title-section {
+            text-align: center;
+        }
+
+        .sub-title {
+            font-size: 1.1rem;
+            color: #2e7d32;
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .main-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #c62828;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow:
+                -2px -2px 0 #fff,
+                2px -2px 0 #fff,
+                -2px 2px 0 #fff,
+                2px 2px 0 #fff;
+        }
+
+        /* Spinner Box */
+        .spinner-box {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 15px;
+            padding: 25px 30px;
+            border: 3px solid #c62828;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            width: 100%;
+        }
+
+        .number-display {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(198, 40, 40, 0.08) 0%, rgba(255, 215, 0, 0.08) 100%);
+            border-radius: 12px;
+            border: 2px dashed #c62828;
+            margin-bottom: 20px;
+        }
+
+        .number {
+            font-family: 'UTM Avo', Arial, sans-serif;
+            font-size: 5.5rem;
+            font-weight: bold;
+            color: #c62828;
+            letter-spacing: 12px;
+            text-shadow:
+                -3px -3px 0 #fff,
+                3px -3px 0 #fff,
+                -3px 3px 0 #fff,
+                3px 3px 0 #fff,
+                -4px -4px 0 #333,
+                4px -4px 0 #333,
+                -4px 4px 0 #333,
+                4px 4px 0 #333;
+            user-select: none;
+        }
+
+        .number.spinning {
+            animation: pulse 0.08s linear infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        /* Spin Button */
+        .spin-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 220px;
+            margin: 0 auto;
+            padding: 14px 30px;
+            font-family: 'UTM Avo', Arial, sans-serif;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(198, 40, 40, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(198, 40, 40, 0.5);
+        }
+
+        .spin-btn:disabled {
+            background: #9e9e9e;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* History Box */
+        .history-box {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 12px;
+            padding: 15px 20px;
+            border: 2px solid #2e7d32;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-height: 140px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2e7d32;
+        }
+
+        .history-title {
+            font-size: 0.95rem;
+            color: #2e7d32;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-count {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .clear-btn {
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #fff;
+            background: #c62828;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #b71c1c;
+        }
+
+        .history-list {
+            max-height: 80px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb {
+            background: #2e7d32;
+            border-radius: 2px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: rgba(46, 125, 50, 0.08);
+            border-radius: 8px;
+            margin-bottom: 5px;
+            border-left: 3px solid #c62828;
+        }
+
+        .history-number {
+            font-family: 'UTM Avo', Arial, sans-serif;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #c62828;
+            text-shadow:
+                -1px -1px 0 #fff,
+                1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px 1px 0 #fff;
+        }
+
+        .history-time {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 15px;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            animation: fall 3s linear forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(198, 40, 40, 0.3);
+            border-top-color: #c62828;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Sync Status */
+        .sync-status {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sync-status.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .sync-status.success {
+            border: 2px solid #2e7d32;
+            color: #2e7d32;
+        }
+
+        .sync-status.error {
+            border: 2px solid #c62828;
+            color: #c62828;
+        }
+
+        /* Responsive for smaller screens */
+        @media (max-height: 600px) {
+            .main-container {
+                margin-top: 40px;
+                gap: 10px;
+            }
+
+            .spinner-box {
+                padding: 15px 20px;
+            }
+
+            .number {
+                font-size: 4rem;
+                letter-spacing: 8px;
+            }
+
+            .number-display {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .history-box {
+                max-height: 100px;
+                padding: 10px 15px;
+            }
+
+            .history-list {
+                max-height: 50px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- Title -->
+        <div class="title-section">
+            <div class="sub-title">Chương trình văn nghệ gây quỹ</div>
+            <h1 class="main-title">Quay Số May Mắn</h1>
+        </div>
+
+        <!-- Spinner -->
+        <div class="spinner-box">
+            <div class="number-display">
+                <div class="number" id="numberDisplay">000</div>
+            </div>
+            <button class="spin-btn" id="spinBtn" onclick="startSpin()">
+                <i class="fa-solid fa-rotate"></i> Quay Số
+            </button>
+        </div>
+
+        <!-- History -->
+        <div class="history-box">
+            <div class="history-header">
+                <div class="history-title">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Lịch Sử Quay
+                    <span class="history-count" id="historyCount">(0)</span>
+                </div>
+                <button class="clear-btn" onclick="clearHistory()">
+                    <i class="fa-solid fa-trash"></i> Xóa
+                </button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="history-empty">Chưa có số nào được quay</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sync-status" id="syncStatus">
+        <i class="fa-solid fa-cloud"></i>
+        <span id="syncText">Đang đồng bộ...</span>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import {
+            getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyALk7G3YFjHgGXlxI06oKEwHCDtzGklsQw",
+            authDomain: "xuantinhnguyenuel-7ec2c.firebaseapp.com",
+            projectId: "xuantinhnguyenuel-7ec2c",
+            storageBucket: "xuantinhnguyenuel-7ec2c.firebasestorage.app",
+            messagingSenderId: "426220182406",
+            appId: "1:426220182406:web:f230ad5e4e1ccd8777ea07"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const COLLECTION_NAME = 'khuchat_lottery_history';
+
+        const numberDisplay = document.getElementById('numberDisplay');
+        const spinBtn = document.getElementById('spinBtn');
+        const historyList = document.getElementById('historyList');
+        const historyCount = document.getElementById('historyCount');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const syncStatus = document.getElementById('syncStatus');
+        const syncText = document.getElementById('syncText');
+
+        let isSpinning = false;
+        let history = [];
+
+        function showSyncStatus(message, isSuccess = true) {
+            syncText.textContent = message;
+            syncStatus.classList.remove('success', 'error');
+            syncStatus.classList.add(isSuccess ? 'success' : 'error', 'show');
+            setTimeout(() => syncStatus.classList.remove('show'), 2000);
+        }
+
+        function showLoading(show) {
+            loadingOverlay.classList.toggle('show', show);
+        }
+
+        function generateRandomNumber() {
+            const num = Math.floor(Math.random() * 999) + 1;
+            return String(num).padStart(3, '0');
+        }
+
+        function createConfetti() {
+            const colors = ['#c62828', '#ffd700', '#fff', '#2e7d32', '#ffcc00'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const c = document.createElement('div');
+                    c.className = 'confetti';
+                    c.style.left = Math.random() * 100 + 'vw';
+                    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    c.style.width = c.style.height = (Math.random() * 8 + 5) + 'px';
+                    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    document.body.appendChild(c);
+                    setTimeout(() => c.remove(), 3000);
+                }, i * 30);
+            }
+        }
+
+        window.startSpin = async function () {
+            if (isSpinning) return;
+            isSpinning = true;
+            spinBtn.disabled = true;
+            numberDisplay.classList.add('spinning');
+
+            const spinDuration = 2500;
+            let elapsed = 0;
+            const timer = setInterval(() => {
+                numberDisplay.textContent = generateRandomNumber();
+                elapsed += 50;
+                if (elapsed >= spinDuration) {
+                    clearInterval(timer);
+                    finishSpin();
+                }
+            }, 50);
+        }
+
+        async function finishSpin() {
+            const finalNumber = generateRandomNumber();
+            numberDisplay.textContent = finalNumber;
+            numberDisplay.classList.remove('spinning');
+            createConfetti();
+
+            try {
+                await addDoc(collection(db, COLLECTION_NAME), {
+                    number: finalNumber,
+                    timestamp: serverTimestamp(),
+                    createdAt: new Date().toISOString()
+                });
+                showSyncStatus('Đã lưu!', true);
+                await loadHistory();
+            } catch (e) {
+                console.error(e);
+                showSyncStatus('Lỗi lưu!', false);
+                addToLocalHistory(finalNumber);
+            }
+
+            isSpinning = false;
+            spinBtn.disabled = false;
+        }
+
+        function addToLocalHistory(number) {
+            history.unshift({ number, time: new Date().toLocaleString('vi-VN') });
+            renderHistory();
+        }
+
+        async function loadHistory() {
+            try {
+                const q = query(collection(db, COLLECTION_NAME), orderBy('timestamp', 'desc'));
+                const snap = await getDocs(q);
+                history = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    history.push({
+                        id: d.id,
+                        number: data.number,
+                        time: data.createdAt ? new Date(data.createdAt).toLocaleString('vi-VN') : ''
+                    });
+                });
+                renderHistory();
+            } catch (e) {
+                console.error(e);
+                showSyncStatus('Lỗi tải!', false);
+            }
+        }
+
+        function renderHistory() {
+            historyCount.textContent = `(${history.length})`;
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">Chưa có số nào được quay</div>';
+                return;
+            }
+            historyList.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <span class="history-number">${item.number}</span>
+                    <span class="history-time">${item.time}</span>
+                </div>
+            `).join('');
+        }
+
+        window.clearHistory = async function () {
+            if (!history.length || !confirm('Xóa toàn bộ lịch sử?')) return;
+            showLoading(true);
+            try {
+                const snap = await getDocs(collection(db, COLLECTION_NAME));
+                await Promise.all(snap.docs.map(d => deleteDoc(doc(db, COLLECTION_NAME, d.id))));
+                history = [];
+                renderHistory();
+                showSyncStatus('Đã xóa!', true);
+            } catch (e) {
+                console.error(e);
+                showSyncStatus('Lỗi xóa!', false);
+            }
+            showLoading(false);
+        }
+
+        async function init() {
+            showLoading(true);
+            await loadHistory();
+            showLoading(false);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
