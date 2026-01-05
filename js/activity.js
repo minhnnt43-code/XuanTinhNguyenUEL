@@ -1755,12 +1755,9 @@ function renderStatsTable(data) {
             const now = new Date();
             const activityEndDateTime = new Date(`${a.date}T${a.endTime || '23:59'}`);
             const hoursAfterEnd = (now - activityEndDateTime) / (1000 * 60 * 60);
-            // Kiểm tra báo cáo: theo linkedActivityId HOẶC khớp date + team
-            const hasReport = reports.some(r =>
-                r.linkedActivityId === a.id ||
-                (r.date === a.date && normalizeTeamName(r.team) === normalizeTeamName(a.team))
-            );
-            const isOverdueReport = !hasReport && hoursAfterEnd > 4 && activityEndDateTime < now;
+            // Kiểm tra báo cáo: CHỈ theo linkedActivityId (fix bug: ko còn match date+team gây đánh dấu sai nhiều hoạt động)
+            const hasReport = reports.some(r => r.linkedActivityId === a.id);
+            const isOverdueReport = !hasReport && hoursAfterEnd > 12 && activityEndDateTime < now;
 
             // Xác định style cho row
             let rowStyle = '';
@@ -1976,8 +1973,8 @@ function exportReports() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo');
 
-    const fileName = dateFrom && dateTo
-        ? `XTN2026_BaoCao_${dateFrom}_${dateTo}.xlsx`
+    const fileName = dateFilter
+        ? `XTN2026_BaoCao_${dateFilter}.xlsx`
         : `XTN2026_BaoCao_${formatDate(new Date(), 'yyyy-mm-dd')}.xlsx`;
 
     XLSX.writeFile(wb, fileName);
@@ -2011,10 +2008,8 @@ function renderActivitiesStatus() {
 
     // Tính toán thống kê
     const activityStats = filteredActivities.map(a => {
-        const hasReport = reports.some(r =>
-            r.linkedActivityId === a.id ||
-            (r.team === a.team && r.date === a.date)
-        );
+        // CHỈ check linkedActivityId (fix bug: ko còn match date+team gây đánh dấu sai nhiều hoạt động)
+        const hasReport = reports.some(r => r.linkedActivityId === a.id);
         return { ...a, hasReport };
     });
 
