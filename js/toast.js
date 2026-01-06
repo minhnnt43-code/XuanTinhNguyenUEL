@@ -1,60 +1,73 @@
 /**
- * toast.js - Toast Notification System
- * XTN 2026 - Replaces native alert() and confirm()
+ * toast.js - Toast Notification System using SweetAlert2
+ * XTN 2026 - Popup notifications centered on screen
  */
 
-// Create toast container on load
-let toastContainer = null;
+/**
+ * Show a popup notification (centered on screen)
+ * @param {string} message - Message to display
+ * @param {string} type - 'success' | 'error' | 'warning' | 'info'
+ * @param {number} duration - Duration in ms (default 3000)
+ */
+function showToast(message, type = 'info', duration = 3000) {
+    // Map type to SweetAlert2 icon
+    const iconMap = {
+        success: 'success',
+        error: 'error',
+        warning: 'warning',
+        info: 'info'
+    };
 
-function initToastContainer() {
-    if (toastContainer) return;
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-container';
-    toastContainer.className = 'toast-container';
-    document.body.appendChild(toastContainer);
+    // Title mapping for Vietnamese
+    const titleMap = {
+        success: 'Thành công!',
+        error: 'Lỗi!',
+        warning: 'Cảnh báo!',
+        info: 'Thông báo'
+    };
+
+    Swal.fire({
+        icon: iconMap[type] || 'info',
+        title: titleMap[type] || 'Thông báo',
+        text: message,
+        timer: duration,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        position: 'center',
+        customClass: {
+            popup: 'xtn-swal-popup',
+            title: 'xtn-swal-title'
+        }
+    });
 }
 
 /**
- * Show a toast notification
- * @param {string} message - Message to display
- * @param {string} type - 'success' | 'error' | 'warning' | 'info'
- * @param {number} duration - Duration in ms (default 3500)
+ * Show loading popup (centered on screen)
+ * @param {string} message - Loading message (default: 'Đang xử lý...')
  */
-function showToast(message, type = 'info', duration = 3500) {
-    initToastContainer();
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-
-    const icons = {
-        success: 'fa-circle-check',
-        error: 'fa-circle-xmark',
-        warning: 'fa-triangle-exclamation',
-        info: 'fa-circle-info'
-    };
-
-    toast.innerHTML = `
-        <i class="fa-solid ${icons[type] || icons.info}"></i>
-        <span class="toast-message">${message}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    `;
-
-    toastContainer.appendChild(toast);
-
-    // Trigger animation
-    requestAnimationFrame(() => {
-        toast.classList.add('show');
+function showLoading(message = 'Đang xử lý...') {
+    Swal.fire({
+        title: message,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
     });
+}
 
-    // Auto remove
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-
-    return toast;
+/**
+ * Hide loading popup and optionally show result
+ * @param {string} message - Result message (optional)
+ * @param {string} type - 'success' | 'error' | 'warning' | 'info' (optional)
+ */
+function hideLoading(message = null, type = 'success') {
+    if (message) {
+        showToast(message, type);
+    } else {
+        Swal.close();
+    }
 }
 
 /**
@@ -141,6 +154,8 @@ function showConfirmModal(message, options = {}) {
 
 // Make globally available
 window.showToast = showToast;
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;
 window.showConfirmModal = showConfirmModal;
 
 // CSS injection (inline for easy use)

@@ -923,9 +923,11 @@ function openActivityModal(activity = null, date = null, team = null) {
     let teamOptions = '';
     if (isFullAdmin) {
         // Super admin / kysutet_admin: thấy tất cả đội
+        // Sử dụng normalizeTeamName() để so sánh, đảm bảo match cả khi format khác nhau
+        const normalizedActivityTeam = normalizeTeamName(activityTeam);
         teamOptions = `<option value="">-- Chọn đội hình --</option>` +
             CONFIG.teams.map(t => `
-                <option value="${t}" ${activityTeam === t ? 'selected' : ''}>${normalizeTeamName(t)}</option>
+                <option value="${t}" ${normalizeTeamName(t) === normalizedActivityTeam ? 'selected' : ''}>${normalizeTeamName(t)}</option>
             `).join('');
     } else {
         // doihinh_admin: chỉ thấy đội của mình
@@ -1003,7 +1005,7 @@ function openActivityModal(activity = null, date = null, team = null) {
                         <label>Danh sách tham gia thực tế</label>
                         <button type="button" class="btn btn-info btn-block" id="btn-participants-list" style="margin-top:5px;">
                             <i class="fa-solid fa-users"></i> 
-                            Quản lý danh sách (<span id="participants-count">${activity?.participants?.length || 0}</span> người)
+                            Quản lý danh sách (<span id="participants-count">${activity?.participants?.length || 0}</span> chiến sĩ)
                         </button>
                     </div>
                 </div>
@@ -1087,6 +1089,12 @@ async function saveActivity(id = null) {
     // KIỂM TRA THỜI GIAN: Giờ kết thúc phải sau giờ bắt đầu
     if (data.startTime >= data.endTime) {
         showToast('⚠️ Giờ kết thúc phải SAU giờ bắt đầu! (VD: 08:00 - 11:00)', 'error');
+        return;
+    }
+
+    // KIỂM TRA DANH SÁCH THAM GIA: Phải có ít nhất 1 chiến sĩ
+    if (!data.participants || data.participants.length === 0) {
+        showToast('⚠️ Vui lòng thêm ít nhất 1 chiến sĩ vào danh sách tham gia!', 'warning');
         return;
     }
 
@@ -1176,7 +1184,7 @@ function openParticipantsModal() {
                         </button>
                         <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
                         <span style="margin-left:auto;color:#666;">
-                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> người
+                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> chiến sĩ
                         </span>
                     </div>
                     <div style="overflow-x:auto;">
@@ -1273,7 +1281,7 @@ function openParticipantsModalForReport(activityId) {
                         </button>
                         <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
                         <span style="margin-left:auto;color:#666;">
-                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> người
+                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> chiến sĩ
                         </span>
                     </div>
                     <div style="overflow-x:auto;">
@@ -2247,6 +2255,10 @@ function renderReports() {
         // Format timestamp cập nhật
         const updatedTime = r.updatedAt?.toDate?.()?.toLocaleString('vi-VN') || createdDate;
 
+        // Lấy số lượng tham gia: ưu tiên từ report, fallback từ activity liên kết
+        const linkedActivity = r.linkedActivityId ? activities.find(a => a.id === r.linkedActivityId) : null;
+        const displayParticipantsCount = r.participantsCount || linkedActivity?.participants?.length || 0;
+
         return `
         <div class="report-card" data-id="${r.id}">
             <!-- Header: Đội hình + Ngày + Buttons -->
@@ -2270,7 +2282,7 @@ function renderReports() {
             
             <!-- Body: Nội dung chi tiết -->
             <div class="report-card-body">
-                <p class="report-field"><strong>Số lượng tham gia:</strong> ${r.participants || 0} người</p>
+                <p class="report-field"><strong>Số lượng tham gia:</strong> ${displayParticipantsCount} chiến sĩ</p>
                 
                 <p class="report-field"><strong>Nội dung hoạt động:</strong></p>
                 <p class="report-value">${activityDesc || 'Không có'}</p>
@@ -2525,7 +2537,7 @@ function openReportModalWithActivity(activity) {
                         <label>Danh sách tham gia thực tế</label>
                         <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
                             <i class="fa-solid fa-users"></i> 
-                            Quản lý danh sách (<span id="report-participants-count">${activity.participants?.length || 0}</span> người)
+                            Quản lý danh sách (<span id="report-participants-count">${activity.participants?.length || 0}</span> chiến sĩ)
                         </button>
                         <input type="hidden" id="report-activity-id" value="${activity.id}">
                     </div>
@@ -2748,7 +2760,7 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
                         <label>Danh sách tham gia thực tế</label>
                         <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
                             <i class="fa-solid fa-users"></i> 
-                            Quản lý danh sách (<span id="report-participants-count">${defaultActivity?.participants?.length || 0}</span> người)
+                            Quản lý danh sách (<span id="report-participants-count">${defaultActivity?.participants?.length || 0}</span> chiến sĩ)
                         </button>
                         <input type="hidden" id="report-activity-id" value="${defaultActivity?.id || report?.linkedActivityId || ''}">
                     </div>
