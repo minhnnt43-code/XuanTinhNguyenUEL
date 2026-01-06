@@ -131,6 +131,94 @@ function calculateHours(startTime, endTime) {
     return ((eh * 60 + em) - (sh * 60 + sm)) / 60;
 }
 
+// ===== REPORT DEADLINE FUNCTIONS =====
+const REPORT_DEADLINE_HOURS = 12; // Deadline: 12 tiếng sau khi hoạt động kết thúc
+
+/**
+ * Tính thời điểm deadline báo cáo cho hoạt động
+ * @param {Object} activity - Hoạt động
+ * @returns {Date} Thời điểm deadline
+ */
+function getReportDeadline(activity) {
+    if (!activity?.date || !activity?.endTime) return null;
+    const endDateTime = new Date(`${activity.date}T${activity.endTime}`);
+    return new Date(endDateTime.getTime() + REPORT_DEADLINE_HOURS * 60 * 60 * 1000);
+}
+
+/**
+ * Lấy trạng thái báo cáo của hoạt động (countdown, warning, overdue)
+ * @param {Object} activity - Hoạt động
+ * @returns {Object} { status, label, hoursRemaining, isOverdue }
+ */
+function getReportStatus(activity) {
+    // Kiểm tra activity hợp lệ
+    if (!activity || !activity.date) {
+        return { status: 'pending', label: '-', hoursRemaining: null, isOverdue: false };
+    }
+
+    const now = new Date();
+    const hasReport = reports.some(r => r.linkedActivityId === activity.id);
+
+    // Parse date và time an toàn - fix format "9:00" -> "09:00"
+    let endTime = activity.endTime || '23:59';
+    // Đảm bảo time có format HH:MM (thêm 0 nếu cần)
+    if (endTime && endTime.length === 4) {
+        endTime = '0' + endTime; // "9:00" -> "09:00"
+    }
+    const activityEnd = new Date(`${activity.date}T${endTime}`);
+
+    // Kiểm tra date có hợp lệ không
+    if (isNaN(activityEnd.getTime())) {
+        return { status: 'pending', label: '-', hoursRemaining: null, isOverdue: false };
+    }
+
+    // Hoạt động chưa diễn ra
+    if (activityEnd > now) {
+        return { status: 'pending', label: '📅 Chưa diễn ra', hoursRemaining: null, isOverdue: false };
+    }
+
+    // Đã có báo cáo
+    if (hasReport) {
+        return { status: 'reported', label: '✓ Đã BC', hoursRemaining: null, isOverdue: false };
+    }
+
+    // Tính deadline và thời gian còn lại
+    const deadline = getReportDeadline(activity);
+    if (!deadline || isNaN(deadline.getTime())) {
+        return { status: 'overdue', label: '🚨 Chưa BC', hoursRemaining: null, isOverdue: true };
+    }
+
+    const hoursRemaining = (deadline - now) / (1000 * 60 * 60);
+
+    if (hoursRemaining > 6) {
+        // Safe: còn nhiều thời gian
+        return {
+            status: 'safe',
+            label: `⏳ Còn ${Math.floor(hoursRemaining)}h`,
+            hoursRemaining,
+            isOverdue: false
+        };
+    } else if (hoursRemaining > 0) {
+        // Warning: gần hết hạn
+        const hours = Math.floor(hoursRemaining);
+        const minutes = Math.round((hoursRemaining - hours) * 60);
+        return {
+            status: 'warning',
+            label: `⚠️ Còn ${hours}h${minutes > 0 ? minutes + 'p' : ''}`,
+            hoursRemaining,
+            isOverdue: false
+        };
+    } else {
+        // Overdue: quá hạn
+        return {
+            status: 'overdue',
+            label: '🚨 Quá hạn',
+            hoursRemaining,
+            isOverdue: true
+        };
+    }
+}
+
 // ===== STATIC TEAMS LIST (tiết kiệm quota Firebase) =====
 function loadTeamsFromStatic() {
     // Danh sách 12 đội hình cố định theo thứ tự chuẩn - TẤT CẢ có prefix "Đội hình "
@@ -678,12 +766,12 @@ function renderCalendar() {
         const todayClass = isToday(date) ? ' today-header' : '';
         const todayBadge = isToday(date) ? '<span class="today-badge">📍 Hôm nay</span>' : '';
         html += `
-            <div class="calendar-header${todayClass}">
-                ${getDayName(date)}<br>
-                <small>${formatDate(date)}</small>
-                ${todayBadge}
-            </div>
-        `;
+                <div class="calendar-header${todayClass}">
+                    ${getDayName(date)}<br>
+                    <small>${formatDate(date)}</small>
+                    ${todayBadge}
+                </div>
+            `;
     });
 
     // Team rows
@@ -710,58 +798,72 @@ function renderCalendar() {
                 const visibleActivities = cellActivities.slice(0, maxShow);
                 const remaining = cellActivities.length - maxShow;
 
-                const miniCards = visibleActivities.map(a => `
-                    <div class="activity-mini-card" data-id="${a.id}" style="
-                        background: white;
-                        border-left: 3px solid #16a34a;
-                        padding: 4px 8px;
-                        margin-bottom: 4px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 11px;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                        transition: all 0.2s;
-                    "
-                    onmouseenter="this.style.transform='translateX(2px)'; this.style.borderLeftColor='#22c55e';"
-                    onmouseleave="this.style.transform=''; this.style.borderLeftColor='#16a34a';">
-                        <div style="font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px;">
-                            ${a.title || 'Hoạt động'}
+                const miniCards = visibleActivities.map(a => {
+                    const reportStatus = getReportStatus(a);
+                    // Màu border theo trạng thái
+                    const borderColors = {
+                        pending: '#9ca3af',   // gray
+                        reported: '#16a34a',  // green
+                        safe: '#3b82f6',      // blue
+                        warning: '#f59e0b',   // orange
+                        overdue: '#dc2626'    // red
+                    };
+                    const borderColor = borderColors[reportStatus.status] || '#16a34a';
+
+                    return `
+                        <div class="activity-mini-card" data-id="${a.id}" style="
+                            background: white;
+                            border-left: 3px solid ${borderColor};
+                            padding: 4px 8px;
+                            margin-bottom: 4px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 11px;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                            transition: all 0.2s;
+                        ">
+                            <div style="font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px;">
+                                ${a.title || 'Hoạt động'}
+                            </div>
+                            <div style="color:#6b7280; font-size:10px;">
+                                <i class="fa-solid fa-clock"></i> ${a.startTime || '--:--'}
+                            </div>
+                            <div style="font-size:9px; color:${borderColor}; margin-top:2px;">
+                                ${reportStatus.label}
+                            </div>
                         </div>
-                        <div style="color:#6b7280; font-size:10px;">
-                            <i class="fa-solid fa-clock"></i> ${a.startTime || '--:--'}
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 const moreIndicator = remaining > 0 ? `
-                    <div class="activity-more-indicator" style="
-                        text-align: center;
-                        font-size: 10px;
-                        color: #16a34a;
-                        cursor: pointer;
-                        padding: 2px;
-                        font-weight: 600;
-                    ">+${remaining} hoạt động khác</div>
-                ` : '';
+                        <div class="activity-more-indicator" style="
+                            text-align: center;
+                            font-size: 10px;
+                            color: #16a34a;
+                            cursor: pointer;
+                            padding: 2px;
+                            font-weight: 600;
+                        ">+${remaining} hoạt động khác</div>
+                    ` : '';
 
                 cellContent = `
-                    <div class="activity-count-badge" style="width:100%;">
-                        ${miniCards}
-                        ${moreIndicator}
-                    </div>
-                `;
+                        <div class="activity-count-badge" style="width:100%;">
+                            ${miniCards}
+                            ${moreIndicator}
+                        </div>
+                    `;
             }
 
             html += `
-                <div class="${classes.join(' ')}" data-date="${dateStr}" data-team="${team}" data-activity-count="${cellActivities.length}">
-                    ${cellContent}
-                    ${canEditTeamActivity(team) ? `
-                        <button class="cell-add-btn" title="Thêm hoạt động">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            `;
+                    <div class="${classes.join(' ')}" data-date="${dateStr}" data-team="${team}" data-activity-count="${cellActivities.length}">
+                        ${cellContent}
+                        ${canEditTeamActivity(team) ? `
+                            <button class="cell-add-btn" title="Thêm hoạt động">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
         });
     });
 
@@ -826,44 +928,44 @@ function showActivitiesPopup(date, team) {
     document.getElementById('activities-popup')?.remove();
 
     const popupHtml = `
-        <div class="activity-modal active" id="activities-popup">
-            <div class="activity-modal-content" style="max-width:500px;">
-                <div class="activity-modal-header" style="background:linear-gradient(135deg,#2563eb,#3b82f6);">
-                    <h3 style="color:white;">
-                        <i class="fa-solid fa-list"></i> ${dayActivities.length} hoạt động - ${formatDate(date, 'full')}
-                    </h3>
-                    <button class="close-btn" id="popup-close" style="color:white;">&times;</button>
-                </div>
-                <div class="activity-modal-body" style="max-height:400px; overflow-y:auto;">
-                    ${dayActivities.map((a, i) => `
-                        <div class="activity-popup-item" data-id="${a.id}" style="
-                            padding: 12px 15px;
-                            border: 2px solid #e5e7eb;
-                            border-radius: 8px;
-                            margin-bottom: 10px;
-                            cursor: pointer;
-                            transition: all 0.2s;
-                        ">
-                            <div style="display:flex; justify-content:space-between; align-items:start;">
-                                <div>
-                                    <strong style="color:#2563eb; font-size:1.05rem;">${a.title || 'Hoạt động ' + (i + 1)}</strong>
-                                    <p style="margin:5px 0; color:#6b7280; font-size:0.9rem;">
-                                        <i class="fa-solid fa-clock"></i> ${a.startTime} - ${a.endTime}
-                                        ${a.location ? ` | <i class="fa-solid fa-location-dot"></i> ${a.location}` : ''}
-                                    </p>
-                                    ${a.content ? `<p style="margin:5px 0; font-size:0.9rem;">${a.content.substring(0, 80)}${a.content.length > 80 ? '...' : ''}</p>` : ''}
+            <div class="activity-modal active" id="activities-popup">
+                <div class="activity-modal-content" style="max-width:500px;">
+                    <div class="activity-modal-header" style="background:linear-gradient(135deg,#2563eb,#3b82f6);">
+                        <h3 style="color:white;">
+                            <i class="fa-solid fa-list"></i> ${dayActivities.length} hoạt động - ${formatDate(date, 'full')}
+                        </h3>
+                        <button class="close-btn" id="popup-close" style="color:white;">&times;</button>
+                    </div>
+                    <div class="activity-modal-body" style="max-height:400px; overflow-y:auto;">
+                        ${dayActivities.map((a, i) => `
+                            <div class="activity-popup-item" data-id="${a.id}" style="
+                                padding: 12px 15px;
+                                border: 2px solid #e5e7eb;
+                                border-radius: 8px;
+                                margin-bottom: 10px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                            ">
+                                <div style="display:flex; justify-content:space-between; align-items:start;">
+                                    <div>
+                                        <strong style="color:#2563eb; font-size:1.05rem;">${a.title || 'Hoạt động ' + (i + 1)}</strong>
+                                        <p style="margin:5px 0; color:#6b7280; font-size:0.9rem;">
+                                            <i class="fa-solid fa-clock"></i> ${a.startTime} - ${a.endTime}
+                                            ${a.location ? ` | <i class="fa-solid fa-location-dot"></i> ${a.location}` : ''}
+                                        </p>
+                                        ${a.content ? `<p style="margin:5px 0; font-size:0.9rem;">${a.content.substring(0, 80)}${a.content.length > 80 ? '...' : ''}</p>` : ''}
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right" style="color:#9ca3af;"></i>
                                 </div>
-                                <i class="fa-solid fa-chevron-right" style="color:#9ca3af;"></i>
                             </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="activity-modal-footer">
-                    <button class="btn btn-secondary" id="popup-cancel">Đóng</button>
+                        `).join('')}
+                    </div>
+                    <div class="activity-modal-footer">
+                        <button class="btn btn-secondary" id="popup-cancel">Đóng</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', popupHtml);
 
@@ -927,101 +1029,101 @@ function openActivityModal(activity = null, date = null, team = null) {
         const normalizedActivityTeam = normalizeTeamName(activityTeam);
         teamOptions = `<option value="">-- Chọn đội hình --</option>` +
             CONFIG.teams.map(t => `
-                <option value="${t}" ${normalizeTeamName(t) === normalizedActivityTeam ? 'selected' : ''}>${normalizeTeamName(t)}</option>
-            `).join('');
+                    <option value="${t}" ${normalizeTeamName(t) === normalizedActivityTeam ? 'selected' : ''}>${normalizeTeamName(t)}</option>
+                `).join('');
     } else {
         // doihinh_admin: chỉ thấy đội của mình
         teamOptions = `<option value="${currentUserTeam}" selected>${normalizeTeamName(currentUserTeam)}</option>`;
     }
 
     const modalHtml = `
-        <div class="activity-modal active" id="activity-modal">
-            <div class="activity-modal-content">
-                <div class="activity-modal-header">
-                    <h3><i class="fa-solid fa-${isEdit ? 'edit' : 'plus'}"></i> ${isEdit ? 'Sửa' : 'Thêm'} Hoạt động</h3>
-                    <button class="close-btn" id="modal-close">&times;</button>
-                </div>
-                <div class="activity-modal-body">
-                    <div class="form-group">
-                        <label>Đội hình <span class="required">*</span></label>
-                        <select id="modal-team" required ${!isFullAdmin ? 'disabled style="background:#f3f4f6;"' : ''}>
-                            ${teamOptions}
-                        </select>
-                        ${!isFullAdmin ? '<small style="color:#666;">Bạn chỉ có thể tạo hoạt động cho đội của mình</small>' : ''}
+            <div class="activity-modal active" id="activity-modal">
+                <div class="activity-modal-content">
+                    <div class="activity-modal-header">
+                        <h3><i class="fa-solid fa-${isEdit ? 'edit' : 'plus'}"></i> ${isEdit ? 'Sửa' : 'Thêm'} Hoạt động</h3>
+                        <button class="close-btn" id="modal-close">&times;</button>
                     </div>
-                    <div class="form-group">
-                        <label>Ngày <span class="required">*</span></label>
-                        <input type="date" id="modal-date" value="${activity?.date || date || formatDate(currentWeekStart, 'yyyy-mm-dd')}" 
-                               min="${formatDate(CONFIG.startDate, 'yyyy-mm-dd')}" 
-                               max="${formatDate(CONFIG.endDate, 'yyyy-mm-dd')}" required>
-                    </div>
-                    <div class="form-row">
+                    <div class="activity-modal-body">
                         <div class="form-group">
-                            <label>Giờ bắt đầu <span class="required">*</span></label>
-                            <input type="text" id="modal-start-time" value="${activity?.startTime || '08:00'}" 
-                                   placeholder="08:00" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" maxlength="5" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Giờ kết thúc <span class="required">*</span></label>
-                            <input type="text" id="modal-end-time" value="${activity?.endTime || '11:00'}" 
-                                   placeholder="11:00" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" maxlength="5" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Tên hoạt động <span class="required">*</span></label>
-                        <input type="text" id="modal-title" value="${activity?.title || ''}" placeholder="VD: Tuyên truyền pháp luật cộng đồng" required maxlength="100">
-                    </div>
-                    <div class="form-group">
-                        <label>Địa điểm</label>
-                        <input type="text" id="modal-location" value="${activity?.location || ''}" placeholder="Nhập địa điểm hoạt động">
-                    </div>
-                    <div class="form-group">
-                        <label>Nội dung hoạt động</label>
-                        <textarea id="modal-content" placeholder="Mô tả chi tiết hoạt động...">${activity?.content || ''}</textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Số lượng tham gia dự kiến</label>
-                            <input type="number" id="modal-participants" value="${activity?.expectedParticipants || ''}" placeholder="VD: 20" min="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Đề xuất BCH Trường tham dự</label>
-                            <select id="modal-bch-suggestion">
-                                <option value="Không" ${(activity?.bchSuggestion || 'Không') === 'Không' ? 'selected' : ''}>Không</option>
-                                <option value="Có" ${activity?.bchSuggestion === 'Có' ? 'selected' : ''}>Có</option>
+                            <label>Đội hình <span class="required">*</span></label>
+                            <select id="modal-team" required ${!isFullAdmin ? 'disabled style="background:#f3f4f6;"' : ''}>
+                                ${teamOptions}
                             </select>
+                            ${!isFullAdmin ? '<small style="color:#666;">Bạn chỉ có thể tạo hoạt động cho đội của mình</small>' : ''}
                         </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group">
-                            <label>Đề xuất Ký sự Tết lấy tin</label>
-                            <select id="modal-kysutet-news">
-                                <option value="Không" ${(activity?.kysutetNews || 'Không') === 'Không' ? 'selected' : ''}>Không</option>
-                                <option value="Có" ${activity?.kysutetNews === 'Có' ? 'selected' : ''}>Có</option>
-                            </select>
+                            <label>Ngày <span class="required">*</span></label>
+                            <input type="date" id="modal-date" value="${activity?.date || date || formatDate(currentWeekStart, 'yyyy-mm-dd')}" 
+                                min="${formatDate(CONFIG.startDate, 'yyyy-mm-dd')}" 
+                                max="${formatDate(CONFIG.endDate, 'yyyy-mm-dd')}" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Giờ bắt đầu <span class="required">*</span></label>
+                                <input type="text" id="modal-start-time" value="${activity?.startTime || '08:00'}" 
+                                    placeholder="08:00" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" maxlength="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Giờ kết thúc <span class="required">*</span></label>
+                                <input type="text" id="modal-end-time" value="${activity?.endTime || '11:00'}" 
+                                    placeholder="11:00" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" maxlength="5" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Tên hoạt động <span class="required">*</span></label>
+                            <input type="text" id="modal-title" value="${activity?.title || ''}" placeholder="VD: Tuyên truyền pháp luật cộng đồng" required maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Địa điểm</label>
+                            <input type="text" id="modal-location" value="${activity?.location || ''}" placeholder="Nhập địa điểm hoạt động">
+                        </div>
+                        <div class="form-group">
+                            <label>Nội dung hoạt động</label>
+                            <textarea id="modal-content" placeholder="Mô tả chi tiết hoạt động...">${activity?.content || ''}</textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Số lượng tham gia dự kiến</label>
+                                <input type="number" id="modal-participants" value="${activity?.expectedParticipants || ''}" placeholder="VD: 20" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Đề xuất BCH Trường tham dự</label>
+                                <select id="modal-bch-suggestion">
+                                    <option value="Không" ${(activity?.bchSuggestion || 'Không') === 'Không' ? 'selected' : ''}>Không</option>
+                                    <option value="Có" ${activity?.bchSuggestion === 'Có' ? 'selected' : ''}>Có</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Đề xuất Ký sự Tết lấy tin</label>
+                                <select id="modal-kysutet-news">
+                                    <option value="Không" ${(activity?.kysutetNews || 'Không') === 'Không' ? 'selected' : ''}>Không</option>
+                                    <option value="Có" ${activity?.kysutetNews === 'Có' ? 'selected' : ''}>Có</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Danh sách chiến sĩ chi tiết</label>
+                            <button type="button" class="btn btn-info btn-block" id="btn-participants-list" style="margin-top:5px;">
+                                <i class="fa-solid fa-users"></i> 
+                                Quản lý danh sách (<span id="participants-count">${activity?.participants?.length || 0}</span> chiến sĩ)
+                            </button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Danh sách chiến sĩ chi tiết</label>
-                        <button type="button" class="btn btn-info btn-block" id="btn-participants-list" style="margin-top:5px;">
-                            <i class="fa-solid fa-users"></i> 
-                            Quản lý danh sách (<span id="participants-count">${activity?.participants?.length || 0}</span> chiến sĩ)
-                        </button>
+                    <div class="activity-modal-footer">
+                        ${canEditThisActivity ? `
+                            ${isEdit ? `<button class="btn btn-danger" id="modal-delete"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
+                            <button class="btn btn-secondary" id="modal-cancel">Hủy</button>
+                            <button class="btn btn-primary" id="modal-save"><i class="fa-solid fa-save"></i> ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
+                        ` : `
+                            <button class="btn btn-secondary" id="modal-cancel">Đóng</button>
+                            <p style="font-size:0.85rem; color:#888; margin:0;"><i class="fa-solid fa-lock"></i> Bạn không có quyền chỉnh sửa hoạt động này</p>
+                        `}
                     </div>
-                </div>
-                <div class="activity-modal-footer">
-                    ${canEditThisActivity ? `
-                        ${isEdit ? `<button class="btn btn-danger" id="modal-delete"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
-                        <button class="btn btn-secondary" id="modal-cancel">Hủy</button>
-                        <button class="btn btn-primary" id="modal-save"><i class="fa-solid fa-save"></i> ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
-                    ` : `
-                        <button class="btn btn-secondary" id="modal-cancel">Đóng</button>
-                        <p style="font-size:0.85rem; color:#888; margin:0;"><i class="fa-solid fa-lock"></i> Bạn không có quyền chỉnh sửa hoạt động này</p>
-                    `}
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -1162,59 +1264,59 @@ function openParticipantsModal() {
     document.getElementById('participants-modal')?.remove();
 
     const modalHtml = `
-        <div class="activity-modal participants-modal active" id="participants-modal" style="z-index:10001;">
-            <div class="activity-modal-content">
-                <div class="activity-modal-header">
-                    <h3><i class="fa-solid fa-users"></i> Danh sách tham gia</h3>
-                    <button class="close-btn" id="participants-close">&times;</button>
-                </div>
-                <div class="activity-modal-body">
-                    <div style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                        <button class="btn btn-success btn-sm" id="btn-add-participant">
-                            <i class="fa-solid fa-plus"></i> Thêm người
-                        </button>
-                        <button class="btn btn-info btn-sm" id="btn-import-participants">
-                            <i class="fa-solid fa-file-excel"></i> Import
-                        </button>
-                        <button class="btn btn-warning btn-sm" id="btn-export-participants">
-                            <i class="fa-solid fa-file-export"></i> Xuất Excel
-                        </button>
-                        <button class="btn btn-secondary btn-sm" id="btn-download-participant-template">
-                            <i class="fa-solid fa-download"></i> Mẫu
-                        </button>
-                        <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
-                        <span style="margin-left:auto;color:#666;">
-                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> chiến sĩ
-                        </span>
+            <div class="activity-modal participants-modal active" id="participants-modal" style="z-index:10001;">
+                <div class="activity-modal-content">
+                    <div class="activity-modal-header">
+                        <h3><i class="fa-solid fa-users"></i> Danh sách tham gia</h3>
+                        <button class="close-btn" id="participants-close">&times;</button>
                     </div>
-                    <div style="overflow-x:auto;">
-                        <table class="data-table" style="min-width:100%;">
-                            <thead>
-                                <tr>
-                                    <th style="width:40px;">STT</th>
-                                    <th>Họ và Tên</th>
-                                    <th>MSSV</th>
-                                    <th>Email</th>
-                                    <th>Đội hình</th>
-                                    <th>Vai trò</th>
-                                    <th style="width:70px;">Xóa</th>
-                                </tr>
-                            </thead>
-                            <tbody id="participants-tbody">
-                                ${renderParticipantsRows()}
-                            </tbody>
-                        </table>
+                    <div class="activity-modal-body">
+                        <div style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                            <button class="btn btn-success btn-sm" id="btn-add-participant">
+                                <i class="fa-solid fa-plus"></i> Thêm người
+                            </button>
+                            <button class="btn btn-info btn-sm" id="btn-import-participants">
+                                <i class="fa-solid fa-file-excel"></i> Import
+                            </button>
+                            <button class="btn btn-warning btn-sm" id="btn-export-participants">
+                                <i class="fa-solid fa-file-export"></i> Xuất Excel
+                            </button>
+                            <button class="btn btn-secondary btn-sm" id="btn-download-participant-template">
+                                <i class="fa-solid fa-download"></i> Mẫu
+                            </button>
+                            <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
+                            <span style="margin-left:auto;color:#666;">
+                                Tổng: <strong id="total-participants">${tempParticipants.length}</strong> chiến sĩ
+                            </span>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table" style="min-width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th style="width:40px;">STT</th>
+                                        <th>Họ và Tên</th>
+                                        <th>MSSV</th>
+                                        <th>Email</th>
+                                        <th>Đội hình</th>
+                                        <th>Vai trò</th>
+                                        <th style="width:70px;">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="participants-tbody">
+                                    ${renderParticipantsRows()}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <div class="activity-modal-footer">
-                    <button class="btn btn-secondary" id="participants-cancel">Đóng</button>
-                    <button class="btn btn-primary" id="participants-save">
-                        <i class="fa-solid fa-save"></i> Lưu danh sách
-                    </button>
+                    <div class="activity-modal-footer">
+                        <button class="btn btn-secondary" id="participants-cancel">Đóng</button>
+                        <button class="btn btn-primary" id="participants-save">
+                            <i class="fa-solid fa-save"></i> Lưu danh sách
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -1259,59 +1361,59 @@ function openParticipantsModalForReport(activityId) {
     document.getElementById('participants-modal')?.remove();
 
     const modalHtml = `
-        <div class="activity-modal participants-modal active" id="participants-modal" style="z-index:10001;">
-            <div class="activity-modal-content">
-                <div class="activity-modal-header">
-                    <h3><i class="fa-solid fa-users"></i> Danh sách tham gia</h3>
-                    <button class="close-btn" id="participants-close">&times;</button>
-                </div>
-                <div class="activity-modal-body">
-                    <div style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                        <button class="btn btn-success btn-sm" id="btn-add-participant">
-                            <i class="fa-solid fa-plus"></i> Thêm người
-                        </button>
-                        <button class="btn btn-info btn-sm" id="btn-import-participants">
-                            <i class="fa-solid fa-file-excel"></i> Import
-                        </button>
-                        <button class="btn btn-warning btn-sm" id="btn-export-participants">
-                            <i class="fa-solid fa-file-export"></i> Xuất Excel
-                        </button>
-                        <button class="btn btn-secondary btn-sm" id="btn-download-participant-template">
-                            <i class="fa-solid fa-download"></i> Mẫu
-                        </button>
-                        <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
-                        <span style="margin-left:auto;color:#666;">
-                            Tổng: <strong id="total-participants">${tempParticipants.length}</strong> chiến sĩ
-                        </span>
+            <div class="activity-modal participants-modal active" id="participants-modal" style="z-index:10001;">
+                <div class="activity-modal-content">
+                    <div class="activity-modal-header">
+                        <h3><i class="fa-solid fa-users"></i> Danh sách tham gia</h3>
+                        <button class="close-btn" id="participants-close">&times;</button>
                     </div>
-                    <div style="overflow-x:auto;">
-                        <table class="data-table" style="min-width:100%;">
-                            <thead>
-                                <tr>
-                                    <th style="width:40px;">STT</th>
-                                    <th>Họ và Tên</th>
-                                    <th>MSSV</th>
-                                    <th>Email</th>
-                                    <th>Đội hình</th>
-                                    <th>Vai trò</th>
-                                    <th style="width:70px;">Xóa</th>
-                                </tr>
-                            </thead>
-                            <tbody id="participants-tbody">
-                                ${renderParticipantsRows()}
-                            </tbody>
-                        </table>
+                    <div class="activity-modal-body">
+                        <div style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                            <button class="btn btn-success btn-sm" id="btn-add-participant">
+                                <i class="fa-solid fa-plus"></i> Thêm người
+                            </button>
+                            <button class="btn btn-info btn-sm" id="btn-import-participants">
+                                <i class="fa-solid fa-file-excel"></i> Import
+                            </button>
+                            <button class="btn btn-warning btn-sm" id="btn-export-participants">
+                                <i class="fa-solid fa-file-export"></i> Xuất Excel
+                            </button>
+                            <button class="btn btn-secondary btn-sm" id="btn-download-participant-template">
+                                <i class="fa-solid fa-download"></i> Mẫu
+                            </button>
+                            <input type="file" id="participants-file-input" accept=".xlsx,.xls" style="display:none;">
+                            <span style="margin-left:auto;color:#666;">
+                                Tổng: <strong id="total-participants">${tempParticipants.length}</strong> chiến sĩ
+                            </span>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table" style="min-width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th style="width:40px;">STT</th>
+                                        <th>Họ và Tên</th>
+                                        <th>MSSV</th>
+                                        <th>Email</th>
+                                        <th>Đội hình</th>
+                                        <th>Vai trò</th>
+                                        <th style="width:70px;">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="participants-tbody">
+                                    ${renderParticipantsRows()}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <div class="activity-modal-footer">
-                    <button class="btn btn-secondary" id="participants-cancel">Đóng</button>
-                    <button class="btn btn-primary" id="participants-save">
-                        <i class="fa-solid fa-save"></i> Lưu danh sách
-                    </button>
+                    <div class="activity-modal-footer">
+                        <button class="btn btn-secondary" id="participants-cancel">Đóng</button>
+                        <button class="btn btn-primary" id="participants-save">
+                            <i class="fa-solid fa-save"></i> Lưu danh sách
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -1365,32 +1467,32 @@ function renderParticipantsRows() {
     }
 
     return tempParticipants.map((p, i) => `
-        <tr data-index="${i}">
-            <td>${i + 1}</td>
-            <td><input type="text" class="p-name" value="${p.name || ''}" placeholder="Họ và tên"></td>
-            <td><input type="text" class="p-mssv" value="${p.mssv || ''}" placeholder="MSSV"></td>
-            <td><input type="text" class="p-email" value="${p.email || ''}" placeholder="email@st.uel.edu.vn"></td>
-            <td>
-                <select class="p-team">
-                    <option value="">-- Chọn --</option>
-                    ${CONFIG.teams.map(t => `<option value="${t}" ${p.team === t ? 'selected' : ''}>${t}</option>`).join('')}
-                </select>
-            </td>
-            <td>
-                <select class="p-role">
-                    <option value="Chiến sĩ" ${p.role === 'Chiến sĩ' || !p.role ? 'selected' : ''}>Chiến sĩ</option>
-                    <option value="Đội trưởng" ${p.role === 'Đội trưởng' ? 'selected' : ''}>Đội trưởng</option>
-                    <option value="Đội phó" ${p.role === 'Đội phó' ? 'selected' : ''}>Đội phó</option>
-                    <option value="BCH" ${p.role === 'BCH' ? 'selected' : ''}>BCH</option>
-                </select>
-            </td>
-            <td>
-                <button class="btn-delete-row delete-participant" data-index="${i}" title="Xóa">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
+            <tr data-index="${i}">
+                <td>${i + 1}</td>
+                <td><input type="text" class="p-name" value="${p.name || ''}" placeholder="Họ và tên"></td>
+                <td><input type="text" class="p-mssv" value="${p.mssv || ''}" placeholder="MSSV"></td>
+                <td><input type="text" class="p-email" value="${p.email || ''}" placeholder="email@st.uel.edu.vn"></td>
+                <td>
+                    <select class="p-team">
+                        <option value="">-- Chọn --</option>
+                        ${CONFIG.teams.map(t => `<option value="${t}" ${p.team === t ? 'selected' : ''}>${t}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select class="p-role">
+                        <option value="Chiến sĩ" ${p.role === 'Chiến sĩ' || !p.role ? 'selected' : ''}>Chiến sĩ</option>
+                        <option value="Đội trưởng" ${p.role === 'Đội trưởng' ? 'selected' : ''}>Đội trưởng</option>
+                        <option value="Đội phó" ${p.role === 'Đội phó' ? 'selected' : ''}>Đội phó</option>
+                        <option value="BCH" ${p.role === 'BCH' ? 'selected' : ''}>BCH</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn-delete-row delete-participant" data-index="${i}" title="Xóa">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
 }
 
 function addParticipantRow() {
@@ -1675,16 +1777,16 @@ function renderTeamStats(filteredActivities) {
 
     // Render table with progress bars
     let html = `
-        <table class="team-stats-table">
-            <thead>
-                <tr>
-                    <th style="width:40%;">Đội hình</th>
-                    <th style="width:35%;">Số hoạt động</th>
-                    <th style="width:25%;">Tổng giờ</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+            <table class="team-stats-table">
+                <thead>
+                    <tr>
+                        <th style="width:40%;">Đội hình</th>
+                        <th style="width:35%;">Số hoạt động</th>
+                        <th style="width:25%;">Tổng giờ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
 
     // Sort by count descending
     const sortedTeams = Object.entries(teamStats).sort((a, b) => b[1].count - a[1].count);
@@ -1695,17 +1797,17 @@ function renderTeamStats(filteredActivities) {
         const shortName = team.replace('Đội hình ', '').replace('Ban Chỉ huy ', 'BCH ');
 
         html += `
-            <tr>
-                <td title="${team}">${shortName}</td>
-                <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar-fill" style="width:${percentage}%;"></div>
-                        <span class="progress-bar-text">${stats.count}</span>
-                    </div>
-                </td>
-                <td class="hours-cell"><span>${stats.hours.toFixed(1)}</span> giờ</td>
-            </tr>
-        `;
+                <tr>
+                    <td title="${team}">${shortName}</td>
+                    <td>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar-fill" style="width:${percentage}%;"></div>
+                            <span class="progress-bar-text">${stats.count}</span>
+                        </div>
+                    </td>
+                    <td class="hours-cell"><span>${stats.hours.toFixed(1)}</span> giờ</td>
+                </tr>
+            `;
     });
 
     html += '</tbody></table>';
@@ -1721,10 +1823,10 @@ function renderStatsTable(data) {
 
     if (pageData.length === 0) {
         elements.statsTbody.innerHTML = `
-            <tr><td colspan="12" style="text-align:center;padding:40px;color:#999;">
-                Không có dữ liệu
-            </td></tr>
-        `;
+                <tr><td colspan="12" style="text-align:center;padding:40px;color:#999;">
+                    Không có dữ liệu
+                </td></tr>
+            `;
     } else {
         elements.statsTbody.innerHTML = pageData.map((a, i) => {
             // Format updatedAt
@@ -1758,14 +1860,20 @@ function renderStatsTable(data) {
                 : '';
             const timeWarning = isInvalidTime ? ' ⚠️' : '';
 
+            // Sử dụng getReportStatus() để lấy trạng thái deadline
+            const reportStatus = getReportStatus(a);
+            const isOverdueReport = reportStatus.isOverdue;
 
-            // Kiểm tra quá hạn báo cáo: hoạt động đã kết thúc > 4 tiếng và chưa có báo cáo
-            const now = new Date();
-            const activityEndDateTime = new Date(`${a.date}T${a.endTime || '23:59'}`);
-            const hoursAfterEnd = (now - activityEndDateTime) / (1000 * 60 * 60);
-            // Kiểm tra báo cáo: CHỈ theo linkedActivityId (fix bug: ko còn match date+team gây đánh dấu sai nhiều hoạt động)
-            const hasReport = reports.some(r => r.linkedActivityId === a.id);
-            const isOverdueReport = !hasReport && hoursAfterEnd > 12 && activityEndDateTime < now;
+            // Badge trạng thái báo cáo với màu sắc
+            const statusColors = {
+                pending: { bg: '#f3f4f6', text: '#6b7280' },
+                reported: { bg: '#d1fae5', text: '#065f46' },
+                safe: { bg: '#dbeafe', text: '#1e40af' },
+                warning: { bg: '#fef3c7', text: '#92400e' },
+                overdue: { bg: '#fee2e2', text: '#991b1b' }
+            };
+            const statusColor = statusColors[reportStatus.status] || statusColors.pending;
+            const statusBadge = `<span style="background:${statusColor.bg}; color:${statusColor.text}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:600;">${reportStatus.label}</span>`;
 
             // Xác định style cho row
             let rowStyle = '';
@@ -1775,36 +1883,38 @@ function renderStatsTable(data) {
             } else if (isOverdueReport) {
                 rowStyle = 'background:#fef2f2; border-left:3px solid #dc2626;';
                 rowClass = 'overdue-report';
+            } else if (reportStatus.status === 'warning') {
+                rowStyle = 'background:#fffbeb; border-left:3px solid #f59e0b;';
             }
 
             return `
-            <tr style="${rowStyle}" class="${rowClass}"${isOverdueReport ? ' title="⚠️ Chưa báo cáo sau 4 tiếng!"' : ''}>
-                <td>${start + i + 1}</td>
-                <td>${formatDate(a.date, 'full')}</td>
-                <td>${isInvalidTime
+                <tr style="${rowStyle}" class="${rowClass}">
+                    <td>${start + i + 1}</td>
+                    <td>${formatDate(a.date, 'full')}</td>
+                    <td>${isInvalidTime
                     ? `<span class="time-error" style="${timeStyle} cursor:pointer;" data-id="${a.id}" title="Click để xem lỗi">${a.startTime} - ${a.endTime}${timeWarning}</span>`
                     : `<span>${a.startTime} - ${a.endTime}</span>`}</td>
-                <td>
-                    <strong>${a.title || '-'}</strong>
-                    ${isOverdueReport ? '<span style="background:#dc2626; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:6px;">⚠️ Chưa báo cáo</span>' : ''}
-                </td>
-                <td>${normalizeTeamName(a.team)}</td>
-                <td>${a.location || '-'}</td>
-                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.content || ''}">${a.content || '-'}</td>
-                <td>${bchBadge}</td>
-                <td>${kstBadge}</td>
-                <td>${updatedTime}</td>
-                <td>${a.updatedBy || a.createdBy || '-'}</td>
-                <td class="actions">
-                    <button class="btn-icon edit" data-id="${a.id}" title="Sửa">
-                        <i class="fa-solid fa-edit"></i>
-                    </button>
-                    <button class="btn-icon delete" data-id="${a.id}" title="Xóa">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+                    <td>
+                        <strong>${a.title || '-'}</strong>
+                    </td>
+                    <td>${normalizeTeamName(a.team)}</td>
+                    <td>${a.location || '-'}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.content || ''}">${a.content || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${bchBadge}</td>
+                    <td>${kstBadge}</td>
+                    <td>${updatedTime}</td>
+                    <td>${a.updatedBy || a.createdBy || '-'}</td>
+                    <td class="actions">
+                        <button class="btn-icon edit" data-id="${a.id}" title="Sửa">
+                            <i class="fa-solid fa-edit"></i>
+                        </button>
+                        <button class="btn-icon delete" data-id="${a.id}" title="Xóa">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
         }).join('');
 
         // Add handlers
@@ -2027,11 +2137,11 @@ function renderActivitiesStatus() {
 
     if (total === 0) {
         elements.activitiesReportStatus.innerHTML = `
-            <div style="text-align:center; padding:30px; color:#9ca3af;">
-                <i class="fa-solid fa-calendar-xmark" style="font-size:2rem; margin-bottom:10px; display:block;"></i>
-                Chưa có hoạt động nào${teamFilter ? ' cho đội hình này' : ''}
-            </div>
-        `;
+                <div style="text-align:center; padding:30px; color:#9ca3af;">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size:2rem; margin-bottom:10px; display:block;"></i>
+                    Chưa có hoạt động nào${teamFilter ? ' cho đội hình này' : ''}
+                </div>
+            `;
         return;
     }
 
@@ -2051,36 +2161,36 @@ function renderActivitiesStatus() {
 
     // Build HTML với clickable stats
     let html = `
-        <!-- Thống kê - CLICK ĐỂ LỌC -->
-        <div style="display:flex; gap:15px; margin-bottom:18px; flex-wrap:wrap;">
-            <div class="stats-box" data-filter="reported"
-                 style="flex:1; min-width:140px; background:linear-gradient(135deg, #ecfdf5, #d1fae5); 
-                        padding:15px 18px; border-radius:12px; text-align:center; cursor:pointer;
-                        border:3px solid ${activityStatusFilter === 'reported' ? '#059669' : 'transparent'};">
-                <div style="font-size:1.8rem; font-weight:700; color:#059669;">${reportedList.length}</div>
-                <div style="font-size:0.85rem; color:#047857;">✓ Đã báo cáo</div>
+            <!-- Thống kê - CLICK ĐỂ LỌC -->
+            <div style="display:flex; gap:15px; margin-bottom:18px; flex-wrap:wrap;">
+                <div class="stats-box" data-filter="reported"
+                    style="flex:1; min-width:140px; background:linear-gradient(135deg, #ecfdf5, #d1fae5); 
+                            padding:15px 18px; border-radius:12px; text-align:center; cursor:pointer;
+                            border:3px solid ${activityStatusFilter === 'reported' ? '#059669' : 'transparent'};">
+                    <div style="font-size:1.8rem; font-weight:700; color:#059669;">${reportedList.length}</div>
+                    <div style="font-size:0.85rem; color:#047857;">✓ Đã báo cáo</div>
+                </div>
+                <div class="stats-box" data-filter="not-reported"
+                    style="flex:1; min-width:140px; background:linear-gradient(135deg, #fffbeb, #fef3c7); 
+                            padding:15px 18px; border-radius:12px; text-align:center; cursor:pointer;
+                            border:3px solid ${activityStatusFilter === 'not-reported' ? '#d97706' : 'transparent'};">
+                    <div style="font-size:1.8rem; font-weight:700; color:#d97706;">${notReportedList.length}</div>
+                    <div style="font-size:0.85rem; color:#b45309;">⏳ Chưa báo cáo</div>
+                </div>
+                <div class="stats-box" data-filter="all"
+                    style="flex:1; min-width:140px; background:linear-gradient(135deg, #f0f9ff, #e0f2fe); 
+                            padding:15px 18px; border-radius:12px; text-align:center; cursor:pointer;
+                            border:3px solid ${activityStatusFilter === 'all' ? '#0284c7' : 'transparent'};">
+                    <div style="font-size:1.8rem; font-weight:700; color:#0284c7;">${total}</div>
+                    <div style="font-size:0.85rem; color:#0369a1;">📋 Tất cả</div>
+                </div>
             </div>
-            <div class="stats-box" data-filter="not-reported"
-                 style="flex:1; min-width:140px; background:linear-gradient(135deg, #fffbeb, #fef3c7); 
-                        padding:15px 18px; border-radius:12px; text-align:center; cursor:pointer;
-                        border:3px solid ${activityStatusFilter === 'not-reported' ? '#d97706' : 'transparent'};">
-                <div style="font-size:1.8rem; font-weight:700; color:#d97706;">${notReportedList.length}</div>
-                <div style="font-size:0.85rem; color:#b45309;">⏳ Chưa báo cáo</div>
-            </div>
-            <div class="stats-box" data-filter="all"
-                 style="flex:1; min-width:140px; background:linear-gradient(135deg, #f0f9ff, #e0f2fe); 
-                        padding:15px 18px; border-radius:12px; text-align:center; cursor:pointer;
-                        border:3px solid ${activityStatusFilter === 'all' ? '#0284c7' : 'transparent'};">
-                <div style="font-size:1.8rem; font-weight:700; color:#0284c7;">${total}</div>
-                <div style="font-size:0.85rem; color:#0369a1;">📋 Tất cả</div>
-            </div>
-        </div>
-        
-        <!-- Hướng dẫn -->
-        <p style="text-align:center; font-size:0.85rem; color:#6b7280; margin:0;">
-            <i class="fa-solid fa-hand-pointer"></i> Click vào ô để xem danh sách chi tiết
-        </p>
-    `;
+            
+            <!-- Hướng dẫn -->
+            <p style="text-align:center; font-size:0.85rem; color:#6b7280; margin:0;">
+                <i class="fa-solid fa-hand-pointer"></i> Click vào ô để xem danh sách chi tiết
+            </p>
+        `;
 
     elements.activitiesReportStatus.innerHTML = html;
 
@@ -2127,46 +2237,56 @@ function openActivitiesModal(activitiesList, title) {
             }
             const participantsCount = Array.isArray(a.participants) ? a.participants.length : 0;
 
+            // Lấy trạng thái deadline
+            const reportStatus = getReportStatus(a);
+            const statusColors = {
+                pending: { bg: '#f3f4f6', text: '#6b7280' },
+                reported: { bg: '#d1fae5', text: '#065f46' },
+                safe: { bg: '#dbeafe', text: '#1e40af' },
+                warning: { bg: '#fef3c7', text: '#92400e' },
+                overdue: { bg: '#fee2e2', text: '#991b1b' }
+            };
+            const statusColor = statusColors[reportStatus.status] || statusColors.pending;
+
             return `
-                <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 15px; margin-bottom:10px;">
-                    <h5 style="margin:0 0 5px; font-size:0.95rem; color:#1f2937;">
-                        ${displayTitle}
-                        ${timeStr ? `<span style="font-weight:400; color:#6b7280; font-size:0.85rem;"> (${timeStr})</span>` : ''}
-                    </h5>
-                    <div style="font-size:0.85rem; color:#6b7280; display:flex; gap:12px; flex-wrap:wrap;">
-                        <span><i class="fa-solid fa-users"></i> ${teamName}</span>
-                        <span><i class="fa-solid fa-calendar"></i> ${dateStr}</span>
-                        ${participantsCount > 0 ? `<span><i class="fa-solid fa-user-group"></i> ${participantsCount}</span>` : ''}
+                    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 15px; margin-bottom:10px;">
+                        <h5 style="margin:0 0 5px; font-size:0.95rem; color:#1f2937;">
+                            ${displayTitle}
+                            ${timeStr ? `<span style="font-weight:400; color:#6b7280; font-size:0.85rem;"> (${timeStr})</span>` : ''}
+                        </h5>
+                        <div style="font-size:0.85rem; color:#6b7280; display:flex; gap:12px; flex-wrap:wrap;">
+                            <span><i class="fa-solid fa-users"></i> ${teamName}</span>
+                            <span><i class="fa-solid fa-calendar"></i> ${dateStr}</span>
+                            ${participantsCount > 0 ? `<span><i class="fa-solid fa-user-group"></i> ${participantsCount}</span>` : ''}
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:8px; justify-content:flex-end;">
+                            ${!a.hasReport ? `
+                                <button class="btn btn-sm btn-success btn-create-report-modal" 
+                                        data-activity-id="${a.id}" data-team="${a.team}" data-date="${a.date}"
+                                        style="padding:5px 10px; font-size:11px;">
+                                    <i class="fa-solid fa-plus"></i> Báo cáo
+                                </button>
+                            ` : ''}
+                            <span style="padding:4px 10px; border-radius:15px; font-size:0.75rem; font-weight:600;
+                                        background:${statusColor.bg}; color:${statusColor.text};">
+                                ${reportStatus.label}
+                            </span>
+                        </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-top:8px; justify-content:flex-end;">
-                        ${!a.hasReport ? `
-                            <button class="btn btn-sm btn-success btn-create-report-modal" 
-                                    data-activity-id="${a.id}" data-team="${a.team}" data-date="${a.date}"
-                                    style="padding:5px 10px; font-size:11px;">
-                                <i class="fa-solid fa-plus"></i> Báo cáo
-                            </button>
-                        ` : ''}
-                        <span style="padding:4px 10px; border-radius:15px; font-size:0.75rem; font-weight:600;
-                                     background:${a.hasReport ? '#d1fae5' : '#fef3c7'}; 
-                                     color:${a.hasReport ? '#065f46' : '#92400e'};">
-                            ${a.hasReport ? '✓ Đã BC' : '⏳ Chưa BC'}
-                        </span>
-                    </div>
-                </div>
-            `;
+                `;
         }).join('');
 
     modal.innerHTML = `
-        <div style="background:white; border-radius:16px; width:95%; max-width:600px; max-height:80vh; overflow:hidden; box-shadow:0 15px 50px rgba(0,0,0,0.25);">
-            <div style="padding:18px 20px; background:linear-gradient(135deg, #16a34a, #22c55e); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; font-size:1.1rem; color:white; font-weight:600;">${title} (${activitiesList.length})</h3>
-                <button id="close-activities-modal" style="background:rgba(255,255,255,0.2); border:none; width:30px; height:30px; border-radius:50%; font-size:1.2rem; cursor:pointer; color:white; line-height:1;">&times;</button>
+            <div style="background:white; border-radius:16px; width:95%; max-width:600px; max-height:80vh; overflow:hidden; box-shadow:0 15px 50px rgba(0,0,0,0.25);">
+                <div style="padding:18px 20px; background:linear-gradient(135deg, #16a34a, #22c55e); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:1.1rem; color:white; font-weight:600;">${title} (${activitiesList.length})</h3>
+                    <button id="close-activities-modal" style="background:rgba(255,255,255,0.2); border:none; width:30px; height:30px; border-radius:50%; font-size:1.2rem; cursor:pointer; color:white; line-height:1;">&times;</button>
+                </div>
+                <div style="padding:15px 20px; overflow-y:auto; max-height:60vh; background:#fafafa;">
+                    ${listHTML}
+                </div>
             </div>
-            <div style="padding:15px 20px; overflow-y:auto; max-height:60vh; background:#fafafa;">
-                ${listHTML}
-            </div>
-        </div>
-    `;
+        `;
 
     document.body.appendChild(modal);
 
@@ -2214,11 +2334,11 @@ function renderReports() {
 
     if (filtered.length === 0) {
         elements.reportsList.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-file-circle-question fa-3x"></i>
-                <p>Chưa có báo cáo nào. Chọn đội hình và nhấn "Thêm báo cáo mới".</p>
-            </div>
-        `;
+                <div class="empty-state">
+                    <i class="fa-solid fa-file-circle-question fa-3x"></i>
+                    <p>Chưa có báo cáo nào. Chọn đội hình và nhấn "Thêm báo cáo mới".</p>
+                </div>
+            `;
         return;
     }
 
@@ -2260,48 +2380,48 @@ function renderReports() {
         const displayParticipantsCount = r.participantsCount || linkedActivity?.participants?.length || 0;
 
         return `
-        <div class="report-card" data-id="${r.id}">
-            <!-- Header: Đội hình + Ngày + Buttons -->
-            <div class="report-card-header">
-                <div class="report-card-title">
-                    <h4>${normalizeTeamName(r.team)}</h4>
-                    <span class="report-date">Báo cáo cho: <strong>Ngày ${reportDate}</strong></span>
+            <div class="report-card" data-id="${r.id}">
+                <!-- Header: Đội hình + Ngày + Buttons -->
+                <div class="report-card-header">
+                    <div class="report-card-title">
+                        <h4>${normalizeTeamName(r.team)}</h4>
+                        <span class="report-date">Báo cáo cho: <strong>Ngày ${reportDate}</strong></span>
+                    </div>
+                    <div class="report-card-actions">
+                        <button class="btn btn-sm btn-outline btn-history" data-id="${r.id}">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử
+                        </button>
+                        <button class="btn btn-sm btn-warning btn-edit" data-id="${r.id}">
+                            <i class="fa-solid fa-edit"></i> Sửa
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="${r.id}">
+                            <i class="fa-solid fa-trash"></i> Xóa
+                        </button>
+                    </div>
                 </div>
-                <div class="report-card-actions">
-                    <button class="btn btn-sm btn-outline btn-history" data-id="${r.id}">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử
-                    </button>
-                    <button class="btn btn-sm btn-warning btn-edit" data-id="${r.id}">
-                        <i class="fa-solid fa-edit"></i> Sửa
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-delete" data-id="${r.id}">
-                        <i class="fa-solid fa-trash"></i> Xóa
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Body: Nội dung chi tiết -->
-            <div class="report-card-body">
-                <p class="report-field"><strong>Số lượng tham gia:</strong> ${displayParticipantsCount} chiến sĩ</p>
                 
-                <p class="report-field"><strong>Nội dung hoạt động:</strong></p>
-                <p class="report-value">${activityDesc || 'Không có'}</p>
-                
-                <p class="report-field"><strong>Nội dung báo cáo:</strong></p>
-                <p class="report-value">${reportContent || 'Không có'}</p>
-                
-                <p class="report-field"><strong>Minh chứng:</strong></p>
-                <p class="report-value">${r.evidence && r.evidence.length > 0
+                <!-- Body: Nội dung chi tiết -->
+                <div class="report-card-body">
+                    <p class="report-field"><strong>Số lượng tham gia:</strong> ${displayParticipantsCount} chiến sĩ</p>
+                    
+                    <p class="report-field"><strong>Nội dung hoạt động:</strong></p>
+                    <p class="report-value">${activityDesc || 'Không có'}</p>
+                    
+                    <p class="report-field"><strong>Nội dung báo cáo:</strong></p>
+                    <p class="report-value">${reportContent || 'Không có'}</p>
+                    
+                    <p class="report-field"><strong>Minh chứng:</strong></p>
+                    <p class="report-value">${r.evidence && r.evidence.length > 0
                 ? r.evidence.map(e => `<a href="${e}" target="_blank" rel="noopener">${e}</a>`).join('<br>')
                 : 'Không có'}</p>
+                </div>
+                
+                <!-- Footer: Người cập nhật + Thời gian -->
+                <div class="report-card-footer">
+                    <small>Cập nhật bởi: ${r.updatedBy || r.createdBy || 'N/A'} lúc ${updatedTime}</small>
+                </div>
             </div>
-            
-            <!-- Footer: Người cập nhật + Thời gian -->
-            <div class="report-card-footer">
-                <small>Cập nhật bởi: ${r.updatedBy || r.createdBy || 'N/A'} lúc ${updatedTime}</small>
-            </div>
-        </div>
-    `;
+        `;
     }).join('');
 
     // Edit buttons
@@ -2401,58 +2521,58 @@ function showActivitySelector() {
 
         if (displayActivities.length === 0) {
             return `
-                <div class="empty-state" style="padding:30px; text-align:center; color:#999;">
-                    <i class="fa-solid fa-calendar-xmark fa-3x"></i>
-                    <p>Chưa có hoạt động nào ${!isFullAdmin ? 'của đội bạn' : ''}.</p>
-                    <p style="font-size:0.9rem;">Hãy tạo hoạt động trong tab "Lịch hoạt động" trước.</p>
-                </div>
-            `;
+                    <div class="empty-state" style="padding:30px; text-align:center; color:#999;">
+                        <i class="fa-solid fa-calendar-xmark fa-3x"></i>
+                        <p>Chưa có hoạt động nào ${!isFullAdmin ? 'của đội bạn' : ''}.</p>
+                        <p style="font-size:0.9rem;">Hãy tạo hoạt động trong tab "Lịch hoạt động" trước.</p>
+                    </div>
+                `;
         }
 
         return displayActivities.map(a => `
-            <div class="activity-select-item" data-id="${a.id}" style="
-                padding: 12px 15px;
-                border: 2px solid #e5e7eb;
-                border-radius: 8px;
-                margin-bottom: 8px;
-                cursor: pointer;
-                transition: all 0.2s;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            ">
-                <div>
-                    <strong style="color:#16a34a;">${formatDate(a.date, 'full')}</strong>
-                    <span style="margin-left:10px; color:#6b7280;">${normalizeTeamName(a.team)}</span>
-                    <p style="margin:5px 0 0 0; font-size:0.9rem; color:#374151;">${a.content || 'Hoạt động'}</p>
-                    <small style="color:#9ca3af;">${a.startTime} - ${a.endTime} | ${a.location || 'Chưa có địa điểm'}</small>
+                <div class="activity-select-item" data-id="${a.id}" style="
+                    padding: 12px 15px;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                ">
+                    <div>
+                        <strong style="color:#16a34a;">${formatDate(a.date, 'full')}</strong>
+                        <span style="margin-left:10px; color:#6b7280;">${normalizeTeamName(a.team)}</span>
+                        <p style="margin:5px 0 0 0; font-size:0.9rem; color:#374151;">${a.content || 'Hoạt động'}</p>
+                        <small style="color:#9ca3af;">${a.startTime} - ${a.endTime} | ${a.location || 'Chưa có địa điểm'}</small>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color:#9ca3af;"></i>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color:#9ca3af;"></i>
-            </div>
-        `).join('') +
+            `).join('') +
             (filteredActivities.length > count ? `
-            <button class="btn btn-secondary btn-block" id="btn-show-more-activities" style="margin-top:10px;">
-                <i class="fa-solid fa-plus"></i> Xem thêm (còn ${filteredActivities.length - count} hoạt động)
-            </button>
-        ` : '');
+                <button class="btn btn-secondary btn-block" id="btn-show-more-activities" style="margin-top:10px;">
+                    <i class="fa-solid fa-plus"></i> Xem thêm (còn ${filteredActivities.length - count} hoạt động)
+                </button>
+            ` : '');
     };
 
     const modalHtml = `
-        <div class="activity-modal active" id="activity-selector-modal">
-            <div class="activity-modal-content" style="max-width:550px;">
-                <div class="activity-modal-header" style="background:linear-gradient(135deg,#16a34a,#22c55e);">
-                    <h3 style="color:white;"><i class="fa-solid fa-list-check"></i> Chọn hoạt động để báo cáo</h3>
-                    <button class="close-btn" id="selector-close" style="color:white;">&times;</button>
-                </div>
-                <div class="activity-modal-body" id="activity-list-container" style="max-height:400px; overflow-y:auto;">
-                    ${renderActivityList(showCount)}
-                </div>
-                <div class="activity-modal-footer">
-                    <button class="btn btn-secondary" id="selector-cancel">Hủy</button>
+            <div class="activity-modal active" id="activity-selector-modal">
+                <div class="activity-modal-content" style="max-width:550px;">
+                    <div class="activity-modal-header" style="background:linear-gradient(135deg,#16a34a,#22c55e);">
+                        <h3 style="color:white;"><i class="fa-solid fa-list-check"></i> Chọn hoạt động để báo cáo</h3>
+                        <button class="close-btn" id="selector-close" style="color:white;">&times;</button>
+                    </div>
+                    <div class="activity-modal-body" id="activity-list-container" style="max-height:400px; overflow-y:auto;">
+                        ${renderActivityList(showCount)}
+                    </div>
+                    <div class="activity-modal-footer">
+                        <button class="btn btn-secondary" id="selector-cancel">Hủy</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -2511,62 +2631,62 @@ function openReportModalWithActivity(activity) {
     const evidenceLinks = '';
 
     const modalHtml = `
-        <div class="activity-modal active" id="report-modal">
-            <div class="activity-modal-content" style="max-width:600px;">
-                <div class="activity-modal-header" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
-                    <h3 style="color:white;"><i class="fa-solid fa-file-alt"></i> Báo cáo hoạt động</h3>
-                    <button class="close-btn" id="report-modal-close" style="color:white;">&times;</button>
-                </div>
-                <div class="activity-modal-body">
-                    <!-- Thông tin hoạt động (readonly) -->
-                    <div style="background:#f0fdf4; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #86efac;">
-                        <h4 style="margin:0 0 10px 0; color:#16a34a;"><i class="fa-solid fa-calendar-check"></i> Hoạt động được báo cáo</h4>
-                        <p style="margin:5px 0; font-size:1.1rem;"><strong style="color:#dc2626; font-size:1.15rem;">${activity.title || 'Chưa có tên hoạt động'}</strong></p>
-                        <p style="margin:5px 0;"><strong>Ngày:</strong> ${formatDate(activity.date, 'full')}</p>
-                        <p style="margin:5px 0;"><strong>Đội hình:</strong> ${team}</p>
-                        <p style="margin:5px 0;"><strong>Thời gian:</strong> ${activity.startTime} - ${activity.endTime}</p>
-                        <p style="margin:5px 0;"><strong>Địa điểm:</strong> ${activity.location || 'Chưa có'}</p>
-                        <p style="margin:5px 0;"><strong>Nội dung:</strong> ${activity.content || 'Chưa có'}</p>
-                        <input type="hidden" id="report-linked-activity" value="${activity.id}">
-                        <input type="hidden" id="report-team-hidden" value="${team}">
-                        <input type="hidden" id="report-date-hidden" value="${activity.date}">
+            <div class="activity-modal active" id="report-modal">
+                <div class="activity-modal-content" style="max-width:600px;">
+                    <div class="activity-modal-header" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
+                        <h3 style="color:white;"><i class="fa-solid fa-file-alt"></i> Báo cáo hoạt động</h3>
+                        <button class="close-btn" id="report-modal-close" style="color:white;">&times;</button>
                     </div>
-                    
-                    <!-- Danh sách tham gia - GIỐNG MODAL HOẠT ĐỘNG -->
-                    <div class="form-group">
-                        <label>Danh sách chiến sĩ chi tiết</label>
-                        <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
-                            <i class="fa-solid fa-users"></i> 
-                            Quản lý danh sách (<span id="report-participants-count">${activity.participants?.length || 0}</span> chiến sĩ)
-                        </button>
-                        <input type="hidden" id="report-activity-id" value="${activity.id}">
-                    </div>
-                    <div class="form-row">
+                    <div class="activity-modal-body">
+                        <!-- Thông tin hoạt động (readonly) -->
+                        <div style="background:#f0fdf4; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #86efac;">
+                            <h4 style="margin:0 0 10px 0; color:#16a34a;"><i class="fa-solid fa-calendar-check"></i> Hoạt động được báo cáo</h4>
+                            <p style="margin:5px 0; font-size:1.1rem;"><strong style="color:#dc2626; font-size:1.15rem;">${activity.title || 'Chưa có tên hoạt động'}</strong></p>
+                            <p style="margin:5px 0;"><strong>Ngày:</strong> ${formatDate(activity.date, 'full')}</p>
+                            <p style="margin:5px 0;"><strong>Đội hình:</strong> ${team}</p>
+                            <p style="margin:5px 0;"><strong>Thời gian:</strong> ${activity.startTime} - ${activity.endTime}</p>
+                            <p style="margin:5px 0;"><strong>Địa điểm:</strong> ${activity.location || 'Chưa có'}</p>
+                            <p style="margin:5px 0;"><strong>Nội dung:</strong> ${activity.content || 'Chưa có'}</p>
+                            <input type="hidden" id="report-linked-activity" value="${activity.id}">
+                            <input type="hidden" id="report-team-hidden" value="${team}">
+                            <input type="hidden" id="report-date-hidden" value="${activity.date}">
+                        </div>
+                        
+                        <!-- Danh sách tham gia - GIỐNG MODAL HOẠT ĐỘNG -->
                         <div class="form-group">
-                            <label>Tổng giờ hoạt động</label>
-                            <input type="text" id="report-hours" value="${calculateHours(activity.startTime, activity.endTime).toFixed(1)} giờ" readonly style="background:#f3f4f6; font-weight:bold;">
+                            <label>Danh sách chiến sĩ chi tiết</label>
+                            <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
+                                <i class="fa-solid fa-users"></i> 
+                                Quản lý danh sách (<span id="report-participants-count">${activity.participants?.length || 0}</span> chiến sĩ)
+                            </button>
+                            <input type="hidden" id="report-activity-id" value="${activity.id}">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Tổng giờ hoạt động</label>
+                                <input type="text" id="report-hours" value="${calculateHours(activity.startTime, activity.endTime).toFixed(1)} giờ" readonly style="background:#f3f4f6; font-weight:bold;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nội dung báo cáo <span class="required">*</span></label>
+                            <textarea id="report-content" rows="4" placeholder="Tóm tắt kết quả hoạt động...">${activity.content || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Link minh chứng (mỗi link 1 dòng)</label>
+                            <textarea id="report-evidence" rows="3" placeholder="https://drive.google.com/...&#10;https://facebook.com/...">${evidenceLinks}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Ghi chú / Nhận xét</label>
+                            <textarea id="report-notes" rows="2" placeholder="Nhận xét, đề xuất..."></textarea>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Nội dung báo cáo <span class="required">*</span></label>
-                        <textarea id="report-content" rows="4" placeholder="Tóm tắt kết quả hoạt động...">${activity.content || ''}</textarea>
+                    <div class="activity-modal-footer">
+                        <button class="btn btn-secondary" id="report-cancel">Hủy</button>
+                        <button class="btn btn-primary" id="report-save"><i class="fa-solid fa-save"></i> Lưu báo cáo</button>
                     </div>
-                    <div class="form-group">
-                        <label>Link minh chứng (mỗi link 1 dòng)</label>
-                        <textarea id="report-evidence" rows="3" placeholder="https://drive.google.com/...&#10;https://facebook.com/...">${evidenceLinks}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Ghi chú / Nhận xét</label>
-                        <textarea id="report-notes" rows="2" placeholder="Nhận xét, đề xuất..."></textarea>
-                    </div>
-                </div>
-                <div class="activity-modal-footer">
-                    <button class="btn btn-secondary" id="report-cancel">Hủy</button>
-                    <button class="btn btn-primary" id="report-save"><i class="fa-solid fa-save"></i> Lưu báo cáo</button>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -2607,6 +2727,8 @@ function openReportModalWithActivity(activity) {
             evidence: document.getElementById('report-evidence').value.split('\n').filter(l => l.trim()),
             notes: document.getElementById('report-notes').value.trim(),
             submitted: false,
+            // Kiểm tra báo cáo có quá hạn không (dựa trên deadline của activity)
+            isLate: getReportStatus(activity).isOverdue,
             createdAt: serverTimestamp(),
             createdBy: auth.currentUser?.email || 'unknown',
             updatedAt: serverTimestamp(),
@@ -2698,8 +2820,8 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
             (prefillActivityId && a.id === prefillActivityId) ||
             (!isEdit && !prefillActivityId && i === 0);
         return `<option value="${a.id}" data-date="${a.date}" data-content="${a.content || ''}" ${isSelected ? 'selected' : ''}>
-            ${formatDate(a.date, 'full')} - ${a.title || a.content || 'Hoạt động'}
-        </option>`;
+                ${formatDate(a.date, 'full')} - ${a.title || a.content || 'Hoạt động'}
+            </option>`;
     }).join('');
 
     // Evidence links
@@ -2709,117 +2831,117 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
     const disableTeamSelect = isEdit || (currentUserTeam && !isAdmin);
 
     const modalHtml = `
-        <div class="activity-modal active" id="report-modal">
-            <div class="activity-modal-content" style="max-width:600px;">
-                <div class="activity-modal-header" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
-                    <h3 style="color:white;"><i class="fa-solid fa-file-alt"></i> ${isEdit ? 'Sửa' : 'Thêm'} Báo cáo</h3>
-                    <button class="close-btn" id="report-modal-close" style="color:white;">&times;</button>
-                </div>
-                <div class="activity-modal-body">
-                    ${defaultActivity ? `
-                    <!-- Thông tin hoạt động được chọn -->
-                    <div style="background:#f0fdf4; padding:12px 15px; border-radius:8px; margin-bottom:15px; border:1px solid #86efac; position:relative;">
-                        <button type="button" id="edit-linked-activity" data-activity-id="${defaultActivity.id}" 
-                            style="position:absolute; top:8px; right:8px; background:#16a34a; color:white; border:none; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer;"
-                            title="Sửa hoạt động này">
-                            <i class="fa-solid fa-pen"></i> Sửa
-                        </button>
-                        <h4 style="margin:0 0 8px 0; color:#16a34a; font-size:0.95rem;"><i class="fa-solid fa-calendar-check"></i> Hoạt động được báo cáo</h4>
-                        <p style="margin:3px 0; font-size:1.1rem;"><strong style="color:#dc2626;">${defaultActivity.title || 'Chưa có tên'}</strong></p>
-                        <p style="margin:3px 0; font-size:0.9rem; color:#374151;">
-                            <i class="fa-solid fa-calendar"></i> ${formatDate(defaultActivity.date, 'full')} &nbsp;|&nbsp; 
-                            <i class="fa-solid fa-clock"></i> ${defaultActivity.startTime || '?'} - ${defaultActivity.endTime || '?'}
-                        </p>
-                        <p style="margin:3px 0; font-size:0.9rem; color:#374151;">
-                            <i class="fa-solid fa-location-dot"></i> ${defaultActivity.location || 'Chưa có địa điểm'}
-                        </p>
-                        ${defaultActivity.content ? `<p style="margin:5px 0 0 0; font-size:0.85rem; color:#6b7280; font-style:italic;">${defaultActivity.content.substring(0, 100)}${defaultActivity.content.length > 100 ? '...' : ''}</p>` : ''}
+            <div class="activity-modal active" id="report-modal">
+                <div class="activity-modal-content" style="max-width:600px;">
+                    <div class="activity-modal-header" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
+                        <h3 style="color:white;"><i class="fa-solid fa-file-alt"></i> ${isEdit ? 'Sửa' : 'Thêm'} Báo cáo</h3>
+                        <button class="close-btn" id="report-modal-close" style="color:white;">&times;</button>
                     </div>
-                    ` : ''}
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Đội hình ${!isAdmin && currentUserTeam ? '<small class="text-muted">(Đã được gán)</small>' : ''}</label>
-                            <select id="report-team" ${disableTeamSelect ? 'disabled' : ''}>
-                                ${CONFIG.teams.map(t => {
+                    <div class="activity-modal-body">
+                        ${defaultActivity ? `
+                        <!-- Thông tin hoạt động được chọn -->
+                        <div style="background:#f0fdf4; padding:12px 15px; border-radius:8px; margin-bottom:15px; border:1px solid #86efac; position:relative;">
+                            <button type="button" id="edit-linked-activity" data-activity-id="${defaultActivity.id}" 
+                                style="position:absolute; top:8px; right:8px; background:#16a34a; color:white; border:none; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer;"
+                                title="Sửa hoạt động này">
+                                <i class="fa-solid fa-pen"></i> Sửa
+                            </button>
+                            <h4 style="margin:0 0 8px 0; color:#16a34a; font-size:0.95rem;"><i class="fa-solid fa-calendar-check"></i> Hoạt động được báo cáo</h4>
+                            <p style="margin:3px 0; font-size:1.1rem;"><strong style="color:#dc2626;">${defaultActivity.title || 'Chưa có tên'}</strong></p>
+                            <p style="margin:3px 0; font-size:0.9rem; color:#374151;">
+                                <i class="fa-solid fa-calendar"></i> ${formatDate(defaultActivity.date, 'full')} &nbsp;|&nbsp; 
+                                <i class="fa-solid fa-clock"></i> ${defaultActivity.startTime || '?'} - ${defaultActivity.endTime || '?'}
+                            </p>
+                            <p style="margin:3px 0; font-size:0.9rem; color:#374151;">
+                                <i class="fa-solid fa-location-dot"></i> ${defaultActivity.location || 'Chưa có địa điểm'}
+                            </p>
+                            ${defaultActivity.content ? `<p style="margin:5px 0 0 0; font-size:0.85rem; color:#6b7280; font-style:italic;">${defaultActivity.content.substring(0, 100)}${defaultActivity.content.length > 100 ? '...' : ''}</p>` : ''}
+                        </div>
+                        ` : ''}
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Đội hình ${!isAdmin && currentUserTeam ? '<small class="text-muted">(Đã được gán)</small>' : ''}</label>
+                                <select id="report-team" ${disableTeamSelect ? 'disabled' : ''}>
+                                    ${CONFIG.teams.map(t => {
         // Normalize cả 2 về dạng tên đẹp để so sánh
         const normalizedDefault = normalizeTeamName(defaultTeam);
         const normalizedT = normalizeTeamName(t);
         const isSelected = (defaultTeam === t) || (normalizedDefault === normalizedT);
         return `<option value="${t}" ${isSelected ? 'selected' : ''}>${normalizedT}</option>`;
     }).join('')}
-                            </select>
-                            ${disableTeamSelect && !isEdit ? '<input type="hidden" id="report-team-hidden" value="' + defaultTeam + '">' : ''}
+                                </select>
+                                ${disableTeamSelect && !isEdit ? '<input type="hidden" id="report-team-hidden" value="' + defaultTeam + '">' : ''}
+                            </div>
+                            <div class="form-group">
+                                <label>Báo cáo cho ngày <span class="required">*</span></label>
+                                <input type="date" id="report-date" value="${report?.date || formatDate(new Date(), 'yyyy-mm-dd')}" required>
+                            </div>
                         </div>
+                        <!-- Danh sách chiến sĩ tham gia - GIỐNG MODAL HOẠT ĐỘNG -->
                         <div class="form-group">
-                            <label>Báo cáo cho ngày <span class="required">*</span></label>
-                            <input type="date" id="report-date" value="${report?.date || formatDate(new Date(), 'yyyy-mm-dd')}" required>
-                        </div>
-                    </div>
-                    <!-- Danh sách chiến sĩ tham gia - GIỐNG MODAL HOẠT ĐỘNG -->
-                    <div class="form-group">
-                        <label>Danh sách chiến sĩ chi tiết</label>
-                        <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
-                            <i class="fa-solid fa-users"></i> 
-                            Quản lý danh sách (<span id="report-participants-count">${defaultActivity?.participants?.length || 0}</span> chiến sĩ)
-                        </button>
-                        <input type="hidden" id="report-activity-id" value="${defaultActivity?.id || report?.linkedActivityId || ''}">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tổng giờ hoạt động</label>
-                            <input type="text" id="report-total-hours" 
-                                value="${defaultActivity ? calculateHours(defaultActivity.startTime, defaultActivity.endTime).toFixed(1) : (report?.totalHours || '0')} giờ" 
-                                readonly style="background:#f3f4f6; font-weight:bold; font-size:16px;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Nội dung báo cáo <small>(Kết quả, kinh phí, ý nghĩa, khó khăn, đề xuất...)</small></label>
-                        <textarea id="report-content" rows="5" placeholder="- Kết quả thực hiện:
-- Kinh phí thực hiện (nếu có):
-- Số lượng người dân/thanh thiếu nhi tham gia/hưởng lợi:
-- Thành tựu đáng ghi nhận:
-- Ý nghĩa của hoạt động:
-- Khó khăn, hạn chế gặp phải:
-- Đề xuất, kiến nghị/tiếp cận:">${report?.reportContent || report?.summary || ''}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Minh chứng <small>(Link Drive, Ảnh... mỗi link 1 dòng)</small></label>
-                        <textarea id="report-evidence" rows="3" placeholder="Dán các đường link vào đây...">${evidenceLinks}</textarea>
-                    </div>
-                    
-                    <!-- Custom Fields Section - CHỈ BCH Cấp trường mới thấy -->
-                    ${isAdmin ? `
-                    <div class="custom-fields-section">
-                        <div class="custom-fields-header">
-                            <label><i class="fa-solid fa-layer-group"></i> Mục bổ sung <small>(BCH Cấp trường tạo thêm)</small></label>
-                            <button type="button" class="btn btn-sm btn-success" id="add-custom-field" title="Thêm mục mới">
-                                <i class="fa-solid fa-plus"></i> Thêm mục
+                            <label>Danh sách chiến sĩ chi tiết</label>
+                            <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
+                                <i class="fa-solid fa-users"></i> 
+                                Quản lý danh sách (<span id="report-participants-count">${defaultActivity?.participants?.length || 0}</span> chiến sĩ)
                             </button>
+                            <input type="hidden" id="report-activity-id" value="${defaultActivity?.id || report?.linkedActivityId || ''}">
                         </div>
-                        <div id="custom-fields-container">
-                            ${(report?.customFields || []).map((cf, idx) => `
-                                <div class="custom-field-item" data-index="${idx}">
-                                    <div class="custom-field-row">
-                                        <input type="text" class="custom-field-label" placeholder="Tên mục (VD: Kinh phí)" value="${cf.label || ''}">
-                                        <button type="button" class="btn btn-sm btn-danger remove-custom-field" title="Xóa mục">
-                                            <i class="fa-solid fa-times"></i>
-                                        </button>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Tổng giờ hoạt động</label>
+                                <input type="text" id="report-total-hours" 
+                                    value="${defaultActivity ? calculateHours(defaultActivity.startTime, defaultActivity.endTime).toFixed(1) : (report?.totalHours || '0')} giờ" 
+                                    readonly style="background:#f3f4f6; font-weight:bold; font-size:16px;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nội dung báo cáo <small>(Kết quả, kinh phí, ý nghĩa, khó khăn, đề xuất...)</small></label>
+                            <textarea id="report-content" rows="5" placeholder="- Kết quả thực hiện:
+    - Kinh phí thực hiện (nếu có):
+    - Số lượng người dân/thanh thiếu nhi tham gia/hưởng lợi:
+    - Thành tựu đáng ghi nhận:
+    - Ý nghĩa của hoạt động:
+    - Khó khăn, hạn chế gặp phải:
+    - Đề xuất, kiến nghị/tiếp cận:">${report?.reportContent || report?.summary || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Minh chứng <small>(Link Drive, Ảnh... mỗi link 1 dòng)</small></label>
+                            <textarea id="report-evidence" rows="3" placeholder="Dán các đường link vào đây...">${evidenceLinks}</textarea>
+                        </div>
+                        
+                        <!-- Custom Fields Section - CHỈ BCH Cấp trường mới thấy -->
+                        ${isAdmin ? `
+                        <div class="custom-fields-section">
+                            <div class="custom-fields-header">
+                                <label><i class="fa-solid fa-layer-group"></i> Mục bổ sung <small>(BCH Cấp trường tạo thêm)</small></label>
+                                <button type="button" class="btn btn-sm btn-success" id="add-custom-field" title="Thêm mục mới">
+                                    <i class="fa-solid fa-plus"></i> Thêm mục
+                                </button>
+                            </div>
+                            <div id="custom-fields-container">
+                                ${(report?.customFields || []).map((cf, idx) => `
+                                    <div class="custom-field-item" data-index="${idx}">
+                                        <div class="custom-field-row">
+                                            <input type="text" class="custom-field-label" placeholder="Tên mục (VD: Kinh phí)" value="${cf.label || ''}">
+                                            <button type="button" class="btn btn-sm btn-danger remove-custom-field" title="Xóa mục">
+                                                <i class="fa-solid fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <textarea class="custom-field-value" placeholder="Nội dung..." rows="2">${cf.value || ''}</textarea>
                                     </div>
-                                    <textarea class="custom-field-value" placeholder="Nội dung..." rows="2">${cf.value || ''}</textarea>
-                                </div>
-                            `).join('')}
+                                `).join('')}
+                            </div>
+                            <p class="custom-fields-hint"><small><i class="fa-solid fa-info-circle"></i> Sử dụng nút "+" để thêm các mục thông tin chưa có sẵn trong form.</small></p>
                         </div>
-                        <p class="custom-fields-hint"><small><i class="fa-solid fa-info-circle"></i> Sử dụng nút "+" để thêm các mục thông tin chưa có sẵn trong form.</small></p>
+                        ` : ''}
                     </div>
-                    ` : ''}
-                </div>
-                <div class="activity-modal-footer">
-                    <button class="btn btn-secondary" id="report-cancel">Hủy bỏ</button>
-                    <button class="btn btn-primary" id="report-save"><i class="fa-solid fa-arrow-right"></i> Lưu báo cáo</button>
+                    <div class="activity-modal-footer">
+                        <button class="btn btn-secondary" id="report-cancel">Hủy bỏ</button>
+                        <button class="btn btn-primary" id="report-save"><i class="fa-solid fa-arrow-right"></i> Lưu báo cáo</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -2873,14 +2995,14 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
         newField.className = 'custom-field-item';
         newField.dataset.index = customFieldIndex++;
         newField.innerHTML = `
-            <div class="custom-field-row">
-                <input type="text" class="custom-field-label" placeholder="Tên mục (VD: Kinh phí, Số lượng TNTN hưởng lợi...)">
-                <button type="button" class="btn btn-sm btn-danger remove-custom-field" title="Xóa mục">
-                    <i class="fa-solid fa-times"></i>
-                </button>
-            </div>
-            <textarea class="custom-field-value" placeholder="Nội dung..." rows="2"></textarea>
-        `;
+                <div class="custom-field-row">
+                    <input type="text" class="custom-field-label" placeholder="Tên mục (VD: Kinh phí, Số lượng TNTN hưởng lợi...)">
+                    <button type="button" class="btn btn-sm btn-danger remove-custom-field" title="Xóa mục">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+                <textarea class="custom-field-value" placeholder="Nội dung..." rows="2"></textarea>
+            `;
         container.appendChild(newField);
 
         // Focus to the new field
@@ -2928,6 +3050,9 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
         const participantsCount = linkedActivity?.participants?.length ||
             parseInt(document.getElementById('report-participants-count')?.textContent) || 0;
 
+        // Kiểm tra báo cáo có quá hạn không (dựa trên deadline của activity)
+        const isLateReport = linkedActivity ? getReportStatus(linkedActivity).isOverdue : false;
+
         const data = {
             team: selectedTeamValue,
             date: document.getElementById('report-date').value,
@@ -2938,6 +3063,7 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
             evidence: evidenceArray,
             customFields: customFields,
             submitted: false,
+            isLate: isLateReport,
             updatedAt: serverTimestamp(),
             updatedBy: auth.currentUser?.email || 'unknown'
         };
@@ -2988,79 +3114,79 @@ function showReportHistory(reportId) {
     const updatedAt = report.updatedAt ? new Date(report.updatedAt.toDate()).toLocaleString('vi-VN') : 'N/A';
 
     modal.innerHTML = `
-        <div style="background:white; border-radius:16px; width:95%; max-width:600px; max-height:85vh; overflow:hidden; box-shadow:0 15px 50px rgba(0,0,0,0.25);">
-            <div style="padding:18px 20px; background:linear-gradient(135deg, #0ea5e9, #38bdf8); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; font-size:1.1rem; color:white; font-weight:600;">
-                    <i class="fa-solid fa-file-lines"></i> Chi tiết Báo cáo
-                </h3>
-                <button id="close-history-modal" style="background:rgba(255,255,255,0.2); border:none; width:30px; height:30px; border-radius:50%; font-size:1.2rem; cursor:pointer; color:white;">&times;</button>
-            </div>
-            <div style="padding:20px; overflow-y:auto; max-height:70vh;">
-                <!-- Info rows -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                    <div style="background:#f0f9ff; padding:12px; border-radius:10px;">
-                        <div style="font-size:0.8rem; color:#0369a1; margin-bottom:4px;"><i class="fa-solid fa-users"></i> Đội hình</div>
-                        <div style="font-weight:600; color:#1e3a5f;">${teamDisplay}</div>
-                    </div>
-                    <div style="background:#f0fdf4; padding:12px; border-radius:10px;">
-                        <div style="font-size:0.8rem; color:#16a34a; margin-bottom:4px;"><i class="fa-solid fa-calendar"></i> Ngày</div>
-                        <div style="font-weight:600; color:#166534;">${dateDisplay}</div>
-                    </div>
+            <div style="background:white; border-radius:16px; width:95%; max-width:600px; max-height:85vh; overflow:hidden; box-shadow:0 15px 50px rgba(0,0,0,0.25);">
+                <div style="padding:18px 20px; background:linear-gradient(135deg, #0ea5e9, #38bdf8); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:1.1rem; color:white; font-weight:600;">
+                        <i class="fa-solid fa-file-lines"></i> Chi tiết Báo cáo
+                    </h3>
+                    <button id="close-history-modal" style="background:rgba(255,255,255,0.2); border:none; width:30px; height:30px; border-radius:50%; font-size:1.2rem; cursor:pointer; color:white;">&times;</button>
                 </div>
-                
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                    <div style="background:#fefce8; padding:12px; border-radius:10px;">
-                        <div style="font-size:0.8rem; color:#a16207; margin-bottom:4px;"><i class="fa-solid fa-user-group"></i> Tham gia</div>
-                        <div style="font-weight:600; color:#854d0e;">${report.participants || 'N/A'}</div>
-                    </div>
-                    <div style="background:#faf5ff; padding:12px; border-radius:10px;">
-                        <div style="font-size:0.8rem; color:#7c3aed; margin-bottom:4px;"><i class="fa-solid fa-clock"></i> Thời gian tạo</div>
-                        <div style="font-weight:600; color:#5b21b6; font-size:0.9rem;">${createdAt}</div>
-                    </div>
-                </div>
-                
-                <!-- Nội dung -->
-                <div style="background:#f9fafb; padding:15px; border-radius:10px; margin-bottom:12px;">
-                    <div style="font-size:0.85rem; color:#4b5563; margin-bottom:8px; font-weight:600;">
-                        <i class="fa-solid fa-align-left"></i> Nội dung báo cáo
-                    </div>
-                    <p style="margin:0; color:#1f2937; white-space:pre-wrap;">${report.content || 'Không có nội dung'}</p>
-                </div>
-                
-                ${report.evidence && report.evidence.length > 0 ? `
-                    <div style="background:#fff7ed; padding:15px; border-radius:10px; margin-bottom:12px;">
-                        <div style="font-size:0.85rem; color:#c2410c; margin-bottom:8px; font-weight:600;">
-                            <i class="fa-solid fa-link"></i> Minh chứng (${report.evidence.length})
+                <div style="padding:20px; overflow-y:auto; max-height:70vh;">
+                    <!-- Info rows -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="background:#f0f9ff; padding:12px; border-radius:10px;">
+                            <div style="font-size:0.8rem; color:#0369a1; margin-bottom:4px;"><i class="fa-solid fa-users"></i> Đội hình</div>
+                            <div style="font-weight:600; color:#1e3a5f;">${teamDisplay}</div>
                         </div>
-                        ${report.evidence.map((link, i) => `
-                            <a href="${link}" target="_blank" style="display:block; color:#ea580c; font-size:0.9rem; margin-bottom:4px; word-break:break-all;">
-                                ${i + 1}. ${link}
-                            </a>
-                        `).join('')}
-                    </div>
-                ` : ''}
-                
-                ${linkedActivity ? `
-                    <div style="background:#ecfdf5; padding:15px; border-radius:10px; border:1px solid #86efac;">
-                        <div style="font-size:0.85rem; color:#16a34a; margin-bottom:6px; font-weight:600;">
-                            <i class="fa-solid fa-link"></i> Hoạt động liên kết
+                        <div style="background:#f0fdf4; padding:12px; border-radius:10px;">
+                            <div style="font-size:0.8rem; color:#16a34a; margin-bottom:4px;"><i class="fa-solid fa-calendar"></i> Ngày</div>
+                            <div style="font-weight:600; color:#166534;">${dateDisplay}</div>
                         </div>
-                        <p style="margin:0; color:#166534;">
-                            ${linkedActivity.title || linkedActivity.content || 'Hoạt động'} 
-                            <span style="color:#4ade80;">(${formatDate(linkedActivity.date, 'full')})</span>
-                        </p>
                     </div>
-                ` : ''}
-                
-                <!-- Meta info -->
-                <div style="margin-top:16px; padding-top:12px; border-top:1px solid #e5e7eb; font-size:0.8rem; color:#9ca3af;">
-                    <p style="margin:4px 0;"><strong>ID:</strong> ${reportId}</p>
-                    <p style="margin:4px 0;"><strong>Người tạo:</strong> ${report.createdBy || 'N/A'}</p>
-                    <p style="margin:4px 0;"><strong>Cập nhật lần cuối:</strong> ${updatedAt}</p>
+                    
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="background:#fefce8; padding:12px; border-radius:10px;">
+                            <div style="font-size:0.8rem; color:#a16207; margin-bottom:4px;"><i class="fa-solid fa-user-group"></i> Tham gia</div>
+                            <div style="font-weight:600; color:#854d0e;">${report.participants || 'N/A'}</div>
+                        </div>
+                        <div style="background:#faf5ff; padding:12px; border-radius:10px;">
+                            <div style="font-size:0.8rem; color:#7c3aed; margin-bottom:4px;"><i class="fa-solid fa-clock"></i> Thời gian tạo</div>
+                            <div style="font-weight:600; color:#5b21b6; font-size:0.9rem;">${createdAt}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Nội dung -->
+                    <div style="background:#f9fafb; padding:15px; border-radius:10px; margin-bottom:12px;">
+                        <div style="font-size:0.85rem; color:#4b5563; margin-bottom:8px; font-weight:600;">
+                            <i class="fa-solid fa-align-left"></i> Nội dung báo cáo
+                        </div>
+                        <p style="margin:0; color:#1f2937; white-space:pre-wrap;">${report.content || 'Không có nội dung'}</p>
+                    </div>
+                    
+                    ${report.evidence && report.evidence.length > 0 ? `
+                        <div style="background:#fff7ed; padding:15px; border-radius:10px; margin-bottom:12px;">
+                            <div style="font-size:0.85rem; color:#c2410c; margin-bottom:8px; font-weight:600;">
+                                <i class="fa-solid fa-link"></i> Minh chứng (${report.evidence.length})
+                            </div>
+                            ${report.evidence.map((link, i) => `
+                                <a href="${link}" target="_blank" style="display:block; color:#ea580c; font-size:0.9rem; margin-bottom:4px; word-break:break-all;">
+                                    ${i + 1}. ${link}
+                                </a>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${linkedActivity ? `
+                        <div style="background:#ecfdf5; padding:15px; border-radius:10px; border:1px solid #86efac;">
+                            <div style="font-size:0.85rem; color:#16a34a; margin-bottom:6px; font-weight:600;">
+                                <i class="fa-solid fa-link"></i> Hoạt động liên kết
+                            </div>
+                            <p style="margin:0; color:#166534;">
+                                ${linkedActivity.title || linkedActivity.content || 'Hoạt động'} 
+                                <span style="color:#4ade80;">(${formatDate(linkedActivity.date, 'full')})</span>
+                            </p>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Meta info -->
+                    <div style="margin-top:16px; padding-top:12px; border-top:1px solid #e5e7eb; font-size:0.8rem; color:#9ca3af;">
+                        <p style="margin:4px 0;"><strong>ID:</strong> ${reportId}</p>
+                        <p style="margin:4px 0;"><strong>Người tạo:</strong> ${report.createdBy || 'N/A'}</p>
+                        <p style="margin:4px 0;"><strong>Cập nhật lần cuối:</strong> ${updatedAt}</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
     document.body.appendChild(modal);
 
@@ -3109,11 +3235,11 @@ function renderHistory() {
 
     if (filtered.length === 0) {
         elements.historyList.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-clock-rotate-left fa-3x"></i>
-                <p>Chưa có lịch sử thay đổi.</p>
-            </div>
-        `;
+                <div class="empty-state">
+                    <i class="fa-solid fa-clock-rotate-left fa-3x"></i>
+                    <p>Chưa có lịch sử thay đổi.</p>
+                </div>
+            `;
         return;
     }
 
@@ -3140,17 +3266,17 @@ function renderHistory() {
         }
 
         return `
-            <div class="history-item">
-                <div class="history-icon ${log.action || 'default'}">
-                    <i class="fa-solid fa-${log.action === 'create' ? 'plus' : log.action === 'update' ? 'edit' : log.action === 'delete' ? 'trash' : log.action === 'login' ? 'right-to-bracket' : 'eye'}"></i>
+                <div class="history-item">
+                    <div class="history-icon ${log.action || 'default'}">
+                        <i class="fa-solid fa-${log.action === 'create' ? 'plus' : log.action === 'update' ? 'edit' : log.action === 'delete' ? 'trash' : log.action === 'login' ? 'right-to-bracket' : 'eye'}"></i>
+                    </div>
+                    <div class="history-content">
+                        <strong>${userName}</strong> đã ${actionText.toLowerCase()} ${typeText}
+                        <p>${data.team ? `Đội: ${normalizeTeamName(data.team)}` : ''} ${data.date ? `| Ngày: ${formatDate(data.date, 'full')}` : ''}</p>
+                    </div>
+                    <div class="history-time">${timeStr}</div>
                 </div>
-                <div class="history-content">
-                    <strong>${userName}</strong> đã ${actionText.toLowerCase()} ${typeText}
-                    <p>${data.team ? `Đội: ${normalizeTeamName(data.team)}` : ''} ${data.date ? `| Ngày: ${formatDate(data.date, 'full')}` : ''}</p>
-                </div>
-                <div class="history-time">${timeStr}</div>
-            </div>
-        `;
+            `;
     }).join('');
 }
 
