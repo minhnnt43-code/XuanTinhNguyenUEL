@@ -1002,7 +1002,7 @@ function openActivityModal(activity = null, date = null, team = null) {
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Danh sách tham gia thực tế</label>
+                        <label>Danh sách chiến sĩ chi tiết</label>
                         <button type="button" class="btn btn-info btn-block" id="btn-participants-list" style="margin-top:5px;">
                             <i class="fa-solid fa-users"></i> 
                             Quản lý danh sách (<span id="participants-count">${activity?.participants?.length || 0}</span> chiến sĩ)
@@ -2534,7 +2534,7 @@ function openReportModalWithActivity(activity) {
                     
                     <!-- Danh sách tham gia - GIỐNG MODAL HOẠT ĐỘNG -->
                     <div class="form-group">
-                        <label>Danh sách tham gia thực tế</label>
+                        <label>Danh sách chiến sĩ chi tiết</label>
                         <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
                             <i class="fa-solid fa-users"></i> 
                             Quản lý danh sách (<span id="report-participants-count">${activity.participants?.length || 0}</span> chiến sĩ)
@@ -2757,7 +2757,7 @@ function openReportModal(report = null, prefillTeam = '', prefillDate = '', pref
                     </div>
                     <!-- Danh sách chiến sĩ tham gia - GIỐNG MODAL HOẠT ĐỘNG -->
                     <div class="form-group">
-                        <label>Danh sách tham gia thực tế</label>
+                        <label>Danh sách chiến sĩ chi tiết</label>
                         <button type="button" class="btn btn-info btn-block" id="btn-report-participants-list" style="margin-top:5px;">
                             <i class="fa-solid fa-users"></i> 
                             Quản lý danh sách (<span id="report-participants-count">${defaultActivity?.participants?.length || 0}</span> chiến sĩ)
